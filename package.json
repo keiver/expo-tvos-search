@@ -38,7 +38,12 @@
     "expo": ">=51.0.0",
     "expo-modules-core": ">=1.0.0",
     "react": ">=18.0.0",
-    "react-native": ">=0.71.0"
+    "react-native": "*"
+  },
+  "peerDependenciesMeta": {
+    "react-native": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "expo-modules-core": "~3.0.25",
