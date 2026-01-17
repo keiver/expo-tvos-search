@@ -150,6 +150,11 @@ struct SearchResultCard: View {
     private let placeholderColor = Color(white: 0.2)
     private let focusedBorderColor = Color(red: 1, green: 0.765, blue: 0.07) // #FFC312
 
+    // Fixed card dimensions for consistent grid layout
+    // Width calculated for 5 columns: (1920 - 120 padding - 160 spacing) / 5 ≈ 280
+    private let cardWidth: CGFloat = 280
+    private var cardHeight: CGFloat { cardWidth * 1.5 } // 2:3 aspect ratio
+
     var body: some View {
         Button(action: onSelect) {
             VStack(alignment: .leading, spacing: showTitle || showSubtitle ? 12 : 0) {
@@ -165,17 +170,20 @@ struct SearchResultCard: View {
                                 image
                                     .resizable()
                                     .aspectRatio(contentMode: .fill)
+                                    .frame(width: cardWidth, height: cardHeight)
                             case .failure:
                                 placeholderIcon
                             @unknown default:
                                 EmptyView()
                             }
                         }
+                        .frame(width: cardWidth, height: cardHeight)
                     } else {
                         placeholderIcon
                     }
                 }
-                .aspectRatio(2/3, contentMode: .fit)
+                .frame(width: cardWidth, height: cardHeight)
+                .clipped()
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
@@ -200,7 +208,7 @@ struct SearchResultCard: View {
                                 .lineLimit(1)
                         }
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(width: cardWidth, alignment: .leading)
                 }
             }
         }
