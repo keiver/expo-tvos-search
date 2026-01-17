@@ -1,0 +1,57 @@
+{
+  "name": "expo-tvos-search",
+  "version": "1.0.0",
+  "description": "Native tvOS search view using SwiftUI .searchable modifier for Expo/React Native",
+  "main": "src/index.tsx",
+  "types": "src/index.tsx",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/keiver/expo-tvos-search.git"
+  },
+  "homepage": "https://github.com/keiver/expo-tvos-search#readme",
+  "bugs": {
+    "url": "https://github.com/keiver/expo-tvos-search/issues"
+  },
+  "author": {
+    "name": "Keiver Hernandez",
+    "url": "https://github.com/keiver"
+  },
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf build",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "keywords": [
+    "expo",
+    "expo-module",
+    "tvos",
+    "appletv",
+    "apple-tv",
+    "search",
+    "swiftui",
+    "searchable",
+    "react-native",
+    "react-native-tvos"
+  ],
+  "peerDependencies": {
+    "expo": ">=51.0.0",
+    "expo-modules-core": ">=1.0.0",
+    "react": ">=18.0.0",
+    "react-native": ">=0.71.0"
+  },
+  "devDependencies": {
+    "expo-modules-core": "~3.0.25",
+    "typescript": "~5.3.0"
+  },
+  "files": [
+    "src",
+    "ios",
+    "expo-module.config.json",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

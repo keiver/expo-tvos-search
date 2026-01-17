@@ -1,0 +1,351 @@
+import ExpoModulesCore
+import SwiftUI
+
+#if os(tvOS)
+
+struct SearchResultItem: Identifiable, Equatable {
+    let id: String
+    let title: String
+    let subtitle: String?
+    let imageUrl: String?
+}
+
+/// ObservableObject that holds state for the search view.
+/// This allows updating properties without recreating the entire view hierarchy.
+class SearchViewModel: ObservableObject {
+    @Published var results: [SearchResultItem] = []
+    @Published var isLoading: Bool = false
+    @Published var searchText: String = ""
+
+    var onSearch: ((String) -> Void)?
+    var onSelectItem: ((String) -> Void)?
+    var columns: Int = 5
+    var placeholder: String = "Search movies and videos..."
+
+    // Card styling options (configurable from JS)
+    var showTitle: Bool = false
+    var showSubtitle: Bool = false
+    var showFocusBorder: Bool = false
+    var topInset: CGFloat = 0  // Extra top padding for tab bar
+}
+
+struct TvosSearchContentView: View {
+    @ObservedObject var viewModel: SearchViewModel
+
+    private var gridColumns: [GridItem] {
+        Array(repeating: GridItem(.flexible(), spacing: 40), count: viewModel.columns)
+    }
+
+    var body: some View {
+        NavigationView {
+            ZStack {
+                Group {
+                    if viewModel.results.isEmpty && viewModel.searchText.isEmpty {
+                        emptyStateView
+                    } else if viewModel.results.isEmpty && !viewModel.searchText.isEmpty {
+                        if viewModel.isLoading {
+                            searchingStateView
+                        } else {
+                            noResultsView
+                        }
+                    } else {
+                        resultsGridView
+                    }
+                }
+
+                // Loading overlay when loading with results
+                if viewModel.isLoading && !viewModel.results.isEmpty {
+                    loadingOverlay
+                }
+            }
+            .searchable(text: $viewModel.searchText, prompt: viewModel.placeholder)
+            .onChange(of: viewModel.searchText) { newValue in
+                viewModel.onSearch?(newValue)
+            }
+        }
+        .padding(.top, viewModel.topInset)
+        .ignoresSafeArea(.all, edges: .top)
+    }
+
+    private var emptyStateView: some View {
+        VStack(spacing: 20) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 80))
+                .foregroundColor(.secondary)
+            Text("Search for movies and videos")
+                .font(.headline)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var searchingStateView: some View {
+        VStack(spacing: 20) {
+            ProgressView()
+                .scaleEffect(1.5)
+            Text("Searching...")
+                .font(.headline)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var noResultsView: some View {
+        VStack(spacing: 20) {
+            Image(systemName: "film.stack")
+                .font(.system(size: 80))
+                .foregroundColor(.secondary)
+            Text("No results found")
+                .font(.headline)
+                .foregroundColor(.secondary)
+            Text("Try a different search term")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var loadingOverlay: some View {
+        VStack {
+            HStack {
+                Spacer()
+                ProgressView()
+                    .padding(16)
+                    .background(Color.black.opacity(0.6))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
+            .padding(.trailing, 60)
+            .padding(.top, 20)
+            Spacer()
+        }
+    }
+
+    private var resultsGridView: some View {
+        ScrollView {
+            LazyVGrid(columns: gridColumns, spacing: 50) {
+                ForEach(viewModel.results) { item in
+                    SearchResultCard(
+                        item: item,
+                        showTitle: viewModel.showTitle,
+                        showSubtitle: viewModel.showSubtitle,
+                        showFocusBorder: viewModel.showFocusBorder,
+                        onSelect: { viewModel.onSelectItem?(item.id) }
+                    )
+                }
+            }
+            .padding(.horizontal, 60)
+            .padding(.vertical, 40)
+        }
+    }
+}
+
+struct SearchResultCard: View {
+    let item: SearchResultItem
+    let showTitle: Bool
+    let showSubtitle: Bool
+    let showFocusBorder: Bool
+    let onSelect: () -> Void
+    @FocusState private var isFocused: Bool
+
+    private let placeholderColor = Color(white: 0.2)
+    private let focusedBorderColor = Color(red: 1, green: 0.765, blue: 0.07) // #FFC312
+
+    var body: some View {
+        Button(action: onSelect) {
+            VStack(alignment: .leading, spacing: showTitle || showSubtitle ? 12 : 0) {
+                ZStack {
+                    placeholderColor
+
+                    if let imageUrl = item.imageUrl, let url = URL(string: imageUrl) {
+                        AsyncImage(url: url) { phase in
+                            switch phase {
+                            case .empty:
+                                ProgressView()
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                            case .failure:
+                                placeholderIcon
+                            @unknown default:
+                                EmptyView()
+                            }
+                        }
+                    } else {
+                        placeholderIcon
+                    }
+                }
+                .aspectRatio(2/3, contentMode: .fit)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(showFocusBorder && isFocused ? focusedBorderColor : Color.clear, lineWidth: 4)
+                )
+
+                if showTitle || showSubtitle {
+                    VStack(alignment: .leading, spacing: 4) {
+                        if showTitle {
+                            Text(item.title)
+                                .font(.callout)
+                                .fontWeight(.medium)
+                                .lineLimit(2)
+                                .multilineTextAlignment(.leading)
+                                .foregroundColor(.primary)
+                        }
+
+                        if showSubtitle, let subtitle = item.subtitle {
+                            Text(subtitle)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .lineLimit(1)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+        }
+        .buttonStyle(.card)
+        .focused($isFocused)
+    }
+
+    private var placeholderIcon: some View {
+        Image(systemName: "film")
+            .font(.system(size: 50))
+            .foregroundColor(.secondary)
+    }
+}
+
+class ExpoTvosSearchView: ExpoView {
+    private var hostingController: UIHostingController<TvosSearchContentView>?
+    private let viewModel = SearchViewModel()
+
+    var columns: Int = 5 {
+        didSet {
+            viewModel.columns = columns
+        }
+    }
+
+    var placeholder: String = "Search movies and videos..." {
+        didSet {
+            viewModel.placeholder = placeholder
+        }
+    }
+
+    var isLoading: Bool = false {
+        didSet {
+            viewModel.isLoading = isLoading
+        }
+    }
+
+    var showTitle: Bool = false {
+        didSet {
+            viewModel.showTitle = showTitle
+        }
+    }
+
+    var showSubtitle: Bool = false {
+        didSet {
+            viewModel.showSubtitle = showSubtitle
+        }
+    }
+
+    var showFocusBorder: Bool = false {
+        didSet {
+            viewModel.showFocusBorder = showFocusBorder
+        }
+    }
+
+    var topInset: CGFloat = 0 {
+        didSet {
+            viewModel.topInset = topInset
+        }
+    }
+
+    let onSearch = EventDispatcher()
+    let onSelectItem = EventDispatcher()
+
+    required init(appContext: AppContext? = nil) {
+        super.init(appContext: appContext)
+        setupView()
+    }
+
+    private func setupView() {
+        // Configure viewModel callbacks
+        viewModel.onSearch = { [weak self] query in
+            self?.onSearch(["query": query])
+        }
+        viewModel.onSelectItem = { [weak self] id in
+            self?.onSelectItem(["id": id])
+        }
+
+        // Create hosting controller once
+        let contentView = TvosSearchContentView(viewModel: viewModel)
+        let controller = UIHostingController(rootView: contentView)
+        controller.view.backgroundColor = .clear
+        hostingController = controller
+
+        addSubview(controller.view)
+        controller.view.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            controller.view.topAnchor.constraint(equalTo: topAnchor),
+            controller.view.bottomAnchor.constraint(equalTo: bottomAnchor),
+            controller.view.leadingAnchor.constraint(equalTo: leadingAnchor),
+            controller.view.trailingAnchor.constraint(equalTo: trailingAnchor)
+        ])
+    }
+
+    func updateResults(_ results: [[String: Any]]) {
+        viewModel.results = results.compactMap { dict -> SearchResultItem? in
+            guard let id = dict["id"] as? String,
+                  let title = dict["title"] as? String else {
+                return nil
+            }
+            return SearchResultItem(
+                id: id,
+                title: title,
+                subtitle: dict["subtitle"] as? String,
+                imageUrl: dict["imageUrl"] as? String
+            )
+        }
+    }
+}
+
+#else
+
+// Fallback for non-tvOS platforms (iOS)
+class ExpoTvosSearchView: ExpoView {
+    var columns: Int = 5
+    var placeholder: String = "Search movies and videos..."
+    var isLoading: Bool = false
+    var showTitle: Bool = false
+    var showSubtitle: Bool = false
+    var showFocusBorder: Bool = false
+    var topInset: CGFloat = 0
+
+    let onSearch = EventDispatcher()
+    let onSelectItem = EventDispatcher()
+
+    required init(appContext: AppContext? = nil) {
+        super.init(appContext: appContext)
+        setupFallbackView()
+    }
+
+    private func setupFallbackView() {
+        let label = UILabel()
+        label.text = "TvOS Search View is only available on Apple TV"
+        label.textAlignment = .center
+        label.textColor = .secondaryLabel
+        label.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(label)
+        NSLayoutConstraint.activate([
+            label.centerXAnchor.constraint(equalTo: centerXAnchor),
+            label.centerYAnchor.constraint(equalTo: centerYAnchor)
+        ])
+    }
+
+    func updateResults(_ results: [[String: Any]]) {
+        // No-op on non-tvOS
+    }
+}
+
+#endif
