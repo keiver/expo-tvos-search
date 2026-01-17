@@ -64,7 +64,7 @@ struct TvosSearchContentView: View {
                 }
             }
             .searchable(text: $viewModel.searchText, prompt: viewModel.placeholder)
-            .onChange(of: viewModel.searchText) { _, newValue in
+            .onChange(of: viewModel.searchText) { newValue in
                 viewModel.onSearch?(newValue)
             }
         }

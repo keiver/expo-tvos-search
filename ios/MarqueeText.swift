@@ -75,20 +75,20 @@ struct MarqueeText: View {
             .onPreferenceChange(TextWidthKey.self) { width in
                 textWidth = width
             }
-            .onChange(of: geometry.size.width) { _, newWidth in
+            .onChange(of: geometry.size.width) { newWidth in
                 containerWidth = newWidth
             }
             .onAppear {
                 containerWidth = geometry.size.width
             }
-            .onChange(of: animate) { _, shouldAnimate in
+            .onChange(of: animate) { shouldAnimate in
                 if shouldAnimate && needsScroll {
                     startScrolling()
                 } else {
                     stopScrolling()
                 }
             }
-            .onChange(of: needsScroll) { _, scrollNeeded in
+            .onChange(of: needsScroll) { scrollNeeded in
                 if animate && scrollNeeded {
                     startScrolling()
                 } else {
