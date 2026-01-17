@@ -4,6 +4,27 @@ A native tvOS search component for Expo and React Native.
 
 Built because React Native's TextInput + FlatList has focus navigation issues on tvOS. This module uses SwiftUI's `.searchable` modifier, which handles focus and keyboard navigation the way Apple intended.
 
+<p align="center">
+  <img src="screenshots/results.png" width="700" alt="TomoTV Search Results"/>
+</p>
+
+<table>
+  <tr>
+    <td align="center">
+      <img src="screenshots/default.png" width="280" alt="Search"/><br/>
+      <sub>Native Search</sub>
+    </td>
+    <td align="center">
+      <img src="screenshots/results.png" width="280" alt="Results"/><br/>
+      <sub>Results</sub>
+    </td>
+    <td align="center">
+      <img src="screenshots/no-results.png" width="280" alt="No Results"/><br/>
+      <sub>Empty State</sub>
+    </td>
+  </tr>
+</table>
+
 ## The Problem
 
 If you've tried building a search screen on tvOS with React Native, you've likely hit these issues:
@@ -103,15 +124,11 @@ interface SearchResult {
 
 MIT
 
-## Author
-
-[Keiver Hernandez](https://github.com/keiver)
-
 ---
 
 Built for [TomoTV](https://github.com/keiver/tomotv), a Jellyfin client for Apple TV.
 
 ---
 
-Swift documentation references
+Swift documentation references:
 - [.searchable modifier](https://developer.apple.com/documentation/SwiftUI/Creating-a-tvOS-media-catalog-app-in-SwiftUI)
