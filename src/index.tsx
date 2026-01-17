@@ -20,6 +20,12 @@ export interface TvosSearchViewProps {
   showFocusBorder?: boolean;
   /** Extra top padding in points for tab bar clearance (default: 0) */
   topInset?: number;
+  /** Show title overlay at bottom of card with gradient (default: true) */
+  showTitleOverlay?: boolean;
+  /** Enable marquee scrolling for long titles (default: true) */
+  enableMarquee?: boolean;
+  /** Delay in seconds before marquee starts scrolling (default: 1.5) */
+  marqueeDelay?: number;
   onSearch: (event: { nativeEvent: { query: string } }) => void;
   onSelectItem: (event: { nativeEvent: { id: string } }) => void;
   style?: ViewStyle;

@@ -38,6 +38,18 @@ public class ExpoTvosSearchModule: Module {
             Prop("topInset") { (view: ExpoTvosSearchView, topInset: Double) in
                 view.topInset = CGFloat(topInset)
             }
+
+            Prop("showTitleOverlay") { (view: ExpoTvosSearchView, show: Bool) in
+                view.showTitleOverlay = show
+            }
+
+            Prop("enableMarquee") { (view: ExpoTvosSearchView, enable: Bool) in
+                view.enableMarquee = enable
+            }
+
+            Prop("marqueeDelay") { (view: ExpoTvosSearchView, delay: Double) in
+                view.marqueeDelay = delay
+            }
         }
     }
 }

@@ -27,6 +27,11 @@ class SearchViewModel: ObservableObject {
     var showSubtitle: Bool = false
     var showFocusBorder: Bool = false
     var topInset: CGFloat = 0  // Extra top padding for tab bar
+
+    // Title overlay options (configurable from JS)
+    var showTitleOverlay: Bool = true
+    var enableMarquee: Bool = true
+    var marqueeDelay: Double = 1.5
 }
 
 struct TvosSearchContentView: View {
@@ -59,7 +64,7 @@ struct TvosSearchContentView: View {
                 }
             }
             .searchable(text: $viewModel.searchText, prompt: viewModel.placeholder)
-            .onChange(of: viewModel.searchText) { newValue in
+            .onChange(of: viewModel.searchText) { _, newValue in
                 viewModel.onSearch?(newValue)
             }
         }
@@ -129,6 +134,9 @@ struct TvosSearchContentView: View {
                         showTitle: viewModel.showTitle,
                         showSubtitle: viewModel.showSubtitle,
                         showFocusBorder: viewModel.showFocusBorder,
+                        showTitleOverlay: viewModel.showTitleOverlay,
+                        enableMarquee: viewModel.enableMarquee,
+                        marqueeDelay: viewModel.marqueeDelay,
                         onSelect: { viewModel.onSelectItem?(item.id) }
                     )
                 }
@@ -144,6 +152,9 @@ struct SearchResultCard: View {
     let showTitle: Bool
     let showSubtitle: Bool
     let showFocusBorder: Bool
+    let showTitleOverlay: Bool
+    let enableMarquee: Bool
+    let marqueeDelay: Double
     let onSelect: () -> Void
     @FocusState private var isFocused: Bool
 
@@ -155,35 +166,80 @@ struct SearchResultCard: View {
     private let cardWidth: CGFloat = 280
     private var cardHeight: CGFloat { cardWidth * 1.5 } // 2:3 aspect ratio
 
+    // Title overlay constants
+    private let overlayGradientHeight: CGFloat = 30
+    private let titleBarHeight: CGFloat = 36
+    private let overlayOpacity: Double = 0.8
+
     var body: some View {
         Button(action: onSelect) {
             VStack(alignment: .leading, spacing: showTitle || showSubtitle ? 12 : 0) {
-                ZStack {
-                    placeholderColor
+                ZStack(alignment: .bottom) {
+                    // Card image content
+                    ZStack {
+                        placeholderColor
 
-                    if let imageUrl = item.imageUrl, let url = URL(string: imageUrl) {
-                        AsyncImage(url: url) { phase in
-                            switch phase {
-                            case .empty:
-                                ProgressView()
-                            case .success(let image):
-                                image
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fill)
-                                    .frame(width: cardWidth, height: cardHeight)
-                            case .failure:
-                                placeholderIcon
-                            @unknown default:
-                                EmptyView()
+                        if let imageUrl = item.imageUrl, let url = URL(string: imageUrl) {
+                            AsyncImage(url: url) { phase in
+                                switch phase {
+                                case .empty:
+                                    ProgressView()
+                                case .success(let image):
+                                    image
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fill)
+                                        .frame(width: cardWidth, height: cardHeight)
+                                case .failure:
+                                    placeholderIcon
+                                @unknown default:
+                                    EmptyView()
+                                }
                             }
+                            .frame(width: cardWidth, height: cardHeight)
+                        } else {
+                            placeholderIcon
                         }
-                        .frame(width: cardWidth, height: cardHeight)
-                    } else {
-                        placeholderIcon
+                    }
+                    .frame(width: cardWidth, height: cardHeight)
+                    .clipped()
+
+                    // Title overlay (gradient + title bar)
+                    if showTitleOverlay {
+                        VStack(spacing: 0) {
+                            // Gradient fade
+                            LinearGradient(
+                                colors: [.clear, .black.opacity(overlayOpacity)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                            .frame(height: overlayGradientHeight)
+
+                            // Title bar
+                            HStack {
+                                if enableMarquee {
+                                    MarqueeText(
+                                        item.title,
+                                        font: .callout,
+                                        leftFade: 8,
+                                        rightFade: 8,
+                                        startDelay: marqueeDelay,
+                                        animate: isFocused
+                                    )
+                                    .foregroundColor(.white)
+                                } else {
+                                    Text(item.title)
+                                        .font(.callout)
+                                        .foregroundColor(.white)
+                                        .lineLimit(1)
+                                }
+                            }
+                            .padding(.horizontal, 12)
+                            .frame(width: cardWidth, height: titleBarHeight, alignment: .leading)
+                            .background(Color.black.opacity(overlayOpacity))
+                        }
                     }
                 }
                 .frame(width: cardWidth, height: cardHeight)
-                .clipped()
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
@@ -269,6 +325,24 @@ class ExpoTvosSearchView: ExpoView {
         }
     }
 
+    var showTitleOverlay: Bool = true {
+        didSet {
+            viewModel.showTitleOverlay = showTitleOverlay
+        }
+    }
+
+    var enableMarquee: Bool = true {
+        didSet {
+            viewModel.enableMarquee = enableMarquee
+        }
+    }
+
+    var marqueeDelay: Double = 1.5 {
+        didSet {
+            viewModel.marqueeDelay = marqueeDelay
+        }
+    }
+
     let onSearch = EventDispatcher()
     let onSelectItem = EventDispatcher()
 
@@ -329,6 +403,9 @@ class ExpoTvosSearchView: ExpoView {
     var showSubtitle: Bool = false
     var showFocusBorder: Bool = false
     var topInset: CGFloat = 0
+    var showTitleOverlay: Bool = true
+    var enableMarquee: Bool = true
+    var marqueeDelay: Double = 1.5
 
     let onSearch = EventDispatcher()
     let onSelectItem = EventDispatcher()
