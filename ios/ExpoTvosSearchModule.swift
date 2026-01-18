@@ -63,6 +63,22 @@ public class ExpoTvosSearchModule: Module {
                 // Clamp between 0 and maxMarqueeDelay seconds
                 view.marqueeDelay = min(max(0, delay), Self.maxMarqueeDelay)
             }
+
+            Prop("emptyStateText") { (view: ExpoTvosSearchView, text: String) in
+                view.emptyStateText = String(text.prefix(Self.maxStringLength))
+            }
+
+            Prop("searchingText") { (view: ExpoTvosSearchView, text: String) in
+                view.searchingText = String(text.prefix(Self.maxStringLength))
+            }
+
+            Prop("noResultsText") { (view: ExpoTvosSearchView, text: String) in
+                view.noResultsText = String(text.prefix(Self.maxStringLength))
+            }
+
+            Prop("noResultsHintText") { (view: ExpoTvosSearchView, text: String) in
+                view.noResultsHintText = String(text.prefix(Self.maxStringLength))
+            }
         }
     }
 }

@@ -137,6 +137,30 @@ export interface TvosSearchViewProps {
   marqueeDelay?: number;
 
   /**
+   * Text displayed when the search field is empty and no results are shown.
+   * @default "Search for movies and videos"
+   */
+  emptyStateText?: string;
+
+  /**
+   * Text displayed while searching (when loading with no results yet).
+   * @default "Searching..."
+   */
+  searchingText?: string;
+
+  /**
+   * Text displayed when search returns no results.
+   * @default "No results found"
+   */
+  noResultsText?: string;
+
+  /**
+   * Hint text displayed below the no results message.
+   * @default "Try a different search term"
+   */
+  noResultsHintText?: string;
+
+  /**
    * Callback fired when the search text changes.
    * Debounce this handler to avoid excessive API calls.
    */

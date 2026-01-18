@@ -32,6 +32,12 @@ class SearchViewModel: ObservableObject {
     var showTitleOverlay: Bool = true
     var enableMarquee: Bool = true
     var marqueeDelay: Double = 1.5
+
+    // State text options (configurable from JS)
+    var emptyStateText: String = "Search for movies and videos"
+    var searchingText: String = "Searching..."
+    var noResultsText: String = "No results found"
+    var noResultsHintText: String = "Try a different search term"
 }
 
 struct TvosSearchContentView: View {
@@ -77,7 +83,7 @@ struct TvosSearchContentView: View {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 80))
                 .foregroundColor(.secondary)
-            Text("Search for movies and videos")
+            Text(viewModel.emptyStateText)
                 .font(.headline)
                 .foregroundColor(.secondary)
         }
@@ -88,7 +94,7 @@ struct TvosSearchContentView: View {
         VStack(spacing: 20) {
             ProgressView()
                 .scaleEffect(1.5)
-            Text("Searching...")
+            Text(viewModel.searchingText)
                 .font(.headline)
                 .foregroundColor(.secondary)
         }
@@ -100,10 +106,10 @@ struct TvosSearchContentView: View {
             Image(systemName: "film.stack")
                 .font(.system(size: 80))
                 .foregroundColor(.secondary)
-            Text("No results found")
+            Text(viewModel.noResultsText)
                 .font(.headline)
                 .foregroundColor(.secondary)
-            Text("Try a different search term")
+            Text(viewModel.noResultsHintText)
                 .font(.subheadline)
                 .foregroundColor(.secondary)
         }
@@ -343,6 +349,30 @@ class ExpoTvosSearchView: ExpoView {
         }
     }
 
+    var emptyStateText: String = "Search for movies and videos" {
+        didSet {
+            viewModel.emptyStateText = emptyStateText
+        }
+    }
+
+    var searchingText: String = "Searching..." {
+        didSet {
+            viewModel.searchingText = searchingText
+        }
+    }
+
+    var noResultsText: String = "No results found" {
+        didSet {
+            viewModel.noResultsText = noResultsText
+        }
+    }
+
+    var noResultsHintText: String = "Try a different search term" {
+        didSet {
+            viewModel.noResultsHintText = noResultsHintText
+        }
+    }
+
     let onSearch = EventDispatcher()
     let onSelectItem = EventDispatcher()
 
@@ -443,6 +473,10 @@ class ExpoTvosSearchView: ExpoView {
     var showTitleOverlay: Bool = true
     var enableMarquee: Bool = true
     var marqueeDelay: Double = 1.5
+    var emptyStateText: String = "Search for movies and videos"
+    var searchingText: String = "Searching..."
+    var noResultsText: String = "No results found"
+    var noResultsHintText: String = "Try a different search term"
 
     let onSearch = EventDispatcher()
     let onSelectItem = EventDispatcher()
