@@ -3,6 +3,7 @@
     "target": "ES2020",
     "module": "ESNext",
     "moduleResolution": "bundler",
+    "jsx": "react",
     "declaration": true,
     "declarationMap": true,
     "outDir": "build",
@@ -11,5 +12,5 @@
     "skipLibCheck": true
   },
   "include": ["src"],
-  "exclude": ["node_modules", "build"]
+  "exclude": ["node_modules", "build", "src/__tests__"]
 }

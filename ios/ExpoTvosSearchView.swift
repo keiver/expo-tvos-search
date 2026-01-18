@@ -351,6 +351,14 @@ class ExpoTvosSearchView: ExpoView {
         setupView()
     }
 
+    deinit {
+        // Clean up hosting controller and view model references to prevent memory leaks
+        hostingController?.view.removeFromSuperview()
+        hostingController = nil
+        viewModel.onSearch = nil
+        viewModel.onSelectItem = nil
+    }
+
     private func setupView() {
         // Configure viewModel callbacks
         viewModel.onSearch = { [weak self] query in
@@ -377,18 +385,47 @@ class ExpoTvosSearchView: ExpoView {
     }
 
     func updateResults(_ results: [[String: Any]]) {
-        viewModel.results = results.compactMap { dict -> SearchResultItem? in
-            guard let id = dict["id"] as? String,
-                  let title = dict["title"] as? String else {
-                return nil
+        var validResults: [SearchResultItem] = []
+        var skippedCount = 0
+
+        for dict in results {
+            guard let id = dict["id"] as? String, !id.isEmpty,
+                  let title = dict["title"] as? String, !title.isEmpty else {
+                skippedCount += 1
+                continue
             }
-            return SearchResultItem(
-                id: id,
-                title: title,
-                subtitle: dict["subtitle"] as? String,
-                imageUrl: dict["imageUrl"] as? String
-            )
+
+            // Validate and sanitize imageUrl if present
+            var validatedImageUrl: String? = nil
+            if let imageUrl = dict["imageUrl"] as? String, !imageUrl.isEmpty {
+                // Accept HTTP/HTTPS URLs only, reject other schemes for security
+                if let url = URL(string: imageUrl),
+                   let scheme = url.scheme?.lowercased(),
+                   scheme == "http" || scheme == "https" {
+                    validatedImageUrl = imageUrl
+                }
+            }
+
+            // Limit string lengths to prevent memory issues
+            let maxIdLength = 500
+            let maxTitleLength = 500
+            let maxSubtitleLength = 500
+
+            validResults.append(SearchResultItem(
+                id: String(id.prefix(maxIdLength)),
+                title: String(title.prefix(maxTitleLength)),
+                subtitle: (dict["subtitle"] as? String).map { String($0.prefix(maxSubtitleLength)) },
+                imageUrl: validatedImageUrl
+            ))
         }
+
+        #if DEBUG
+        if skippedCount > 0 {
+            print("[expo-tvos-search] Skipped \(skippedCount) invalid result(s) missing required id or title")
+        }
+        #endif
+
+        viewModel.results = validResults
     }
 }
 

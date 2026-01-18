@@ -2,5 +2,8 @@
   "platforms": ["ios", "tvos"],
   "ios": {
     "modules": ["ExpoTvosSearchModule"]
+  },
+  "tvos": {
+    "modules": ["ExpoTvosSearchModule"]
   }
 }
