@@ -1,0 +1,195 @@
+import React from "react";
+import { ViewStyle } from "react-native";
+/**
+ * Event payload for search text changes.
+ * Fired when the user types in the native search field.
+ */
+export interface SearchEvent {
+    nativeEvent: {
+        /** The current search query string entered by the user */
+        query: string;
+    };
+}
+/**
+ * Event payload for item selection.
+ * Fired when the user selects a search result.
+ */
+export interface SelectItemEvent {
+    nativeEvent: {
+        /** The unique identifier of the selected search result */
+        id: string;
+    };
+}
+/**
+ * Represents a single search result displayed in the grid.
+ */
+export interface SearchResult {
+    /** Unique identifier for the result (used in onSelectItem callback) */
+    id: string;
+    /** Primary display text for the result */
+    title: string;
+    /** Optional secondary text displayed below the title */
+    subtitle?: string;
+    /** Optional image URL for the result poster/thumbnail */
+    imageUrl?: string;
+}
+/**
+ * Props for the TvosSearchView component.
+ *
+ * @example
+ * ```tsx
+ * <TvosSearchView
+ *   results={searchResults}
+ *   columns={5}
+ *   placeholder="Search movies..."
+ *   isLoading={loading}
+ *   topInset={140}
+ *   onSearch={(e) => handleSearch(e.nativeEvent.query)}
+ *   onSelectItem={(e) => navigateTo(e.nativeEvent.id)}
+ *   style={{ flex: 1 }}
+ * />
+ * ```
+ */
+export interface TvosSearchViewProps {
+    /**
+     * Array of search results to display in the grid.
+     * Each result should have a unique `id`.
+     * Arrays larger than 500 items are truncated.
+     * Results with empty `id` or `title` are skipped.
+     * @maximum 500
+     */
+    results: SearchResult[];
+    /**
+     * Number of columns in the results grid.
+     * Values outside 1-10 range are clamped.
+     * @default 5
+     * @minimum 1
+     * @maximum 10
+     */
+    columns?: number;
+    /**
+     * Placeholder text shown in the search field when empty.
+     * @default "Search..."
+     */
+    placeholder?: string;
+    /**
+     * Whether to show a loading indicator.
+     * @default false
+     */
+    isLoading?: boolean;
+    /**
+     * Show title text below each result card.
+     * @default false
+     */
+    showTitle?: boolean;
+    /**
+     * Show subtitle text below title.
+     * Requires `showTitle` to be true to be visible.
+     * @default false
+     */
+    showSubtitle?: boolean;
+    /**
+     * Show gold border on focused card.
+     * @default false
+     */
+    showFocusBorder?: boolean;
+    /**
+     * Extra top padding in points for tab bar clearance.
+     * Useful when the view is displayed under a navigation bar.
+     * Values outside 0-500 range are clamped.
+     * @default 0
+     * @minimum 0
+     * @maximum 500
+     */
+    topInset?: number;
+    /**
+     * Show title overlay with gradient at bottom of card.
+     * This displays the title on top of the image.
+     * @default true
+     */
+    showTitleOverlay?: boolean;
+    /**
+     * Enable marquee scrolling for long titles that overflow the card width.
+     * @default true
+     */
+    enableMarquee?: boolean;
+    /**
+     * Delay in seconds before marquee starts scrolling when item is focused.
+     * Values outside 0-60 range are clamped.
+     * @default 1.5
+     * @minimum 0
+     * @maximum 60
+     */
+    marqueeDelay?: number;
+    /**
+     * Callback fired when the search text changes.
+     * Debounce this handler to avoid excessive API calls.
+     */
+    onSearch: (event: SearchEvent) => void;
+    /**
+     * Callback fired when a search result is selected.
+     * Use the `id` from the event to identify which result was selected.
+     */
+    onSelectItem: (event: SelectItemEvent) => void;
+    /**
+     * Optional style for the view container.
+     */
+    style?: ViewStyle;
+}
+/**
+ * Native tvOS search view component using SwiftUI's `.searchable` modifier.
+ *
+ * This component provides a native search experience on tvOS with proper focus
+ * handling and keyboard navigation. On non-tvOS platforms or when the native
+ * module is unavailable, it renders `null` - use `isNativeSearchAvailable()`
+ * to check availability and render a fallback.
+ *
+ * @example
+ * ```tsx
+ * import { TvosSearchView, isNativeSearchAvailable } from 'expo-tvos-search';
+ *
+ * function SearchScreen() {
+ *   const [results, setResults] = useState<SearchResult[]>([]);
+ *
+ *   if (!isNativeSearchAvailable()) {
+ *     return <FallbackSearchComponent />;
+ *   }
+ *
+ *   return (
+ *     <TvosSearchView
+ *       results={results}
+ *       onSearch={(e) => fetchResults(e.nativeEvent.query)}
+ *       onSelectItem={(e) => router.push(`/detail/${e.nativeEvent.id}`)}
+ *       style={{ flex: 1 }}
+ *     />
+ *   );
+ * }
+ * ```
+ *
+ * @param props - Component props
+ * @returns The native search view on tvOS, or `null` if unavailable
+ */
+export declare function TvosSearchView(props: TvosSearchViewProps): React.JSX.Element | null;
+/**
+ * Checks if the native tvOS search component is available.
+ *
+ * Returns `true` only when:
+ * - Running on tvOS (Platform.OS === "ios" && Platform.isTV)
+ * - The native module has been built (via `expo prebuild`)
+ * - expo-modules-core is properly installed
+ *
+ * Use this to conditionally render a fallback search implementation
+ * on non-tvOS platforms or when the native module is unavailable.
+ *
+ * @returns `true` if TvosSearchView will render, `false` if it will return null
+ *
+ * @example
+ * ```tsx
+ * if (!isNativeSearchAvailable()) {
+ *   return <ReactNativeSearchFallback />;
+ * }
+ * return <TvosSearchView {...props} />;
+ * ```
+ */
+export declare function isNativeSearchAvailable(): boolean;
+//# sourceMappingURL=index.d.ts.map
