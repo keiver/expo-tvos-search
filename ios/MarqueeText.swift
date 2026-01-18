@@ -95,6 +95,11 @@ struct MarqueeText: View {
                     stopScrolling()
                 }
             }
+            .onDisappear {
+                // Cancel animation task when view disappears to prevent memory leaks
+                animationTask?.cancel()
+                animationTask = nil
+            }
         }
     }
 

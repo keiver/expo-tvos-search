@@ -1,6 +1,13 @@
 import ExpoModulesCore
 
 public class ExpoTvosSearchModule: Module {
+    // Validation constants
+    private static let minColumns = 1
+    private static let maxColumns = 10
+    private static let maxResults = 500
+    private static let maxMarqueeDelay: Double = 60.0
+    private static let maxStringLength = 500
+
     public func definition() -> ModuleDefinition {
         Name("ExpoTvosSearch")
 
@@ -8,15 +15,19 @@ public class ExpoTvosSearchModule: Module {
             Events("onSearch", "onSelectItem")
 
             Prop("results") { (view: ExpoTvosSearchView, results: [[String: Any]]) in
-                view.updateResults(results)
+                // Limit results array size to prevent memory issues
+                let limitedResults = Array(results.prefix(Self.maxResults))
+                view.updateResults(limitedResults)
             }
 
             Prop("columns") { (view: ExpoTvosSearchView, columns: Int) in
-                view.columns = columns
+                // Clamp columns between min and max for safe grid layout
+                view.columns = min(max(Self.minColumns, columns), Self.maxColumns)
             }
 
             Prop("placeholder") { (view: ExpoTvosSearchView, placeholder: String) in
-                view.placeholder = placeholder
+                // Limit placeholder length to prevent layout issues
+                view.placeholder = String(placeholder.prefix(Self.maxStringLength))
             }
 
             Prop("isLoading") { (view: ExpoTvosSearchView, isLoading: Bool) in
@@ -36,7 +47,8 @@ public class ExpoTvosSearchModule: Module {
             }
 
             Prop("topInset") { (view: ExpoTvosSearchView, topInset: Double) in
-                view.topInset = CGFloat(topInset)
+                // Clamp to non-negative values (max 500 points reasonable for any screen)
+                view.topInset = CGFloat(min(max(0, topInset), 500))
             }
 
             Prop("showTitleOverlay") { (view: ExpoTvosSearchView, show: Bool) in
@@ -48,7 +60,8 @@ public class ExpoTvosSearchModule: Module {
             }
 
             Prop("marqueeDelay") { (view: ExpoTvosSearchView, delay: Double) in
-                view.marqueeDelay = delay
+                // Clamp between 0 and maxMarqueeDelay seconds
+                view.marqueeDelay = min(max(0, delay), Self.maxMarqueeDelay)
             }
         }
     }
