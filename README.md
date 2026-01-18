@@ -2,7 +2,7 @@
 
 A native tvOS search component for Expo and React Native.
 
-Built because React Native's TextInput + FlatList has focus navigation issues on tvOS. This module uses SwiftUI's `.searchable` modifier, which handles focus and keyboard navigation the way Apple intended.
+This library provides a native tvOS search view using SwiftUI's `.searchable` modifier. It handles focus, keyboard navigation, and accessibility out of the box, providing a seamless search experience on Apple TV with a native fullscreen search interface.
 
 <p align="center">
   <img src="screenshots/results.png" width="700" alt="TomoTV Search Results"/>
@@ -25,17 +25,6 @@ Built because React Native's TextInput + FlatList has focus navigation issues on
   </tr>
 </table>
 
-## The Problem
-
-If you've tried building a search screen on tvOS with React Native, you've likely hit these issues:
-
-- Can't move focus from TextInput to FlatList results
-- `nextFocusDown` doesn't work reliably with `numColumns > 1`
-- Focus gets lost after selecting a result
-
-## The Solution
-
-This module provides a native SwiftUI view with proper tvOS focus handling out of the box.
 
 ## Installation
 
@@ -172,15 +161,6 @@ Tests cover:
 - Component rendering when native module is unavailable
 - Event structure validation
 
-## Performance
-
-### Memory Management
-
-The native view properly cleans up resources when unmounted:
-- SwiftUI `@ObservedObject` pattern ensures proper memory management
-- Image caching is handled by the system's AsyncImage
-- `deinit` removes observers and clears data
-
 ### Best Practices
 
 For optimal performance:
@@ -188,13 +168,6 @@ For optimal performance:
 - **Batch result updates**: Update the entire `results` array at once rather than incrementally
 - **Limit image sizes**: Use appropriately sized poster images (280x420 is the card size)
 - **Cap result count**: Consider limiting to 50-100 results for smooth scrolling
-
-### Grid Layout
-
-Cards are fixed at 280x420 points (2:3 aspect ratio). With 5 columns on a 1920px wide display:
-- Card width: 280px
-- Total cards: 1400px
-- Remaining: 520px for spacing and margins
 
 ## Accessibility
 
@@ -206,14 +179,6 @@ The native SwiftUI implementation provides accessibility features automatically:
 - **Button semantics**: Cards are properly identified as interactive elements
 - **Focus indicators**: Visual feedback for focused state
 
-### Recommendations
-
-For the best accessible experience:
-- Provide meaningful `title` text for all results
-- Include `subtitle` for additional context (year, type, etc.)
-- Ensure image URLs point to descriptive content
-- Use sufficient color contrast (the default gold focus border meets WCAG AA)
-
 ### Remote Navigation
 
 The native `.searchable` modifier provides standard tvOS navigation:
@@ -222,15 +187,11 @@ The native `.searchable` modifier provides standard tvOS navigation:
 - **Click (select)**: Open the focused result
 - **Menu button**: Exit search or navigate back
 
-## License
-
-MIT
-
----
-
 Built for [TomoTV](https://github.com/keiver/tomotv), a Jellyfin client for Apple TV.
-
----
 
 Swift documentation references:
 - [.searchable modifier](https://developer.apple.com/documentation/SwiftUI/Creating-a-tvOS-media-catalog-app-in-SwiftUI)
+
+## License
+
+MIT
