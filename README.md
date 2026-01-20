@@ -40,16 +40,11 @@ Or install from GitHub:
 npx expo install github:keiver/expo-tvos-search
 ```
 
-Then rebuild your native project:
-
-```bash
-EXPO_TV=1 npx expo prebuild --clean
-npx expo run:ios
-```
+Then follow the **tvOS prerequisites** below and rebuild your native project.
 
 ## Prerequisites for tvOS Builds (Expo)
 
-This package only provides the search UI module. To actually build and run an Expo app on tvOS, your project must be configured for React Native tvOS.
+Your project must be configured for React Native tvOS to build and run this module.
 
 **Quick Checklist:**
 
@@ -57,15 +52,15 @@ This package only provides the search UI module. To actually build and run an Ex
 - ✅ `@react-native-tvos/config-tv` installed + added to Expo plugins
 - ✅ Run prebuild with `EXPO_TV=1`
 
-### 1. Use the React Native tvOS fork
+### 1. Swap to react-native-tvos
 
-React Native tvOS support comes from the [react-native-tvos](https://github.com/react-native-tvos/react-native-tvos) fork (not upstream `react-native`). For tvOS builds, your app should use the tvOS fork version that matches your Expo / React Native version.
+Replace `react-native` with the [tvOS fork](https://github.com/react-native-tvos/react-native-tvos):
 
-**Tip:** Pick the `react-native-tvos` version that corresponds to your React Native major/minor (e.g., RN 0.7x → compatible `react-native-tvos` for the same RN line). If versions don't match, you'll usually see native build or runtime errors.
+```bash
+npm remove react-native && npm install react-native-tvos@latest
+```
 
 ### 2. Install the tvOS config plugin
-
-Expo needs a config plugin to generate tvOS-compatible native projects during prebuild.
 
 Install:
 
@@ -84,8 +79,6 @@ Then add the plugin in `app.json` / `app.config.js`:
 ```
 
 ### 3. Generate native projects with tvOS enabled
-
-When generating iOS/tvOS native projects, set the tvOS flag:
 
 ```bash
 EXPO_TV=1 npx expo prebuild --clean
@@ -106,20 +99,55 @@ npx expo run:ios
 ## Usage
 
 ```tsx
-import { TvosSearchView, isNativeSearchAvailable } from 'expo-tvos-search';
+import React, { useState } from "react";
+import { Alert } from "react-native";
+import {
+  TvosSearchView,
+  isNativeSearchAvailable,
+  type SearchResult,
+} from "expo-tvos-search";
 
-function SearchScreen() {
-  const [results, setResults] = useState([]);
+const PLANETS: SearchResult[] = [
+  { id: "mercury", title: "Mercury", subtitle: "Smallest planet", imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4a/Mercury_in_true_color.jpg/400px-Mercury_in_true_color.jpg" },
+  { id: "venus", title: "Venus", subtitle: "Hottest planet", imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/Venus-real_color.jpg/400px-Venus-real_color.jpg" },
+  { id: "earth", title: "Earth", subtitle: "Our home", imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/The_Earth_seen_from_Apollo_17.jpg/400px-The_Earth_seen_from_Apollo_17.jpg" },
+  { id: "mars", title: "Mars", subtitle: "The red planet", imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/02/OSIRIS_Mars_true_color.jpg/400px-OSIRIS_Mars_true_color.jpg" },
+  { id: "jupiter", title: "Jupiter", subtitle: "Largest planet", imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Jupiter_New_Horizons.jpg/400px-Jupiter_New_Horizons.jpg" },
+  { id: "saturn", title: "Saturn", subtitle: "Ringed giant", imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c7/Saturn_during_Equinox.jpg/400px-Saturn_during_Equinox.jpg" },
+  { id: "uranus", title: "Uranus", subtitle: "Ice giant", imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Uranus2.jpg/400px-Uranus2.jpg" },
+  { id: "neptune", title: "Neptune", subtitle: "Windiest planet", imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/63/Neptune_-_Voyager_2_%2829347980845%29_flatten_crop.jpg/400px-Neptune_-_Voyager_2_%2829347980845%29_flatten_crop.jpg" },
+];
+
+export function SearchScreen() {
+  const [results, setResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSearch = (event) => {
-    const query = event.nativeEvent.query;
-    // Fetch your results...
+  const handleSearch = (event: { nativeEvent: { query: string } }) => {
+    const { query } = event.nativeEvent;
+
+    if (!query.trim()) {
+      setResults([]);
+      return;
+    }
+
+    setIsLoading(true);
+
+    // Simulate async search
+    setTimeout(() => {
+      const filtered = PLANETS.filter((planet) =>
+        planet.title.toLowerCase().includes(query.toLowerCase()) ||
+        planet.subtitle?.toLowerCase().includes(query.toLowerCase())
+      );
+      setResults(filtered);
+      setIsLoading(false);
+    }, 300);
   };
 
-  const handleSelect = (event) => {
-    const id = event.nativeEvent.id;
-    // Navigate to detail...
+  const handleSelect = (event: { nativeEvent: { id: string } }) => {
+    const planet = PLANETS.find((p) => p.id === event.nativeEvent.id);
+    if (planet) {
+      Alert.alert(planet.title, planet.subtitle);
+    }
   };
 
   if (!isNativeSearchAvailable()) {
@@ -130,7 +158,7 @@ function SearchScreen() {
     <TvosSearchView
       results={results}
       columns={5}
-      placeholder="Search..."
+      placeholder="Search planets..."
       isLoading={isLoading}
       topInset={140}
       onSearch={handleSearch}
@@ -152,10 +180,10 @@ function SearchScreen() {
 
 Check out Tomo TV to see `expo-tvos-search` in action and reference its implementation for your own projects.
 
-## Video Demo
+## See it in action:
 
 <p align="center">
-  <img src="screenshots/expo-tvos-search.gif" width="700" alt="expo-tvos-search Demo"/>
+  <img src="screenshots/expo-tvos-search.gif" width="700" alt="expo-tvos-search screen in action" loading="lazy" />
 </p>
 
 ## Props
@@ -241,6 +269,8 @@ function SearchScreen() {
 }
 ```
 
+**Why this breaks**: Focusable wrappers steal focus from the native SwiftUI search container, which breaks directional navigation.
+
 ### ✅ Do: Use non-interactive containers
 
 ```tsx
@@ -265,10 +295,10 @@ function SearchScreen() {
 
 ## Requirements
 
-- Node.js 18.0+
+- Node.js 18+
 - Expo SDK 51+
-- tvOS 15.0+
-- React Native TVOS
+- tvOS 15+
+- Project configured for tvOS (`react-native-tvos` + `@react-native-tvos/config-tv`)
 
 ## Troubleshooting
 
@@ -281,6 +311,8 @@ If you see `requireNativeViewManager("ExpoTvosSearch") returned null`, the nativ
 EXPO_TV=1 npx expo prebuild --clean
 npx expo run:ios
 ```
+
+**Note:** Expo Go doesn't support this. Build a dev client or native build instead.
 
 ### Images not loading
 
