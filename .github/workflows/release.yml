@@ -18,6 +18,7 @@ jobs:
 
     permissions:
       contents: write  # For git push and creating releases
+      pull-requests: write  # For commenting on PRs
 
     steps:
       - name: Checkout code
@@ -120,8 +121,8 @@ jobs:
           draft: false
           prerelease: false
 
-      - name: Publish to npm (DRY RUN)
-        run: npm publish --dry-run
+      - name: Publish to npm
+        run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
