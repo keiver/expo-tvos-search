@@ -121,8 +121,8 @@ EOF
           draft: false
           prerelease: false
 
-      - name: Publish to npm
-        run: npm publish --access public
+      - name: Publish to npm (DRY RUN)
+        run: npm publish --dry-run
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
