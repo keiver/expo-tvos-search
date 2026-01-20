@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm whoami:*)",
+      "Bash(test:*)",
+      "Bash(npm run clean)",
+      "Bash(npm run build:*)",
+      "Bash(npm test:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(npm install:*)",
+      "Bash(ls:*)",
+      "Bash(EXPO_TV=1 npx expo prebuild:*)",
+      "Bash(npx expo:*)",
+      "Bash(xcrun simctl list:*)",
+      "Bash(npx pod-install TVSearchDemo/ios)",
+      "Bash(find:*)",
+      "Bash(npm view:*)",
+      "Bash(xcodebuild:*)",
+      "Bash(npm run prebuild:tv:*)"
+    ]
+  }
+}
