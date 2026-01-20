@@ -17,7 +17,12 @@
       "Bash(find:*)",
       "Bash(npm view:*)",
       "Bash(xcodebuild:*)",
-      "Bash(npm run prebuild:tv:*)"
+      "Bash(npm run prebuild:tv:*)",
+      "Bash(npm login)",
+      "Bash(npm uninstall:*)",
+      "Bash(git push:*)",
+      "Bash(gh release create:*)",
+      "Bash(gh auth:*)"
     ]
   }
 }
