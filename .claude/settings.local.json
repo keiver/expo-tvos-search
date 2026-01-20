@@ -24,7 +24,9 @@
       "Bash(gh release create:*)",
       "Bash(gh auth:*)",
       "Bash(git fetch:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(npm audit:*)",
+      "Bash(npm run test:coverage:*)"
     ]
   }
 }

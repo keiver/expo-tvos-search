@@ -102,6 +102,10 @@ function SearchScreen() {
 | `showTitleOverlay` | `boolean` | `true` | Show title overlay with gradient at bottom of card |
 | `enableMarquee` | `boolean` | `true` | Enable marquee scrolling for long titles |
 | `marqueeDelay` | `number` | `1.5` | Delay in seconds before marquee starts |
+| `emptyStateText` | `string` | `"Search for movies and videos"` | Text shown when search field is empty |
+| `searchingText` | `string` | `"Searching..."` | Text shown during search |
+| `noResultsText` | `string` | `"No results found"` | Text shown when no results found |
+| `noResultsHintText` | `string` | `"Try a different search term"` | Hint text below no results message |
 | `onSearch` | `function` | required | Called when search text changes |
 | `onSelectItem` | `function` | required | Called when result is selected |
 
@@ -116,8 +120,18 @@ interface SearchResult {
 }
 ```
 
+## Result Handling
+
+The native implementation applies the following validation and constraints:
+
+- **Maximum results**: The results array is capped at 500 items. Any results beyond this limit are silently ignored.
+- **Required fields**: Results with empty `id` or `title` are automatically filtered out and not displayed.
+- **Image URL schemes**: Only HTTP and HTTPS URLs are accepted for `imageUrl`. Other URL schemes (e.g., `file://`, `data:`) are rejected.
+- **HTTPS recommended**: HTTP URLs may be blocked by App Transport Security on tvOS unless explicitly allowed in Info.plist.
+
 ## Requirements
 
+- Node.js 18.0+
 - Expo SDK 51+
 - tvOS 15.0+
 - React Native TVOS
@@ -137,7 +151,7 @@ npx expo run:ios
 ### Images not loading
 
 1. Verify your image URLs are HTTPS (HTTP may be blocked by App Transport Security)
-2. Check that the Jellyfin API key is included in the URL query parameters
+2. Ensure required authentication parameters are included in image URLs
 3. For local development, ensure your server is accessible from the Apple TV
 
 ### Focus issues
@@ -170,14 +184,6 @@ Tests cover:
 - `isNativeSearchAvailable()` behavior on different platforms
 - Component rendering when native module is unavailable
 - Event structure validation
-
-### Best Practices
-
-For optimal performance:
-- **Debounce search input**: Wait 300-500ms after typing stops before calling your API
-- **Batch result updates**: Update the entire `results` array at once rather than incrementally
-- **Limit image sizes**: Use appropriately sized poster images (280x420 is the card size)
-- **Cap result count**: Consider limiting to 50-100 results for smooth scrolling
 
 ## Accessibility
 
