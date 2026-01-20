@@ -1,7 +1,6 @@
 # expo-tvos-search
 
 [![npm version](https://img.shields.io/npm/v/expo-tvos-search.svg)](https://www.npmjs.com/package/expo-tvos-search)
-[![npm downloads](https://img.shields.io/npm/dm/expo-tvos-search.svg)](https://www.npmjs.com/package/expo-tvos-search)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Test Status](https://github.com/keiver/expo-tvos-search/workflows/Test%20PR/badge.svg)](https://github.com/keiver/expo-tvos-search/actions)
 
