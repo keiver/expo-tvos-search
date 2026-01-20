@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.2.2] - 2025-01-20
 
 ### Added
-- GitHub Actions workflow step for npm publish
+- GitHub Actions workflow step for npm publish, trigger on PR with labels: `release:patch`, `release:minor`, `release:major`
 
 ## [1.2.0] - 2025-01-17
 
