@@ -73,11 +73,8 @@ jobs:
           NEW_VERSION: ${{ steps.bump_version.outputs.new_version }}
         run: |
           TODAY=$(date +%Y-%m-%d)
-
-          # Create changelog entry safely with printf
-          printf "\n## [%s] - %s\n- %s (#%s)\n\n" "$NEW_VERSION" "$TODAY" "$PR_TITLE" "$PR_NUMBER" > /tmp/changelog_entry.txt
-
-          # Insert after Unreleased section
+          HEADING=$(printf '%s%s' '#' '#')
+          printf "\n%s [%s] - %s\n- %s (#%s)\n\n" "$HEADING" "$NEW_VERSION" "$TODAY" "$PR_TITLE" "$PR_NUMBER" > /tmp/changelog_entry.txt
           awk '/^## \[Unreleased\]/ {print; system("cat /tmp/changelog_entry.txt"); next}1' CHANGELOG.md > /tmp/changelog_new.md
           mv /tmp/changelog_new.md CHANGELOG.md
 
