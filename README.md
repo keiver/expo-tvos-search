@@ -47,6 +47,62 @@ EXPO_TV=1 npx expo prebuild --clean
 npx expo run:ios
 ```
 
+## Prerequisites for tvOS Builds (Expo)
+
+This package only provides the search UI module. To actually build and run an Expo app on tvOS, your project must be configured for React Native tvOS.
+
+**Quick Checklist:**
+
+- ✅ `react-native-tvos` in use
+- ✅ `@react-native-tvos/config-tv` installed + added to Expo plugins
+- ✅ Run prebuild with `EXPO_TV=1`
+
+### 1. Use the React Native tvOS fork
+
+React Native tvOS support comes from the [react-native-tvos](https://github.com/react-native-tvos/react-native-tvos) fork (not upstream `react-native`). For tvOS builds, your app should use the tvOS fork version that matches your Expo / React Native version.
+
+**Tip:** Pick the `react-native-tvos` version that corresponds to your React Native major/minor (e.g., RN 0.7x → compatible `react-native-tvos` for the same RN line). If versions don't match, you'll usually see native build or runtime errors.
+
+### 2. Install the tvOS config plugin
+
+Expo needs a config plugin to generate tvOS-compatible native projects during prebuild.
+
+Install:
+
+```bash
+npx expo install @react-native-tvos/config-tv
+```
+
+Then add the plugin in `app.json` / `app.config.js`:
+
+```json
+{
+  "expo": {
+    "plugins": ["@react-native-tvos/config-tv"]
+  }
+}
+```
+
+### 3. Generate native projects with tvOS enabled
+
+When generating iOS/tvOS native projects, set the tvOS flag:
+
+```bash
+EXPO_TV=1 npx expo prebuild --clean
+```
+
+Then run:
+
+```bash
+npx expo run:ios
+```
+
+### 4. Common gotchas
+
+- **Prebuild must be re-run** if you add/remove tvOS dependencies or change the tvOS plugin configuration.
+- **If you see App Transport Security errors** for images, ensure your `imageUrl` uses `https://` (recommended) or add the appropriate ATS exceptions.
+- **If the tvOS keyboard/search UI doesn't appear**, confirm you're actually running a tvOS target/simulator, not an iOS target.
+
 ## Usage
 
 ```tsx
@@ -126,6 +182,69 @@ The native implementation applies the following validation and constraints:
 - **Required fields**: Results with empty `id` or `title` are automatically filtered out and not displayed.
 - **Image URL schemes**: Only HTTP and HTTPS URLs are accepted for `imageUrl`. Other URL schemes (e.g., `file://`, `data:`) are rejected.
 - **HTTPS recommended**: HTTP URLs may be blocked by App Transport Security on tvOS unless explicitly allowed in Info.plist.
+
+## Focus Handling - Do's and Don'ts
+
+The native `.searchable` modifier manages focus automatically. Here's what to do and what to avoid:
+
+### ✅ Do: Render directly in your screen
+
+```tsx
+function SearchScreen() {
+  return (
+    <TvosSearchView
+      results={results}
+      onSearch={handleSearch}
+      onSelectItem={handleSelect}
+      style={{ flex: 1 }}
+    />
+  );
+}
+```
+
+### ❌ Don't: Wrap in focusable containers
+
+```tsx
+// ❌ WRONG - breaks focus navigation
+function SearchScreen() {
+  return (
+    <Pressable>  {/* Don't wrap in Pressable */}
+      <TvosSearchView ... />
+    </Pressable>
+  );
+}
+
+// ❌ WRONG - interferes with native focus
+function SearchScreen() {
+  return (
+    <TouchableOpacity>  {/* Don't wrap in TouchableOpacity */}
+      <TvosSearchView ... />
+    </TouchableOpacity>
+  );
+}
+```
+
+### ✅ Do: Use non-interactive containers
+
+```tsx
+// ✅ CORRECT - View is not focusable
+function SearchScreen() {
+  return (
+    <View style={{ flex: 1, backgroundColor: '#000' }}>
+      <TvosSearchView ... />
+    </View>
+  );
+}
+
+// ✅ CORRECT - SafeAreaView is not focusable
+function SearchScreen() {
+  return (
+    <SafeAreaView style={{ flex: 1 }}>
+      <TvosSearchView ... />
+    </SafeAreaView>
+  );
+}
+```
 
 ## Requirements
 

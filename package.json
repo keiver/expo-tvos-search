@@ -4,6 +4,14 @@
   "description": "Native tvOS search view using SwiftUI .searchable modifier for Expo/React Native",
   "main": "build/index.js",
   "types": "build/index.d.ts",
+  "react-native": "src/index.tsx",
+  "exports": {
+    ".": {
+      "types": "./build/index.d.ts",
+      "react-native": "./src/index.tsx",
+      "default": "./build/index.js"
+    }
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/keiver/expo-tvos-search.git"

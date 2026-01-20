@@ -1,5 +1,6 @@
 import React from "react";
-import { ViewStyle, Platform } from "react-native";
+import type { ViewStyle } from "react-native";
+import { Platform } from "react-native";
 
 /**
  * Event payload for search text changes.
@@ -178,10 +179,10 @@ export interface TvosSearchViewProps {
   style?: ViewStyle;
 }
 
-// Safely try to load the native view - it may not be available if:
-// 1. Running on a non-tvOS platform
-// 2. Native module hasn't been built yet (needs expo prebuild)
-// 3. expo-modules-core isn't properly installed
+/**
+ * Native view component loaded at module initialization.
+ * Returns null on non-tvOS platforms or when the native module is unavailable.
+ */
 let NativeView: React.ComponentType<TvosSearchViewProps> | null = null;
 
 if (Platform.OS === "ios" && Platform.isTV) {
@@ -191,7 +192,7 @@ if (Platform.OS === "ios" && Platform.isTV) {
       NativeView = requireNativeViewManager("ExpoTvosSearch");
     }
   } catch {
-    // Native module not available - will fall back to React Native implementation
+    // Native module unavailable - TvosSearchView will render null
   }
 }
 
@@ -228,7 +229,7 @@ if (Platform.OS === "ios" && Platform.isTV) {
  * @param props - Component props
  * @returns The native search view on tvOS, or `null` if unavailable
  */
-export function TvosSearchView(props: TvosSearchViewProps) {
+export function TvosSearchView(props: TvosSearchViewProps): JSX.Element | null {
   if (!NativeView) {
     return null;
   }

@@ -1,5 +1,4 @@
-import React from "react";
-import { ViewStyle } from "react-native";
+import type { ViewStyle } from "react-native";
 /**
  * Event payload for search text changes.
  * Fired when the user types in the native search field.
@@ -189,7 +188,7 @@ export interface TvosSearchViewProps {
  * @param props - Component props
  * @returns The native search view on tvOS, or `null` if unavailable
  */
-export declare function TvosSearchView(props: TvosSearchViewProps): React.JSX.Element | null;
+export declare function TvosSearchView(props: TvosSearchViewProps): JSX.Element | null;
 /**
  * Checks if the native tvOS search component is available.
  *
