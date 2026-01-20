@@ -75,14 +75,20 @@ jobs:
           TODAY=$(date +%Y-%m-%d)
 
           # Create a safe changelog entry using a temporary file
-          cat > /tmp/changelog_entry.txt << EOF
+          cat > /tmp/changelog_entry.txt << 'CHANGELOG_EOF'
 
 ## [$NEW_VERSION] - $TODAY
 
 ### Changed
 - $PR_TITLE (#$PR_NUMBER)
 
-EOF
+CHANGELOG_EOF
+
+          # Substitute environment variables in the changelog entry
+          sed -i "s/\$NEW_VERSION/$NEW_VERSION/g" /tmp/changelog_entry.txt
+          sed -i "s/\$TODAY/$TODAY/g" /tmp/changelog_entry.txt
+          sed -i "s/\$PR_TITLE/$PR_TITLE/g" /tmp/changelog_entry.txt
+          sed -i "s/\$PR_NUMBER/$PR_NUMBER/g" /tmp/changelog_entry.txt
 
           # Use awk to insert the entry after the Unreleased section
           awk '/^## \[Unreleased\]/ {print; system("cat /tmp/changelog_entry.txt"); next}1' CHANGELOG.md > /tmp/changelog_new.md
