@@ -29,6 +29,12 @@ This library provides a native tvOS search view using SwiftUI's `.searchable` mo
 ## Installation
 
 ```bash
+npm install expo-tvos-search
+```
+
+Or install from GitHub:
+
+```bash
 npm install github:keiver/expo-tvos-search
 ```
 
