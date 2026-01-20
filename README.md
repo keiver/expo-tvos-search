@@ -3,6 +3,7 @@
 [![npm version](https://img.shields.io/npm/v/expo-tvos-search.svg)](https://www.npmjs.com/package/expo-tvos-search)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Test Status](https://github.com/keiver/expo-tvos-search/workflows/Test%20PR/badge.svg)](https://github.com/keiver/expo-tvos-search/actions)
+[![Bundle Size](https://img.shields.io/bundlephobia/minzip/expo-tvos-search)](https://bundlephobia.com/package/expo-tvos-search)
 
 A native tvOS search component for Expo and React Native using SwiftUI's `.searchable` modifier. Handles focus, keyboard navigation, and accessibility out of the box.
 
@@ -26,7 +27,6 @@ A native tvOS search component for Expo and React Native using SwiftUI's `.searc
     </td>
   </tr>
 </table>
-
 
 ## Installation
 
@@ -140,6 +140,23 @@ function SearchScreen() {
   );
 }
 ```
+
+## Example App
+
+**[Tomo TV](https://github.com/keiver/tomotv)** is a production tvOS application that uses `expo-tvos-search` in a real-world Jellyfin client. It demonstrates the search component integrated with a complete media browsing experience, including:
+
+- Search interaction with tvOS remote
+- Focus navigation through results
+- Integration with a live media library
+- Complete setup instructions and screenshots
+
+Check out Tomo TV to see `expo-tvos-search` in action and reference its implementation for your own projects.
+
+## Video Demo
+
+<p align="center">
+  <img src="screenshots/expo-tvos-search.gif" width="700" alt="expo-tvos-search Demo"/>
+</p>
 
 ## Props
 

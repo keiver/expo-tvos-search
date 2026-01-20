@@ -11,9 +11,38 @@ if (Platform.OS === "ios" && Platform.isTV) {
         if (typeof requireNativeViewManager === "function") {
             NativeView = requireNativeViewManager("ExpoTvosSearch");
         }
+        else {
+            console.warn("[expo-tvos-search] requireNativeViewManager is not a function. " +
+                "This usually indicates an incompatible expo-modules-core version. " +
+                "Try reinstalling expo-modules-core or updating to a compatible version.");
+        }
     }
-    catch {
-        // Native module unavailable - TvosSearchView will render null
+    catch (error) {
+        // Categorize the error to help with debugging
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        if (errorMessage.includes("expo-modules-core")) {
+            console.warn("[expo-tvos-search] Failed to load expo-modules-core. " +
+                "Make sure expo-modules-core is installed: npm install expo-modules-core\n" +
+                `Error: ${errorMessage}`);
+        }
+        else if (errorMessage.includes("ExpoTvosSearch")) {
+            console.warn("[expo-tvos-search] Native module ExpoTvosSearch not found. " +
+                "This usually means:\n" +
+                "1. You haven't run 'expo prebuild' yet, or\n" +
+                "2. The native project needs to be rebuilt (try 'expo prebuild --clean')\n" +
+                "3. You're not running on a tvOS simulator/device\n" +
+                `Error: ${errorMessage}`);
+        }
+        else {
+            // Unexpected error - log full details for debugging
+            console.warn("[expo-tvos-search] Unexpected error loading native module.\n" +
+                `Error: ${errorMessage}\n` +
+                "Please report this issue at: https://github.com/keiver/expo-tvos-search/issues");
+            // In development, log the full error for debugging
+            if (typeof __DEV__ !== "undefined" && __DEV__) {
+                console.error("[expo-tvos-search] Full error details:", error);
+            }
+        }
     }
 }
 /**
@@ -51,6 +80,25 @@ if (Platform.OS === "ios" && Platform.isTV) {
  */
 export function TvosSearchView(props) {
     if (!NativeView) {
+        // Warn in development when native module is unavailable
+        if (typeof __DEV__ !== "undefined" && __DEV__) {
+            const isRunningOnTvOS = Platform.OS === "ios" && Platform.isTV;
+            if (isRunningOnTvOS) {
+                // On tvOS but module failed to load - this is unexpected
+                console.warn("[expo-tvos-search] TvosSearchView is rendering null on tvOS. " +
+                    "This usually means:\n" +
+                    "1. The native module wasn't built properly (try 'expo prebuild --clean')\n" +
+                    "2. expo-modules-core is missing or incompatible\n" +
+                    "3. The app needs to be restarted after installing the module\n\n" +
+                    "Check the earlier console logs for specific error details.");
+            }
+            else {
+                // Not on tvOS - expected behavior, but developer might want to know
+                console.info("[expo-tvos-search] TvosSearchView is not available on " +
+                    `${Platform.OS}${Platform.isTV ? " (TV)" : ""}. ` +
+                    "Use isNativeSearchAvailable() to check before rendering this component.");
+            }
+        }
         return null;
     }
     return React.createElement(NativeView, { ...props });

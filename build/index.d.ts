@@ -20,6 +20,38 @@ export interface SelectItemEvent {
     };
 }
 /**
+ * Categories of errors that can occur in the search view.
+ */
+export type SearchViewErrorCategory = "module_unavailable" | "validation_failed" | "image_load_failed" | "unknown";
+/**
+ * Event payload for error callbacks.
+ * Provides details about errors that occur during search view operations.
+ */
+export interface SearchViewErrorEvent {
+    nativeEvent: {
+        /** Category of the error for programmatic handling */
+        category: SearchViewErrorCategory;
+        /** Human-readable error message */
+        message: string;
+        /** Optional additional context (e.g., result ID, URL) */
+        context?: string;
+    };
+}
+/**
+ * Event payload for validation warnings.
+ * Non-fatal issues like truncated fields or clamped values.
+ */
+export interface ValidationWarningEvent {
+    nativeEvent: {
+        /** Type of validation warning */
+        type: "field_truncated" | "value_clamped" | "url_invalid";
+        /** Human-readable warning message */
+        message: string;
+        /** Optional additional context */
+        context?: string;
+    };
+}
+/**
  * Represents a single search result displayed in the grid.
  */
 export interface SearchResult {
@@ -150,6 +182,30 @@ export interface TvosSearchViewProps {
      * Use the `id` from the event to identify which result was selected.
      */
     onSelectItem: (event: SelectItemEvent) => void;
+    /**
+     * Optional callback fired when errors occur.
+     * Use this to monitor and log issues in production.
+     * @example
+     * ```tsx
+     * onError={(e) => {
+     *   const { category, message, context } = e.nativeEvent;
+     *   logger.error(`Search error [${category}]: ${message}`, { context });
+     * }}
+     * ```
+     */
+    onError?: (event: SearchViewErrorEvent) => void;
+    /**
+     * Optional callback fired for non-fatal validation warnings.
+     * Examples: truncated fields, clamped values, invalid URLs.
+     * @example
+     * ```tsx
+     * onValidationWarning={(e) => {
+     *   const { type, message } = e.nativeEvent;
+     *   console.warn(`Validation warning [${type}]: ${message}`);
+     * }}
+     * ```
+     */
+    onValidationWarning?: (event: ValidationWarningEvent) => void;
     /**
      * Optional style for the view container.
      */

@@ -12,7 +12,7 @@ public class ExpoTvosSearchModule: Module {
         Name("ExpoTvosSearch")
 
         View(ExpoTvosSearchView.self) {
-            Events("onSearch", "onSelectItem")
+            Events("onSearch", "onSelectItem", "onError", "onValidationWarning")
 
             Prop("results") { (view: ExpoTvosSearchView, results: [[String: Any]]) in
                 // Limit results array size to prevent memory issues
@@ -22,7 +22,15 @@ public class ExpoTvosSearchModule: Module {
 
             Prop("columns") { (view: ExpoTvosSearchView, columns: Int) in
                 // Clamp columns between min and max for safe grid layout
-                view.columns = min(max(Self.minColumns, columns), Self.maxColumns)
+                let clampedValue = min(max(Self.minColumns, columns), Self.maxColumns)
+                if clampedValue != columns {
+                    view.onValidationWarning([
+                        "type": "value_clamped",
+                        "message": "columns value \(columns) was clamped to range [\(Self.minColumns), \(Self.maxColumns)]",
+                        "context": "columns=\(clampedValue)"
+                    ])
+                }
+                view.columns = clampedValue
             }
 
             Prop("placeholder") { (view: ExpoTvosSearchView, placeholder: String) in
@@ -48,7 +56,15 @@ public class ExpoTvosSearchModule: Module {
 
             Prop("topInset") { (view: ExpoTvosSearchView, topInset: Double) in
                 // Clamp to non-negative values (max 500 points reasonable for any screen)
-                view.topInset = CGFloat(min(max(0, topInset), 500))
+                let clampedValue = min(max(0, topInset), 500)
+                if clampedValue != topInset {
+                    view.onValidationWarning([
+                        "type": "value_clamped",
+                        "message": "topInset value \(topInset) was clamped to range [0, 500]",
+                        "context": "topInset=\(clampedValue)"
+                    ])
+                }
+                view.topInset = CGFloat(clampedValue)
             }
 
             Prop("showTitleOverlay") { (view: ExpoTvosSearchView, show: Bool) in
@@ -61,7 +77,15 @@ public class ExpoTvosSearchModule: Module {
 
             Prop("marqueeDelay") { (view: ExpoTvosSearchView, delay: Double) in
                 // Clamp between 0 and maxMarqueeDelay seconds
-                view.marqueeDelay = min(max(0, delay), Self.maxMarqueeDelay)
+                let clampedValue = min(max(0, delay), Self.maxMarqueeDelay)
+                if clampedValue != delay {
+                    view.onValidationWarning([
+                        "type": "value_clamped",
+                        "message": "marqueeDelay value \(delay) was clamped to range [0, \(Self.maxMarqueeDelay)]",
+                        "context": "marqueeDelay=\(clampedValue)"
+                    ])
+                }
+                view.marqueeDelay = clampedValue
             }
 
             Prop("emptyStateText") { (view: ExpoTvosSearchView, text: String) in

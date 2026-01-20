@@ -375,6 +375,8 @@ class ExpoTvosSearchView: ExpoView {
 
     let onSearch = EventDispatcher()
     let onSelectItem = EventDispatcher()
+    let onError = EventDispatcher()
+    let onValidationWarning = EventDispatcher()
 
     required init(appContext: AppContext? = nil) {
         super.init(appContext: appContext)
@@ -417,11 +419,26 @@ class ExpoTvosSearchView: ExpoView {
     func updateResults(_ results: [[String: Any]]) {
         var validResults: [SearchResultItem] = []
         var skippedCount = 0
+        var urlValidationFailures = 0
+        var truncatedFields = 0
 
-        for dict in results {
-            guard let id = dict["id"] as? String, !id.isEmpty,
-                  let title = dict["title"] as? String, !title.isEmpty else {
+        for (index, dict) in results.enumerated() {
+            // Validate required fields
+            guard let id = dict["id"] as? String, !id.isEmpty else {
                 skippedCount += 1
+                #if DEBUG
+                let idValue = dict["id"]
+                print("[expo-tvos-search] Result at index \(index) skipped: missing or empty 'id' field (value: \(String(describing: idValue)))")
+                #endif
+                continue
+            }
+
+            guard let title = dict["title"] as? String, !title.isEmpty else {
+                skippedCount += 1
+                #if DEBUG
+                let titleValue = dict["title"]
+                print("[expo-tvos-search] Result at index \(index) (id: '\(id)') skipped: missing or empty 'title' field (value: \(String(describing: titleValue)))")
+                #endif
                 continue
             }
 
@@ -433,6 +450,11 @@ class ExpoTvosSearchView: ExpoView {
                    let scheme = url.scheme?.lowercased(),
                    scheme == "http" || scheme == "https" {
                     validatedImageUrl = imageUrl
+                } else {
+                    urlValidationFailures += 1
+                    #if DEBUG
+                    print("[expo-tvos-search] Result '\(title)' (id: '\(id)'): invalid imageUrl '\(imageUrl)'. Only HTTP/HTTPS URLs are supported for security reasons.")
+                    #endif
                 }
             }
 
@@ -441,19 +463,69 @@ class ExpoTvosSearchView: ExpoView {
             let maxTitleLength = 500
             let maxSubtitleLength = 500
 
+            // Track if any fields were truncated
+            let idTruncated = id.count > maxIdLength
+            let titleTruncated = title.count > maxTitleLength
+            let subtitle = dict["subtitle"] as? String
+            let subtitleTruncated = (subtitle?.count ?? 0) > maxSubtitleLength
+
+            if idTruncated || titleTruncated || subtitleTruncated {
+                truncatedFields += 1
+                #if DEBUG
+                var truncatedList: [String] = []
+                if idTruncated { truncatedList.append("id (\(id.count) chars)") }
+                if titleTruncated { truncatedList.append("title (\(title.count) chars)") }
+                if subtitleTruncated { truncatedList.append("subtitle (\(subtitle?.count ?? 0) chars)") }
+                print("[expo-tvos-search] Result '\(title)' (id: '\(id)'): truncated fields: \(truncatedList.joined(separator: ", "))")
+                #endif
+            }
+
             validResults.append(SearchResultItem(
                 id: String(id.prefix(maxIdLength)),
                 title: String(title.prefix(maxTitleLength)),
-                subtitle: (dict["subtitle"] as? String).map { String($0.prefix(maxSubtitleLength)) },
+                subtitle: subtitle.map { String($0.prefix(maxSubtitleLength)) },
                 imageUrl: validatedImageUrl
             ))
         }
 
+        // Log summary of validation issues and emit warnings
         #if DEBUG
         if skippedCount > 0 {
-            print("[expo-tvos-search] Skipped \(skippedCount) invalid result(s) missing required id or title")
+            print("[expo-tvos-search] ⚠️ Skipped \(skippedCount) result(s) due to missing required fields (id or title)")
+        }
+        if urlValidationFailures > 0 {
+            print("[expo-tvos-search] ⚠️ \(urlValidationFailures) image URL(s) failed validation (non-HTTP/HTTPS or malformed)")
+        }
+        if truncatedFields > 0 {
+            print("[expo-tvos-search] ℹ️ Truncated \(truncatedFields) result(s) with fields exceeding maximum length (500 chars)")
+        }
+        if validResults.count > 0 {
+            print("[expo-tvos-search] ✓ Processed \(validResults.count) valid result(s)")
         }
         #endif
+
+        // Emit validation warnings for production monitoring
+        if skippedCount > 0 {
+            onValidationWarning([
+                "type": "validation_failed",
+                "message": "Skipped \(skippedCount) result(s) due to missing required fields",
+                "context": "validResults=\(validResults.count), skipped=\(skippedCount)"
+            ])
+        }
+        if urlValidationFailures > 0 {
+            onValidationWarning([
+                "type": "url_invalid",
+                "message": "\(urlValidationFailures) image URL(s) failed validation",
+                "context": "Non-HTTP/HTTPS or malformed URLs"
+            ])
+        }
+        if truncatedFields > 0 {
+            onValidationWarning([
+                "type": "field_truncated",
+                "message": "Truncated \(truncatedFields) result(s) with fields exceeding 500 characters",
+                "context": "Check id, title, or subtitle field lengths"
+            ])
+        }
 
         viewModel.results = validResults
     }
@@ -480,6 +552,8 @@ class ExpoTvosSearchView: ExpoView {
 
     let onSearch = EventDispatcher()
     let onSelectItem = EventDispatcher()
+    let onError = EventDispatcher()
+    let onValidationWarning = EventDispatcher()
 
     required init(appContext: AppContext? = nil) {
         super.init(appContext: appContext)
