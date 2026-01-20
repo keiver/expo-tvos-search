@@ -22,7 +22,9 @@
       "Bash(npm uninstall:*)",
       "Bash(git push:*)",
       "Bash(gh release create:*)",
-      "Bash(gh auth:*)"
+      "Bash(gh auth:*)",
+      "Bash(git fetch:*)",
+      "Bash(python3:*)"
     ]
   }
 }
