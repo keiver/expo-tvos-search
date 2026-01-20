@@ -4,9 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Test Status](https://github.com/keiver/expo-tvos-search/workflows/Test%20PR/badge.svg)](https://github.com/keiver/expo-tvos-search/actions)
 
-A native tvOS search component for Expo and React Native.
-
-This library provides a native tvOS search view using SwiftUI's `.searchable` modifier. It handles focus, keyboard navigation, and accessibility out of the box, providing a seamless search experience on Apple TV with a native fullscreen search interface.
+A native tvOS search component for Expo and React Native using SwiftUI's `.searchable` modifier. Handles focus, keyboard navigation, and accessibility out of the box.
 
 <p align="center">
   <img src="screenshots/results.png" width="700" alt="TomoTV Search Results"/>
@@ -33,13 +31,13 @@ This library provides a native tvOS search view using SwiftUI's `.searchable` mo
 ## Installation
 
 ```bash
-npm install expo-tvos-search
+npx expo install expo-tvos-search
 ```
 
 Or install from GitHub:
 
 ```bash
-npm install github:keiver/expo-tvos-search
+npx expo install github:keiver/expo-tvos-search
 ```
 
 Then rebuild your native project:
@@ -184,29 +182,6 @@ Tests cover:
 - `isNativeSearchAvailable()` behavior on different platforms
 - Component rendering when native module is unavailable
 - Event structure validation
-
-## Accessibility
-
-### Built-in Support
-
-The native SwiftUI implementation provides accessibility features automatically:
-- **Focus management**: tvOS focus system handles navigation
-- **VoiceOver**: Cards announce title and subtitle
-- **Button semantics**: Cards are properly identified as interactive elements
-- **Focus indicators**: Visual feedback for focused state
-
-### Remote Navigation
-
-The native `.searchable` modifier provides standard tvOS navigation:
-- **Swipe up/down**: Move between search field and results
-- **Swipe left/right**: Navigate between grid items
-- **Click (select)**: Open the focused result
-- **Menu button**: Exit search or navigate back
-
-Built for [TomoTV](https://github.com/keiver/tomotv), a Jellyfin client for Apple TV.
-
-Swift documentation references:
-- [.searchable modifier](https://developer.apple.com/documentation/SwiftUI/Creating-a-tvOS-media-catalog-app-in-SwiftUI)
 
 ## License
 
