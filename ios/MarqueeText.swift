@@ -41,7 +41,7 @@ struct MarqueeText: View {
 
     var body: some View {
         GeometryReader { geometry in
-            ZStack(alignment: .leading) {
+            ZStack(alignment: Alignment(horizontal: .leading, vertical: .center)) {
                 // Hidden text to measure actual width
                 Text(text)
                     .font(font)
@@ -69,7 +69,7 @@ struct MarqueeText: View {
                     }
                 }
             }
-            .frame(width: geometry.size.width, alignment: .leading)
+            .frame(width: geometry.size.width, height: geometry.size.height, alignment: Alignment(horizontal: .leading, vertical: .center))
             .clipped()
             .mask(fadeMask)
             .onPreferenceChange(TextWidthKey.self) { width in

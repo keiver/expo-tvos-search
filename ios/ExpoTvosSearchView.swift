@@ -268,8 +268,11 @@ struct SearchResultCard: View {
 
                     // Title overlay with native material blur
                     if showTitleOverlay {
-                        VStack(alignment: .center, spacing: 0) {
-                            Spacer(minLength: 0)
+                        ZStack {
+                            Rectangle()
+                                .fill(.ultraThinMaterial)
+                                .frame(width: cardWidth, height: overlayHeight)
+
                             if enableMarquee {
                                 MarqueeText(
                                     item.title,
@@ -280,22 +283,17 @@ struct SearchResultCard: View {
                                     animate: isFocused
                                 )
                                 .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .fixedSize(horizontal: false, vertical: true)
+                                .padding(.horizontal, cardPadding)
                             } else {
                                 Text(item.title)
                                     .font(.system(size: overlayTitleSize, weight: .semibold))
                                     .foregroundColor(.white)
                                     .lineLimit(2)
                                     .multilineTextAlignment(.center)
-                                    .frame(maxWidth: .infinity)
-                                    .fixedSize(horizontal: false, vertical: true)
+                                    .padding(.horizontal, cardPadding)
                             }
-                            Spacer(minLength: 0)
                         }
-                        .padding(.horizontal, cardPadding)
                         .frame(width: cardWidth, height: overlayHeight)
-                        .background(.ultraThinMaterial)
                     }
                 }
                 .frame(width: cardWidth, height: cardHeight)
