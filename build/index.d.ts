@@ -1,5 +1,4 @@
-import React from "react";
-import { ViewStyle } from "react-native";
+import type { ViewStyle } from "react-native";
 /**
  * Event payload for search text changes.
  * Fired when the user types in the native search field.
@@ -18,6 +17,38 @@ export interface SelectItemEvent {
     nativeEvent: {
         /** The unique identifier of the selected search result */
         id: string;
+    };
+}
+/**
+ * Categories of errors that can occur in the search view.
+ */
+export type SearchViewErrorCategory = "module_unavailable" | "validation_failed" | "image_load_failed" | "unknown";
+/**
+ * Event payload for error callbacks.
+ * Provides details about errors that occur during search view operations.
+ */
+export interface SearchViewErrorEvent {
+    nativeEvent: {
+        /** Category of the error for programmatic handling */
+        category: SearchViewErrorCategory;
+        /** Human-readable error message */
+        message: string;
+        /** Optional additional context (e.g., result ID, URL) */
+        context?: string;
+    };
+}
+/**
+ * Event payload for validation warnings.
+ * Non-fatal issues like truncated fields or clamped values.
+ */
+export interface ValidationWarningEvent {
+    nativeEvent: {
+        /** Type of validation warning */
+        type: "field_truncated" | "value_clamped" | "url_invalid" | "validation_failed";
+        /** Human-readable warning message */
+        message: string;
+        /** Optional additional context */
+        context?: string;
     };
 }
 /**
@@ -69,7 +100,7 @@ export interface TvosSearchViewProps {
     columns?: number;
     /**
      * Placeholder text shown in the search field when empty.
-     * @default "Search..."
+     * @default "Search movies and videos..."
      */
     placeholder?: string;
     /**
@@ -142,6 +173,61 @@ export interface TvosSearchViewProps {
      */
     noResultsHintText?: string;
     /**
+     * Color for text and UI elements in the search interface.
+     * Hex color string (e.g., "#FFFFFF", "#E5E5E5").
+     * @default Uses system default based on userInterfaceStyle
+     * @example "#E5E5E5" for light gray text on dark background
+     */
+    textColor?: string;
+    /**
+     * Accent color for focused elements and highlights.
+     * Hex color string (e.g., "#FFC312").
+     * @default "#FFC312" (gold)
+     * @example "#E50914" for Netflix red
+     */
+    accentColor?: string;
+    /**
+     * Width of each result card in points.
+     * Allows customization for portrait, landscape, or square layouts.
+     * @default 280
+     * @example 420 for landscape cards
+     */
+    cardWidth?: number;
+    /**
+     * Height of each result card in points.
+     * Allows customization for portrait, landscape, or square layouts.
+     * @default 420
+     * @example 240 for landscape cards (16:9 ratio with width=420)
+     */
+    cardHeight?: number;
+    /**
+     * How the image fills the card area.
+     * - 'fill': Image fills entire card, may crop (default)
+     * - 'fit': Image fits within card, may show letterboxing
+     * - 'contain': Same as fit (alias for consistency)
+     * @default "fill"
+     */
+    imageContentMode?: 'fill' | 'fit' | 'contain';
+    /**
+     * Spacing between cards in the grid layout (both horizontal and vertical).
+     * @default 40
+     * @example 60 for spacious layouts, 20 for compact grids
+     */
+    cardMargin?: number;
+    /**
+     * Padding inside the card for overlay content (title, subtitle).
+     * @default 16
+     * @example 20 for more breathing room, 12 for compact cards
+     */
+    cardPadding?: number;
+    /**
+     * Font size for title in the blur overlay (when showTitleOverlay is true).
+     * Allows customization of overlay text size for different card layouts.
+     * @default 20
+     * @example 18 for smaller cards, 24 for larger cards
+     */
+    overlayTitleSize?: number;
+    /**
      * Callback fired when the search text changes.
      * Debounce this handler to avoid excessive API calls.
      */
@@ -151,6 +237,30 @@ export interface TvosSearchViewProps {
      * Use the `id` from the event to identify which result was selected.
      */
     onSelectItem: (event: SelectItemEvent) => void;
+    /**
+     * Optional callback fired when errors occur.
+     * Use this to monitor and log issues in production.
+     * @example
+     * ```tsx
+     * onError={(e) => {
+     *   const { category, message, context } = e.nativeEvent;
+     *   logger.error(`Search error [${category}]: ${message}`, { context });
+     * }}
+     * ```
+     */
+    onError?: (event: SearchViewErrorEvent) => void;
+    /**
+     * Optional callback fired for non-fatal validation warnings.
+     * Examples: truncated fields, clamped values, invalid URLs.
+     * @example
+     * ```tsx
+     * onValidationWarning={(e) => {
+     *   const { type, message } = e.nativeEvent;
+     *   console.warn(`Validation warning [${type}]: ${message}`);
+     * }}
+     * ```
+     */
+    onValidationWarning?: (event: ValidationWarningEvent) => void;
     /**
      * Optional style for the view container.
      */
@@ -189,7 +299,7 @@ export interface TvosSearchViewProps {
  * @param props - Component props
  * @returns The native search view on tvOS, or `null` if unavailable
  */
-export declare function TvosSearchView(props: TvosSearchViewProps): React.JSX.Element | null;
+export declare function TvosSearchView(props: TvosSearchViewProps): JSX.Element | null;
 /**
  * Checks if the native tvOS search component is available.
  *

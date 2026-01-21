@@ -104,7 +104,7 @@ describe('TvosSearchViewProps defaults', () => {
     // The actual defaults are applied in Swift (ExpoTvosSearchView.swift)
     const expectedDefaults = {
       columns: 5,
-      placeholder: 'Search...',
+      placeholder: 'Search movies and videos...', // Matches Swift default
       isLoading: false,
       showTitle: false,
       showSubtitle: false,
@@ -113,6 +113,7 @@ describe('TvosSearchViewProps defaults', () => {
       showTitleOverlay: true,
       enableMarquee: true,
       marqueeDelay: 1.5,
+      overlayTitleSize: 20,
     };
 
     // Verify default documentation matches Swift implementation
@@ -120,5 +121,459 @@ describe('TvosSearchViewProps defaults', () => {
     expect(expectedDefaults.showTitleOverlay).toBe(true);
     expect(expectedDefaults.enableMarquee).toBe(true);
     expect(expectedDefaults.marqueeDelay).toBe(1.5);
+    expect(expectedDefaults.overlayTitleSize).toBe(20);
+  });
+});
+
+describe('TvosSearchViewProps overlayTitleSize', () => {
+  beforeEach(() => {
+    jest.resetModules();
+    mockTvOSPlatform();
+    mockNativeModuleAvailable();
+  });
+
+  it('accepts overlayTitleSize as a number', () => {
+    const { TvosSearchView } = require('../index');
+
+    // Should not throw when overlayTitleSize is provided
+    expect(() => {
+      TvosSearchView({
+        results: [],
+        onSearch: jest.fn(),
+        onSelectItem: jest.fn(),
+        overlayTitleSize: 18,
+      });
+    }).not.toThrow();
+  });
+
+  it('accepts overlayTitleSize with various values', () => {
+    const { TvosSearchView } = require('../index');
+
+    const testCases = [12, 18, 20, 24, 32];
+
+    testCases.forEach((size) => {
+      expect(() => {
+        TvosSearchView({
+          results: [],
+          onSearch: jest.fn(),
+          onSelectItem: jest.fn(),
+          overlayTitleSize: size,
+        });
+      }).not.toThrow();
+    });
+  });
+
+  it('works without overlayTitleSize (uses default)', () => {
+    const { TvosSearchView } = require('../index');
+
+    // Should not throw when overlayTitleSize is omitted
+    expect(() => {
+      TvosSearchView({
+        results: [],
+        onSearch: jest.fn(),
+        onSelectItem: jest.fn(),
+      });
+    }).not.toThrow();
+  });
+});
+
+describe('Module initialization error handling', () => {
+  let consoleWarnSpy: jest.SpyInstance;
+  let consoleErrorSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    jest.resetModules();
+    consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+  });
+
+  afterEach(() => {
+    consoleWarnSpy.mockRestore();
+    consoleErrorSpy.mockRestore();
+    jest.resetModules();
+    jest.dontMock('expo-modules-core');
+    jest.dontMock('react-native');
+  });
+
+  it('handles requireNativeViewManager not being a function', () => {
+    mockTvOSPlatform();
+
+    // Mock requireNativeViewManager as a string instead of function
+    jest.doMock('expo-modules-core', () => ({
+      requireNativeViewManager: 'not-a-function',
+    }));
+
+    const { isNativeSearchAvailable } = require('../index');
+
+    expect(isNativeSearchAvailable()).toBe(false);
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('requireNativeViewManager is not a function')
+    );
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('incompatible expo-modules-core version')
+    );
+  });
+
+  it('handles expo-modules-core missing error', () => {
+    mockTvOSPlatform();
+
+    // Mock expo-modules-core to throw error
+    jest.doMock('expo-modules-core', () => {
+      throw new Error('Cannot find module expo-modules-core');
+    });
+
+    const { isNativeSearchAvailable } = require('../index');
+
+    expect(isNativeSearchAvailable()).toBe(false);
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Failed to load expo-modules-core')
+    );
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('npm install expo-modules-core')
+    );
+  });
+
+  it('handles ExpoTvosSearch module not found error', () => {
+    mockTvOSPlatform();
+
+    // Mock requireNativeViewManager to throw module not found error
+    jest.doMock('expo-modules-core', () => ({
+      requireNativeViewManager: jest.fn(() => {
+        throw new Error('Native module ExpoTvosSearch not found');
+      }),
+    }));
+
+    const { isNativeSearchAvailable } = require('../index');
+
+    expect(isNativeSearchAvailable()).toBe(false);
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Native module ExpoTvosSearch not found')
+    );
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      expect.stringContaining("haven't run 'expo prebuild'")
+    );
+  });
+
+  it('handles unexpected error', () => {
+    mockTvOSPlatform();
+
+    // Mock requireNativeViewManager to throw unexpected error
+    jest.doMock('expo-modules-core', () => ({
+      requireNativeViewManager: jest.fn(() => {
+        throw new Error('Some unexpected error');
+      }),
+    }));
+
+    const { isNativeSearchAvailable } = require('../index');
+
+    expect(isNativeSearchAvailable()).toBe(false);
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Unexpected error loading native module')
+    );
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Some unexpected error')
+    );
+  });
+
+  it('logs full error details in development mode for unexpected errors', () => {
+    // Set __DEV__ to true
+    (global as any).__DEV__ = true;
+
+    mockTvOSPlatform();
+
+    const testError = new Error('Unexpected development error');
+    jest.doMock('expo-modules-core', () => ({
+      requireNativeViewManager: jest.fn(() => {
+        throw testError;
+      }),
+    }));
+
+    const { isNativeSearchAvailable } = require('../index');
+
+    expect(isNativeSearchAvailable()).toBe(false);
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Unexpected error loading native module')
+    );
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      '[expo-tvos-search] Full error details:',
+      testError
+    );
+
+    // Clean up __DEV__
+    delete (global as any).__DEV__;
+  });
+
+  it('does not log full error details when __DEV__ is false', () => {
+    // Set __DEV__ to false
+    (global as any).__DEV__ = false;
+
+    mockTvOSPlatform();
+
+    jest.doMock('expo-modules-core', () => ({
+      requireNativeViewManager: jest.fn(() => {
+        throw new Error('Production error');
+      }),
+    }));
+
+    const { isNativeSearchAvailable } = require('../index');
+
+    expect(isNativeSearchAvailable()).toBe(false);
+    expect(consoleWarnSpy).toHaveBeenCalled();
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+
+    // Clean up __DEV__
+    delete (global as any).__DEV__;
+  });
+
+  it('does not log full error details when __DEV__ is undefined', () => {
+    // Ensure __DEV__ is undefined
+    delete (global as any).__DEV__;
+
+    mockTvOSPlatform();
+
+    jest.doMock('expo-modules-core', () => ({
+      requireNativeViewManager: jest.fn(() => {
+        throw new Error('No DEV error');
+      }),
+    }));
+
+    const { isNativeSearchAvailable } = require('../index');
+
+    expect(isNativeSearchAvailable()).toBe(false);
+    expect(consoleWarnSpy).toHaveBeenCalled();
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe('TvosSearchView development logging', () => {
+  let consoleWarnSpy: jest.SpyInstance;
+  let consoleInfoSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    jest.resetModules();
+    jest.dontMock('expo-modules-core');
+    jest.dontMock('react-native');
+    consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
+    consoleInfoSpy = jest.spyOn(console, 'info').mockImplementation();
+  });
+
+  afterEach(() => {
+    consoleWarnSpy.mockRestore();
+    consoleInfoSpy.mockRestore();
+    delete (global as any).__DEV__;
+  });
+
+  it('warns in development when on tvOS but native module unavailable', () => {
+    // Set __DEV__ to true
+    (global as any).__DEV__ = true;
+
+    mockTvOSPlatform();
+    mockNativeModuleUnavailable();
+
+    const { TvosSearchView } = require('../index');
+    const result = TvosSearchView({
+      results: [],
+      onSearch: jest.fn(),
+      onSelectItem: jest.fn(),
+    });
+
+    expect(result).toBeNull();
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('TvosSearchView is rendering null on tvOS')
+    );
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      expect.stringContaining("native module wasn't built properly")
+    );
+  });
+
+  it('logs info in development when on non-tvOS platform', () => {
+    // Set __DEV__ to true
+    (global as any).__DEV__ = true;
+
+    mockWebPlatform();
+    mockNativeModuleUnavailable();
+
+    const { TvosSearchView } = require('../index');
+    const result = TvosSearchView({
+      results: [],
+      onSearch: jest.fn(),
+      onSelectItem: jest.fn(),
+    });
+
+    expect(result).toBeNull();
+    expect(consoleInfoSpy).toHaveBeenCalledWith(
+      expect.stringContaining('TvosSearchView is not available on web')
+    );
+    expect(consoleInfoSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Use isNativeSearchAvailable()')
+    );
+  });
+
+  it('does not log when __DEV__ is false', () => {
+    // Set __DEV__ to false
+    (global as any).__DEV__ = false;
+
+    mockTvOSPlatform();
+    mockNativeModuleUnavailable();
+
+    const { TvosSearchView } = require('../index');
+    const result = TvosSearchView({
+      results: [],
+      onSearch: jest.fn(),
+      onSelectItem: jest.fn(),
+    });
+
+    expect(result).toBeNull();
+    expect(consoleWarnSpy).not.toHaveBeenCalled();
+    expect(consoleInfoSpy).not.toHaveBeenCalled();
+  });
+
+  it('does not log when __DEV__ is undefined', () => {
+    // Ensure __DEV__ is undefined (afterEach will clean up anyway)
+    delete (global as any).__DEV__;
+
+    mockWebPlatform();
+    mockNativeModuleUnavailable();
+
+    const { TvosSearchView } = require('../index');
+    const result = TvosSearchView({
+      results: [],
+      onSearch: jest.fn(),
+      onSelectItem: jest.fn(),
+    });
+
+    expect(result).toBeNull();
+    expect(consoleWarnSpy).not.toHaveBeenCalled();
+    expect(consoleInfoSpy).not.toHaveBeenCalled();
+  });
+
+  it('logs info for iOS (non-TV) platform in development', () => {
+    // Set __DEV__ to true
+    (global as any).__DEV__ = true;
+
+    // Use the helper functions instead of doMock
+    globalThis.__mockPlatformOS = 'ios';
+    globalThis.__mockPlatformIsTV = false;
+    globalThis.__mockNativeViewAvailable = false;
+
+    const { TvosSearchView } = require('../index');
+    const result = TvosSearchView({
+      results: [],
+      onSearch: jest.fn(),
+      onSelectItem: jest.fn(),
+    });
+
+    expect(result).toBeNull();
+    expect(consoleInfoSpy).toHaveBeenCalledWith(
+      expect.stringContaining('TvosSearchView is not available on ios')
+    );
+  });
+});
+
+describe('TvosSearchView with native module available', () => {
+  beforeEach(() => {
+    jest.resetModules();
+    jest.dontMock('expo-modules-core');
+    jest.dontMock('react-native');
+    mockTvOSPlatform();
+    mockNativeModuleAvailable();
+  });
+
+  it('renders when NativeView is available', () => {
+    const { TvosSearchView } = require('../index');
+
+    const result = TvosSearchView({
+      results: [],
+      onSearch: jest.fn(),
+      onSelectItem: jest.fn(),
+    });
+
+    // Should render JSX element, not null
+    expect(result).not.toBeNull();
+    expect(result).toBeTruthy();
+  });
+
+  it('forwards props to NativeView', () => {
+    const { TvosSearchView } = require('../index');
+
+    const mockOnSearch = jest.fn();
+    const mockOnSelectItem = jest.fn();
+    const mockOnError = jest.fn();
+    const mockResults = [
+      { id: '1', title: 'Test 1', subtitle: 'Subtitle 1' },
+      { id: '2', title: 'Test 2' },
+    ];
+
+    const result = TvosSearchView({
+      results: mockResults,
+      columns: 3,
+      placeholder: 'Search...',
+      isLoading: true,
+      showTitle: true,
+      showSubtitle: true,
+      showFocusBorder: true,
+      topInset: 100,
+      textColor: '#FFFFFF',
+      accentColor: '#FF0000',
+      cardWidth: 300,
+      cardHeight: 400,
+      onSearch: mockOnSearch,
+      onSelectItem: mockOnSelectItem,
+      onError: mockOnError,
+    });
+
+    // Component should render
+    expect(result).not.toBeNull();
+  });
+
+  it('renders with minimal required props', () => {
+    const { TvosSearchView } = require('../index');
+
+    const result = TvosSearchView({
+      results: [],
+      onSearch: jest.fn(),
+      onSelectItem: jest.fn(),
+    });
+
+    expect(result).not.toBeNull();
+  });
+
+  it('renders with all optional props', () => {
+    const { TvosSearchView } = require('../index');
+
+    const mockOnValidationWarning = jest.fn();
+
+    const result = TvosSearchView({
+      results: [{ id: 'test', title: 'Test', subtitle: 'Sub', imageUrl: 'http://example.com/img.jpg' }],
+      columns: 5,
+      placeholder: 'Custom placeholder',
+      isLoading: false,
+      showTitle: true,
+      showSubtitle: true,
+      showFocusBorder: true,
+      topInset: 140,
+      showTitleOverlay: false,
+      enableMarquee: false,
+      marqueeDelay: 2.0,
+      emptyStateText: 'Nothing here',
+      searchingText: 'Looking...',
+      noResultsText: 'Not found',
+      noResultsHintText: 'Try again',
+      textColor: '#E5E5E5',
+      accentColor: '#FFC312',
+      cardWidth: 280,
+      cardHeight: 420,
+      imageContentMode: 'fit',
+      cardMargin: 40,
+      cardPadding: 16,
+      overlayTitleSize: 20,
+      onSearch: jest.fn(),
+      onSelectItem: jest.fn(),
+      onError: jest.fn(),
+      onValidationWarning: mockOnValidationWarning,
+      style: { flex: 1 },
+    });
+
+    expect(result).not.toBeNull();
   });
 });

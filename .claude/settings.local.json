@@ -26,7 +26,15 @@
       "Bash(git fetch:*)",
       "Bash(python3:*)",
       "Bash(npm audit:*)",
-      "Bash(npm run test:coverage:*)"
+      "Bash(npm run test:coverage:*)",
+      "Bash(git check-ignore:*)",
+      "Bash(git rm:*)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "Bash(npx @react-native-community/cli@latest init:*)",
+      "Bash(npm run prebuild:*)",
+      "Bash(swiftc:*)",
+      "Bash(node -e:*)"
     ]
   }
 }

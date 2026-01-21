@@ -1,5 +1,6 @@
 import React from "react";
-import { ViewStyle, Platform } from "react-native";
+import type { ViewStyle } from "react-native";
+import { Platform } from "react-native";
 
 /**
  * Event payload for search text changes.
@@ -20,6 +21,45 @@ export interface SelectItemEvent {
   nativeEvent: {
     /** The unique identifier of the selected search result */
     id: string;
+  };
+}
+
+/**
+ * Categories of errors that can occur in the search view.
+ */
+export type SearchViewErrorCategory =
+  | "module_unavailable"
+  | "validation_failed"
+  | "image_load_failed"
+  | "unknown";
+
+/**
+ * Event payload for error callbacks.
+ * Provides details about errors that occur during search view operations.
+ */
+export interface SearchViewErrorEvent {
+  nativeEvent: {
+    /** Category of the error for programmatic handling */
+    category: SearchViewErrorCategory;
+    /** Human-readable error message */
+    message: string;
+    /** Optional additional context (e.g., result ID, URL) */
+    context?: string;
+  };
+}
+
+/**
+ * Event payload for validation warnings.
+ * Non-fatal issues like truncated fields or clamped values.
+ */
+export interface ValidationWarningEvent {
+  nativeEvent: {
+    /** Type of validation warning */
+    type: "field_truncated" | "value_clamped" | "url_invalid" | "validation_failed";
+    /** Human-readable warning message */
+    message: string;
+    /** Optional additional context */
+    context?: string;
   };
 }
 
@@ -75,7 +115,7 @@ export interface TvosSearchViewProps {
 
   /**
    * Placeholder text shown in the search field when empty.
-   * @default "Search..."
+   * @default "Search movies and videos..."
    */
   placeholder?: string;
 
@@ -161,6 +201,69 @@ export interface TvosSearchViewProps {
   noResultsHintText?: string;
 
   /**
+   * Color for text and UI elements in the search interface.
+   * Hex color string (e.g., "#FFFFFF", "#E5E5E5").
+   * @default Uses system default based on userInterfaceStyle
+   * @example "#E5E5E5" for light gray text on dark background
+   */
+  textColor?: string;
+
+  /**
+   * Accent color for focused elements and highlights.
+   * Hex color string (e.g., "#FFC312").
+   * @default "#FFC312" (gold)
+   * @example "#E50914" for Netflix red
+   */
+  accentColor?: string;
+
+  /**
+   * Width of each result card in points.
+   * Allows customization for portrait, landscape, or square layouts.
+   * @default 280
+   * @example 420 for landscape cards
+   */
+  cardWidth?: number;
+
+  /**
+   * Height of each result card in points.
+   * Allows customization for portrait, landscape, or square layouts.
+   * @default 420
+   * @example 240 for landscape cards (16:9 ratio with width=420)
+   */
+  cardHeight?: number;
+
+  /**
+   * How the image fills the card area.
+   * - 'fill': Image fills entire card, may crop (default)
+   * - 'fit': Image fits within card, may show letterboxing
+   * - 'contain': Same as fit (alias for consistency)
+   * @default "fill"
+   */
+  imageContentMode?: 'fill' | 'fit' | 'contain';
+
+  /**
+   * Spacing between cards in the grid layout (both horizontal and vertical).
+   * @default 40
+   * @example 60 for spacious layouts, 20 for compact grids
+   */
+  cardMargin?: number;
+
+  /**
+   * Padding inside the card for overlay content (title, subtitle).
+   * @default 16
+   * @example 20 for more breathing room, 12 for compact cards
+   */
+  cardPadding?: number;
+
+  /**
+   * Font size for title in the blur overlay (when showTitleOverlay is true).
+   * Allows customization of overlay text size for different card layouts.
+   * @default 20
+   * @example 18 for smaller cards, 24 for larger cards
+   */
+  overlayTitleSize?: number;
+
+  /**
    * Callback fired when the search text changes.
    * Debounce this handler to avoid excessive API calls.
    */
@@ -173,15 +276,41 @@ export interface TvosSearchViewProps {
   onSelectItem: (event: SelectItemEvent) => void;
 
   /**
+   * Optional callback fired when errors occur.
+   * Use this to monitor and log issues in production.
+   * @example
+   * ```tsx
+   * onError={(e) => {
+   *   const { category, message, context } = e.nativeEvent;
+   *   logger.error(`Search error [${category}]: ${message}`, { context });
+   * }}
+   * ```
+   */
+  onError?: (event: SearchViewErrorEvent) => void;
+
+  /**
+   * Optional callback fired for non-fatal validation warnings.
+   * Examples: truncated fields, clamped values, invalid URLs.
+   * @example
+   * ```tsx
+   * onValidationWarning={(e) => {
+   *   const { type, message } = e.nativeEvent;
+   *   console.warn(`Validation warning [${type}]: ${message}`);
+   * }}
+   * ```
+   */
+  onValidationWarning?: (event: ValidationWarningEvent) => void;
+
+  /**
    * Optional style for the view container.
    */
   style?: ViewStyle;
 }
 
-// Safely try to load the native view - it may not be available if:
-// 1. Running on a non-tvOS platform
-// 2. Native module hasn't been built yet (needs expo prebuild)
-// 3. expo-modules-core isn't properly installed
+/**
+ * Native view component loaded at module initialization.
+ * Returns null on non-tvOS platforms or when the native module is unavailable.
+ */
 let NativeView: React.ComponentType<TvosSearchViewProps> | null = null;
 
 if (Platform.OS === "ios" && Platform.isTV) {
@@ -189,9 +318,45 @@ if (Platform.OS === "ios" && Platform.isTV) {
     const { requireNativeViewManager } = require("expo-modules-core");
     if (typeof requireNativeViewManager === "function") {
       NativeView = requireNativeViewManager("ExpoTvosSearch");
+    } else {
+      console.warn(
+        "[expo-tvos-search] requireNativeViewManager is not a function. " +
+          "This usually indicates an incompatible expo-modules-core version. " +
+          "Try reinstalling expo-modules-core or updating to a compatible version."
+      );
     }
-  } catch {
-    // Native module not available - will fall back to React Native implementation
+  } catch (error) {
+    // Categorize the error to help with debugging
+    const errorMessage = error instanceof Error ? error.message : String(error);
+
+    if (errorMessage.includes("expo-modules-core")) {
+      console.warn(
+        "[expo-tvos-search] Failed to load expo-modules-core. " +
+          "Make sure expo-modules-core is installed: npm install expo-modules-core\n" +
+          `Error: ${errorMessage}`
+      );
+    } else if (errorMessage.includes("ExpoTvosSearch")) {
+      console.warn(
+        "[expo-tvos-search] Native module ExpoTvosSearch not found. " +
+          "This usually means:\n" +
+          "1. You haven't run 'expo prebuild' yet, or\n" +
+          "2. The native project needs to be rebuilt (try 'expo prebuild --clean')\n" +
+          "3. You're not running on a tvOS simulator/device\n" +
+          `Error: ${errorMessage}`
+      );
+    } else {
+      // Unexpected error - log full details for debugging
+      console.warn(
+        "[expo-tvos-search] Unexpected error loading native module.\n" +
+          `Error: ${errorMessage}\n` +
+          "Please report this issue at: https://github.com/keiver/expo-tvos-search/issues"
+      );
+
+      // In development, log the full error for debugging
+      if (typeof __DEV__ !== "undefined" && __DEV__) {
+        console.error("[expo-tvos-search] Full error details:", error);
+      }
+    }
   }
 }
 
@@ -228,8 +393,31 @@ if (Platform.OS === "ios" && Platform.isTV) {
  * @param props - Component props
  * @returns The native search view on tvOS, or `null` if unavailable
  */
-export function TvosSearchView(props: TvosSearchViewProps) {
+export function TvosSearchView(props: TvosSearchViewProps): JSX.Element | null {
   if (!NativeView) {
+    // Warn in development when native module is unavailable
+    if (typeof __DEV__ !== "undefined" && __DEV__) {
+      const isRunningOnTvOS = Platform.OS === "ios" && Platform.isTV;
+
+      if (isRunningOnTvOS) {
+        // On tvOS but module failed to load - this is unexpected
+        console.warn(
+          "[expo-tvos-search] TvosSearchView is rendering null on tvOS. " +
+            "This usually means:\n" +
+            "1. The native module wasn't built properly (try 'expo prebuild --clean')\n" +
+            "2. expo-modules-core is missing or incompatible\n" +
+            "3. The app needs to be restarted after installing the module\n\n" +
+            "Check the earlier console logs for specific error details."
+        );
+      } else {
+        // Not on tvOS - expected behavior, but developer might want to know
+        console.info(
+          "[expo-tvos-search] TvosSearchView is not available on " +
+            `${Platform.OS}${Platform.isTV ? " (TV)" : ""}. ` +
+            "Use isNativeSearchAvailable() to check before rendering this component."
+        );
+      }
+    }
     return null;
   }
   return <NativeView {...props} />;
