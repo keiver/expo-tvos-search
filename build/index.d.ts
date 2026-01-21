@@ -100,7 +100,7 @@ export interface TvosSearchViewProps {
     columns?: number;
     /**
      * Placeholder text shown in the search field when empty.
-     * @default "Search..."
+     * @default "Search movies and videos..."
      */
     placeholder?: string;
     /**
