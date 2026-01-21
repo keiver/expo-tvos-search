@@ -5,28 +5,16 @@
 [![Test Status](https://github.com/keiver/expo-tvos-search/workflows/Test%20PR/badge.svg)](https://github.com/keiver/expo-tvos-search/actions)
 [![Bundle Size](https://img.shields.io/bundlephobia/minzip/expo-tvos-search)](https://bundlephobia.com/package/expo-tvos-search)
 
-A native tvOS search component for Expo and React Native using SwiftUI's `.searchable` modifier. Handles focus, keyboard navigation, and accessibility out of the box.
+A native tvOS search component for Expo and React Native using SwiftUI's `.searchable` modifier. Provides the native tvOS search experience with automatic focus handling, remote control support, and flexible customization for media apps.
+
+**Platform Support:**
+- tvOS 15.0+
+- Expo SDK 51+
+- React Native tvOS 0.71+
 
 <p align="center">
-  <img src="screenshots/results.png" width="700" alt="TomoTV Search Results"/>
+  <img src="screenshots/demo-mini.png" width="80%" alt="Demo Mini screen for expo-tvos-search" style="border-radius: 16px;max-width: 100%;"/>
 </p>
-
-<table>
-  <tr>
-    <td align="center">
-      <img src="screenshots/default.png" width="280" alt="Search"/><br/>
-      <sub>Native Search</sub>
-    </td>
-    <td align="center">
-      <img src="screenshots/results.png" width="280" alt="Results"/><br/>
-      <sub>Results</sub>
-    </td>
-    <td align="center">
-      <img src="screenshots/no-results.png" width="280" alt="No Results"/><br/>
-      <sub>Empty State</sub>
-    </td>
-  </tr>
-</table>
 
 ## Installation
 
@@ -41,6 +29,31 @@ npx expo install github:keiver/expo-tvos-search
 ```
 
 Then follow the **tvOS prerequisites** below and rebuild your native project.
+
+## Quick Start
+
+### Try the Demo App
+
+**[expo-tvos-search-demo](https://github.com/keiver/expo-tvos-search-demo)** - Comprehensive showcase with 7 tabs demonstrating all library features:
+
+- **Default** - 4-column grid with custom colors
+- **Portrait** - Netflix-style tall cards (280×420)
+- **Landscape** - Wide 16:9 cards (500×280)
+- **Mini** - Compact 5-column layout (240×360)
+- **External Title** - Titles displayed below cards
+- **Minimal** - Bare minimum setup (5 props)
+- **Help** - Feature overview and usage guide
+
+Clone and run:
+```bash
+git clone https://github.com/keiver/expo-tvos-search-demo.git
+cd expo-tvos-search-demo
+npm install
+npm run prebuild
+npm run tvos
+```
+
+The demo uses a planet search theme with 8 planets (Mercury to Neptune) and demonstrates all library features with real working code.
 
 ## Prerequisites for tvOS Builds (Expo)
 
@@ -90,37 +103,46 @@ Then run:
 npx expo run:ios
 ```
 
-### 4. Common gotchas
-
-- **Prebuild must be re-run** if you add/remove tvOS dependencies or change the tvOS plugin configuration.
-- **If you see App Transport Security errors** for images, ensure your `imageUrl` uses `https://` (recommended) or add the appropriate ATS exceptions.
-- **If the tvOS keyboard/search UI doesn't appear**, confirm you're actually running a tvOS target/simulator, not an iOS target.
 
 ## Usage
 
+### Minimal Example
+
+For the absolute minimum setup, see the [Minimal tab](https://github.com/keiver/expo-tvos-search-demo/blob/main/app/(tabs)/minimal.tsx) in the demo app.
+
+<p align="center">
+  <img src="screenshots/demo-default.png" width="80%" alt="Minimal demo screen for expo-tvos-search" style="border-radius: 16px;max-width: 100%;"/><br/>
+</p>
+
+### Complete Example
+
+This example from the demo's [Portrait tab](https://github.com/keiver/expo-tvos-search-demo/blob/main/app/(tabs)/portrait.tsx) shows a complete implementation with best practices:
+
 ```tsx
-import React, { useState } from "react";
-import { Alert } from "react-native";
+import { useState } from 'react';
+import { Alert } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
   TvosSearchView,
   isNativeSearchAvailable,
   type SearchResult,
-} from "expo-tvos-search";
+} from 'expo-tvos-search';
 
 const PLANETS: SearchResult[] = [
-  { id: "mercury", title: "Mercury", subtitle: "Smallest planet", imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4a/Mercury_in_true_color.jpg/400px-Mercury_in_true_color.jpg" },
-  { id: "venus", title: "Venus", subtitle: "Hottest planet", imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/Venus-real_color.jpg/400px-Venus-real_color.jpg" },
-  { id: "earth", title: "Earth", subtitle: "Our home", imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/The_Earth_seen_from_Apollo_17.jpg/400px-The_Earth_seen_from_Apollo_17.jpg" },
-  { id: "mars", title: "Mars", subtitle: "The red planet", imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/02/OSIRIS_Mars_true_color.jpg/400px-OSIRIS_Mars_true_color.jpg" },
-  { id: "jupiter", title: "Jupiter", subtitle: "Largest planet", imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Jupiter_New_Horizons.jpg/400px-Jupiter_New_Horizons.jpg" },
-  { id: "saturn", title: "Saturn", subtitle: "Ringed giant", imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c7/Saturn_during_Equinox.jpg/400px-Saturn_during_Equinox.jpg" },
-  { id: "uranus", title: "Uranus", subtitle: "Ice giant", imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Uranus2.jpg/400px-Uranus2.jpg" },
-  { id: "neptune", title: "Neptune", subtitle: "Windiest planet", imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/63/Neptune_-_Voyager_2_%2829347980845%29_flatten_crop.jpg/400px-Neptune_-_Voyager_2_%2829347980845%29_flatten_crop.jpg" },
+  {
+    id: 'earth',
+    title: 'Earth - The Blue Marble of Life',
+    subtitle: 'Our home planet, the only known world to harbor life',
+    imageUrl: require('./assets/planets/earth.webp'),
+  },
+  // ... more planets
 ];
 
-export function SearchScreen() {
+export default function SearchScreen() {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const handleSearch = (event: { nativeEvent: { query: string } }) => {
     const { query } = event.nativeEvent;
@@ -132,11 +154,12 @@ export function SearchScreen() {
 
     setIsLoading(true);
 
-    // Simulate async search
+    // Debounce search (300ms)
     setTimeout(() => {
-      const filtered = PLANETS.filter((planet) =>
-        planet.title.toLowerCase().includes(query.toLowerCase()) ||
-        planet.subtitle?.toLowerCase().includes(query.toLowerCase())
+      const filtered = PLANETS.filter(
+        planet =>
+          planet.title.toLowerCase().includes(query.toLowerCase()) ||
+          planet.subtitle?.toLowerCase().includes(query.toLowerCase())
       );
       setResults(filtered);
       setIsLoading(false);
@@ -144,157 +167,239 @@ export function SearchScreen() {
   };
 
   const handleSelect = (event: { nativeEvent: { id: string } }) => {
-    const planet = PLANETS.find((p) => p.id === event.nativeEvent.id);
+    const planet = PLANETS.find(p => p.id === event.nativeEvent.id);
     if (planet) {
       Alert.alert(planet.title, planet.subtitle);
     }
   };
 
   if (!isNativeSearchAvailable()) {
-    return <YourFallbackSearch />;
+    return null; // Or show web fallback
   }
 
   return (
-    <TvosSearchView
-      results={results}
-      columns={5}
-      placeholder="Search planets..."
-      isLoading={isLoading}
-      topInset={140}
-      onSearch={handleSearch}
-      onSelectItem={handleSelect}
+    <LinearGradient
+      colors={['#0f172a', '#1e293b', '#0f172a']}
       style={{ flex: 1 }}
-    />
+    >
+      <TvosSearchView
+        results={results}
+        columns={4}
+        placeholder="Search planets..."
+        isLoading={isLoading}
+        topInset={insets.top + 80}
+        onSearch={handleSearch}
+        onSelectItem={handleSelect}
+        textColor="#E5E5E5"
+        accentColor="#E50914"
+        cardWidth={280}
+        cardHeight={420}
+        overlayTitleSize={18}  // v1.3.0 - control title font size
+        style={{ flex: 1 }}
+      />
+    </LinearGradient>
   );
 }
 ```
 
-> **⚠️ IMPORTANT**: Always debounce the `onSearch` callback to prevent excessive API calls or expensive operations on every keystroke. In production apps, use a debounce library like lodash or implement your own debounce function:
->
-> ```tsx
-> import { useMemo } from 'react';
-> import { debounce } from 'lodash'; // or your preferred debounce implementation
->
-> function SearchScreen() {
->   const [results, setResults] = useState([]);
->
->   const debouncedSearch = useMemo(
->     () => debounce((query: string) => {
->       // Your actual search logic (API call, etc.)
->       fetchSearchResults(query).then(setResults);
->     }, 300), // 300ms delay
->     []
->   );
->
->   return (
->     <TvosSearchView
->       results={results}
->       onSearch={(e) => debouncedSearch(e.nativeEvent.query)}
->       onSelectItem={handleSelect}
->     />
->   );
-> }
-> ```
+## Layout Styles
 
-### Error Handling and Monitoring
+Explore all 7 configurations in the [demo app](https://github.com/keiver/expo-tvos-search-demo).
 
-The library provides error and validation warning callbacks for production monitoring:
+### Portrait Cards
 
 ```tsx
 <TvosSearchView
-  results={results}
-  onSearch={handleSearch}
-  onSelectItem={handleSelect}
+  columns={4}
+  cardWidth={280}
+  cardHeight={420}
+  overlayTitleSize={18}
+  // ... other props
+/>
+```
+
+### Landscape Cards
+
+```tsx
+<TvosSearchView
+  columns={3}
+  cardWidth={500}
+  cardHeight={280}
+  // ... other props
+/>
+```
+
+### Mini Grid
+
+```tsx
+<TvosSearchView
+  columns={5}
+  cardWidth={240}
+  cardHeight={360}
+  cardMargin={60}  // v1.3.0 - extra spacing
+  // ... other props
+/>
+```
+
+### External Titles
+
+```tsx
+<TvosSearchView
+  showTitle={true}
+  showSubtitle={true}
+  showTitleOverlay={false}
+  // ... other props
+/>
+```
+
+### Error Handling
+
+```tsx
+<TvosSearchView
   onError={(e) => {
     const { category, message, context } = e.nativeEvent;
-    // Log to your error monitoring service
     console.error(`[Search Error] ${category}: ${message}`, context);
-    // Examples: 'module_unavailable', 'validation_failed', 'image_load_failed', 'unknown'
   }}
   onValidationWarning={(e) => {
     const { type, message, context } = e.nativeEvent;
-    // Log non-fatal issues for monitoring
     console.warn(`[Validation] ${type}: ${message}`, context);
-    // Examples: 'field_truncated', 'value_clamped', 'url_invalid', 'validation_failed'
   }}
+  // ... other props
 />
 ```
-
-These callbacks help you:
-- Monitor data quality issues (truncated fields, invalid URLs)
-- Track when props are clamped to safe ranges
-- Detect when results exceed the 500-item limit
-- Log errors for debugging in production
 
 ### Customizing Colors and Card Dimensions
 
-You can customize the appearance of the search interface with color and dimension props:
-
 ```tsx
 <TvosSearchView
-  results={results}
-  onSearch={handleSearch}
-  onSelectItem={handleSelect}
-  // Custom colors
-  textColor="#E5E5E5"      // Light gray text on dark background
-  accentColor="#E50914"    // Red focused borders (House Flix style 😂)
-  // Custom card dimensions
-  cardWidth={420}          // Landscape cards
-  cardHeight={240}         // 16:9 aspect ratio
-  style={{ flex: 1 }}
+  textColor="#E5E5E5"
+  accentColor="#E50914"
+  cardWidth={420}
+  cardHeight={240}
+  // ... other props
 />
 ```
 
-**Color props:**
-- `textColor` - Affects subtitle text, empty state text, and placeholder icons
-- `accentColor` - Affects focused card borders and highlights
-
-**Dimension props:**
-- Default: 280x420 (portrait, 2:3 aspect ratio)
-- Landscape example: 420x240 (16:9)
-- Square example: 300x300 (1:1)
-
-### Layout and Spacing Customization
-
-Control image display, card spacing, and overlay padding for different layouts:
+### Title Overlay Customization (v1.3.0+)
 
 ```tsx
 <TvosSearchView
-  results={results}
-  onSearch={handleSearch}
-  onSelectItem={handleSelect}
-  // Image display mode
-  imageContentMode="fit"      // 'fill' (default, crop), 'fit'/'contain' (letterbox)
-  // Card spacing
-  cardMargin={60}              // Space between cards (default: 40)
-  cardPadding={20}             // Padding inside overlay (default: 16)
-  style={{ flex: 1 }}
+  overlayTitleSize={22}
+  enableMarquee={true}
+  marqueeDelay={1.5}
+  // ... other props
 />
 ```
 
-**Layout props:**
-- `imageContentMode` - How images fill cards:
-  - `'fill'` (default) - Crops image to fill entire card
-  - `'fit'` or `'contain'` - Shows entire image, may add letterboxing
-- `cardMargin` - Controls spacing between cards in the grid (both horizontal and vertical)
-- `cardPadding` - Controls padding inside the card's title overlay for better text spacing
+### Layout Spacing (v1.3.0+)
 
-**Common use cases:**
-- **Portrait posters** (movie/TV): `imageContentMode="fill"` + `cardMargin={40}`
-- **Landscape thumbnails** (episodes): `imageContentMode="fit"` + `cardMargin={60}`
-- **Compact grid** (music): `cardMargin={20}` + `cardPadding={12}`
-- **Spacious layout** (photos): `cardMargin={60}` + `cardPadding={20}`
+```tsx
+<TvosSearchView
+  cardMargin={60}
+  cardPadding={25}
+  // ... other props
+/>
+```
 
-## Example App
+### Image Display Mode
 
-**[Tomo TV](https://github.com/keiver/tomotv)** is a tvOS application that uses `expo-tvos-search` in a real-world Jellyfin client. It demonstrates the search component integrated with a complete media browsing experience, including:
+```tsx
+<TvosSearchView
+  imageContentMode="fit"  // 'fill' (crop), 'fit'/'contain' (letterbox)
+  // ... other props
+/>
+```
 
-- Search interaction with tvOS remote
-- Focus navigation through results
-- Integration with a live media library
-- Complete setup instructions and screenshots
+## TypeScript Support
 
-Check out Tomo TV to see `expo-tvos-search` in action and reference its implementation for your own projects.
+The library provides comprehensive type definitions for all events and props.
+
+### Event Types
+
+```typescript
+import type {
+  SearchEvent,
+  SelectItemEvent,
+  SearchViewErrorEvent,
+  ValidationWarningEvent,
+  SearchResult,
+} from 'expo-tvos-search';
+
+// Search event - fired on text change
+interface SearchEvent {
+  nativeEvent: {
+    query: string;
+  };
+}
+
+// Selection event - fired when result is selected
+interface SelectItemEvent {
+  nativeEvent: {
+    id: string;
+  };
+}
+
+// Error event - fatal errors (v1.2.0+)
+interface SearchViewErrorEvent {
+  nativeEvent: {
+    category: 'module_unavailable' | 'validation_failed' | 'image_load_failed' | 'unknown';
+    message: string;
+    context?: string;
+  };
+}
+
+// Validation warning - non-fatal issues (v1.2.0+)
+interface ValidationWarningEvent {
+  nativeEvent: {
+    type: 'field_truncated' | 'value_clamped' | 'url_invalid' | 'validation_failed';
+    message: string;
+    context?: string;
+  };
+}
+
+// Search result shape
+interface SearchResult {
+  id: string;           // Required, max 500 chars
+  title: string;        // Required, max 500 chars
+  subtitle?: string;    // Optional, max 500 chars
+  imageUrl?: string;    // Optional, HTTPS recommended
+}
+```
+
+### Typed Usage
+
+```typescript
+const handleSearch = (event: SearchEvent) => {
+  const query = event.nativeEvent.query;
+  // TypeScript knows query is a string
+};
+
+const handleSelect = (event: SelectItemEvent) => {
+  const id = event.nativeEvent.id;
+  // TypeScript knows id is a string
+};
+
+const handleError = (event: SearchViewErrorEvent) => {
+  const { category, message, context } = event.nativeEvent;
+  // Full autocomplete for category values
+  if (category === 'image_load_failed') {
+    logger.warn(`Image failed to load: ${message}`, { context });
+  }
+};
+```
+
+## Demo Apps & Examples
+
+### Official Demo App
+
+**[expo-tvos-search-demo](https://github.com/keiver/expo-tvos-search-demo)** - Complete working examples with 7 different layout styles. Browse the [source code](https://github.com/keiver/expo-tvos-search-demo/tree/main/app/(tabs)) for each configuration.
+
+### Apps Using This Library
+
+**[Tomo TV](https://github.com/keiver/tomotv)** - Full-featured tvOS Jellyfin client
+- Real-world integration with media library API
+- Advanced search with live server calls
+- Complete authentication and navigation flow
 
 ## See it in action:
 
@@ -304,35 +409,72 @@ Check out Tomo TV to see `expo-tvos-search` in action and reference its implemen
 
 ## Props
 
+### Core Props
+
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `results` | `SearchResult[]` | `[]` | Array of search results |
 | `columns` | `number` | `5` | Number of columns in the grid |
 | `placeholder` | `string` | `"Search movies and videos..."` | Search field placeholder |
 | `isLoading` | `boolean` | `false` | Shows loading indicator |
+
+### Card Dimensions & Spacing
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `cardWidth` | `number` | `280` | Width of each result card in points |
+| `cardHeight` | `number` | `420` | Height of each result card in points |
+| `cardMargin` | `number` | `40` | **(v1.3.0+)** Spacing between cards in the grid (horizontal and vertical) |
+| `cardPadding` | `number` | `16` | **(v1.3.0+)** Padding inside the card for overlay content (title/subtitle) |
+| `topInset` | `number` | `0` | Top padding (for tab bar clearance) |
+
+### Display Options
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
 | `showTitle` | `boolean` | `false` | Show title below each result |
 | `showSubtitle` | `boolean` | `false` | Show subtitle below title |
-| `showFocusBorder` | `boolean` | `false` | Show border on focused item |
-| `topInset` | `number` | `0` | Top padding (for tab bar clearance) |
 | `showTitleOverlay` | `boolean` | `true` | Show title overlay with gradient at bottom of card |
+| `showFocusBorder` | `boolean` | `false` | Show border on focused item |
+| `imageContentMode` | `'fill' \| 'fit' \| 'contain'` | `'fill'` | How images fill the card: `fill` (crop to fill), `fit`/`contain` (letterbox) |
+
+### Styling & Colors
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `textColor` | `string` | system default | Color for text and UI elements (hex format, e.g., "#FFFFFF") |
+| `accentColor` | `string` | `"#FFC312"` | Accent color for focused elements (hex format, e.g., "#FFC312") |
+| `overlayTitleSize` | `number` | `20` | **(v1.3.0+)** Font size for title text in the blur overlay (when showTitleOverlay is true) |
+
+### Animation
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
 | `enableMarquee` | `boolean` | `true` | Enable marquee scrolling for long titles |
 | `marqueeDelay` | `number` | `1.5` | Delay in seconds before marquee starts |
+
+### Text Customization
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
 | `emptyStateText` | `string` | `"Search for movies and videos"` | Text shown when search field is empty |
 | `searchingText` | `string` | `"Searching..."` | Text shown during search |
 | `noResultsText` | `string` | `"No results found"` | Text shown when no results found |
 | `noResultsHintText` | `string` | `"Try a different search term"` | Hint text below no results message |
-| `textColor` | `string` | system default | Color for text and UI elements (hex format, e.g., "#FFFFFF") |
-| `accentColor` | `string` | `"#FFC312"` | Accent color for focused elements (hex format, e.g., "#FFC312") |
-| `cardWidth` | `number` | `280` | Width of each result card in points |
-| `cardHeight` | `number` | `420` | Height of each result card in points |
-| `imageContentMode` | `'fill' \| 'fit' \| 'contain'` | `'fill'` | How images fill the card: `fill` (crop to fill), `fit`/`contain` (letterbox) |
-| `cardMargin` | `number` | `40` | Spacing between cards in the grid (horizontal and vertical) |
-| `cardPadding` | `number` | `16` | Padding inside the card for overlay content (title/subtitle) |
-| `overlayTitleSize` | `number` | `20` | Font size for title text in the blur overlay (when showTitleOverlay is true) |
+
+### Event Handlers
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
 | `onSearch` | `function` | required | Called when search text changes |
 | `onSelectItem` | `function` | required | Called when result is selected |
-| `onError` | `function` | optional | Called when errors occur (image loading failures, validation errors) |
-| `onValidationWarning` | `function` | optional | Called for non-fatal warnings (truncated fields, clamped values, invalid URLs) |
+| `onError` | `function` | optional | **(v1.2.0+)** Called when errors occur (image loading failures, validation errors) |
+| `onValidationWarning` | `function` | optional | **(v1.2.0+)** Called for non-fatal warnings (truncated fields, clamped values, invalid URLs) |
+
+### Other
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
 | `style` | `ViewStyle` | optional | Style object for the view container |
 
 ## SearchResult Type
@@ -420,13 +562,6 @@ function SearchScreen() {
 }
 ```
 
-## Requirements
-
-- Node.js 18+
-- Expo SDK 51+
-- tvOS 15+
-- Project configured for tvOS (`react-native-tvos` + `@react-native-tvos/config-tv`)
-
 ## Troubleshooting
 
 ### Native module not found
@@ -489,7 +624,7 @@ We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guid
 
 ### Adding New Props
 
-If you're adding new props to the library, follow the comprehensive checklist in [.claude/CLAUDE-adding-new-props.md](.claude/CLAUDE-adding-new-props.md). This memory bank provides a 9-step guide ensuring props are properly wired from TypeScript through to Swift rendering.
+If you're adding new props to the library, follow the comprehensive checklist in [CLAUDE-adding-new-props.md](./CLAUDE-adding-new-props.md). This memory bank provides a 9-step guide ensuring props are properly wired from TypeScript through to Swift rendering.
 
 ## License
 
