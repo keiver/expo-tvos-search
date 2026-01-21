@@ -281,6 +281,7 @@ struct SearchResultCard: View {
                                 )
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
+                                .fixedSize(horizontal: false, vertical: true)
                             } else {
                                 Text(item.title)
                                     .font(.system(size: overlayTitleSize, weight: .semibold))
@@ -288,6 +289,7 @@ struct SearchResultCard: View {
                                     .lineLimit(2)
                                     .multilineTextAlignment(.center)
                                     .frame(maxWidth: .infinity)
+                                    .fixedSize(horizontal: false, vertical: true)
                             }
                             Spacer(minLength: 0)
                         }
