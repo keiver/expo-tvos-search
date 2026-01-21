@@ -180,7 +180,7 @@ You can customize the appearance of the search interface with color and dimensio
   onSelectItem={handleSelect}
   // Custom colors
   textColor="#E5E5E5"      // Light gray text on dark background
-  accentColor="#E50914"    // Red focused borders (Netflix style)
+  accentColor="#E50914"    // Red focused borders (House Flix style 😂)
   // Custom card dimensions
   cardWidth={420}          // Landscape cards
   cardHeight={240}         // 16:9 aspect ratio
@@ -197,9 +197,40 @@ You can customize the appearance of the search interface with color and dimensio
 - Landscape example: 420x240 (16:9)
 - Square example: 300x300 (1:1)
 
+### Layout and Spacing Customization
+
+Control image display, card spacing, and overlay padding for different layouts:
+
+```tsx
+<TvosSearchView
+  results={results}
+  onSearch={handleSearch}
+  onSelectItem={handleSelect}
+  // Image display mode
+  imageContentMode="fit"      // 'fill' (default, crop), 'fit'/'contain' (letterbox)
+  // Card spacing
+  cardMargin={60}              // Space between cards (default: 40)
+  cardPadding={20}             // Padding inside overlay (default: 16)
+  style={{ flex: 1 }}
+/>
+```
+
+**Layout props:**
+- `imageContentMode` - How images fill cards:
+  - `'fill'` (default) - Crops image to fill entire card
+  - `'fit'` or `'contain'` - Shows entire image, may add letterboxing
+- `cardMargin` - Controls spacing between cards in the grid (both horizontal and vertical)
+- `cardPadding` - Controls padding inside the card's title overlay for better text spacing
+
+**Common use cases:**
+- **Portrait posters** (movie/TV): `imageContentMode="fill"` + `cardMargin={40}`
+- **Landscape thumbnails** (episodes): `imageContentMode="fit"` + `cardMargin={60}`
+- **Compact grid** (music): `cardMargin={20}` + `cardPadding={12}`
+- **Spacious layout** (photos): `cardMargin={60}` + `cardPadding={20}`
+
 ## Example App
 
-**[Tomo TV](https://github.com/keiver/tomotv)** is a production tvOS application that uses `expo-tvos-search` in a real-world Jellyfin client. It demonstrates the search component integrated with a complete media browsing experience, including:
+**[Tomo TV](https://github.com/keiver/tomotv)** is a tvOS application that uses `expo-tvos-search` in a real-world Jellyfin client. It demonstrates the search component integrated with a complete media browsing experience, including:
 
 - Search interaction with tvOS remote
 - Focus navigation through results
@@ -237,6 +268,9 @@ Check out Tomo TV to see `expo-tvos-search` in action and reference its implemen
 | `accentColor` | `string` | `"#FFC312"` | Accent color for focused elements (hex: "#E50914") |
 | `cardWidth` | `number` | `280` | Width of each result card in points |
 | `cardHeight` | `number` | `420` | Height of each result card in points |
+| `imageContentMode` | `'fill' \| 'fit' \| 'contain'` | `'fill'` | How images fill the card: `fill` (crop to fill), `fit`/`contain` (letterbox) |
+| `cardMargin` | `number` | `40` | Spacing between cards in the grid (horizontal and vertical) |
+| `cardPadding` | `number` | `16` | Padding inside the card for overlay content (title/subtitle) |
 | `onSearch` | `function` | required | Called when search text changes |
 | `onSelectItem` | `function` | required | Called when result is selected |
 

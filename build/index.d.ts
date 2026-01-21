@@ -201,6 +201,26 @@ export interface TvosSearchViewProps {
      */
     cardHeight?: number;
     /**
+     * How the image fills the card area.
+     * - 'fill': Image fills entire card, may crop (default)
+     * - 'fit': Image fits within card, may show letterboxing
+     * - 'contain': Same as fit (alias for consistency)
+     * @default "fill"
+     */
+    imageContentMode?: 'fill' | 'fit' | 'contain';
+    /**
+     * Spacing between cards in the grid layout (both horizontal and vertical).
+     * @default 40
+     * @example 60 for spacious layouts, 20 for compact grids
+     */
+    cardMargin?: number;
+    /**
+     * Padding inside the card for overlay content (title, subtitle).
+     * @default 16
+     * @example 20 for more breathing room, 12 for compact cards
+     */
+    cardPadding?: number;
+    /**
      * Callback fired when the search text changes.
      * Debounce this handler to avoid excessive API calls.
      */

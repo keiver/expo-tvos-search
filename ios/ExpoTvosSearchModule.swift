@@ -119,6 +119,18 @@ public class ExpoTvosSearchModule: Module {
             Prop("cardHeight") { (view: ExpoTvosSearchView, height: Double) in
                 view.cardHeight = CGFloat(max(50, min(1000, height)))  // Clamp to reasonable range
             }
+
+            Prop("imageContentMode") { (view: ExpoTvosSearchView, mode: String) in
+                view.imageContentMode = mode
+            }
+
+            Prop("cardMargin") { (view: ExpoTvosSearchView, margin: Double) in
+                view.cardMargin = CGFloat(max(0, min(200, margin)))  // Clamp to reasonable range
+            }
+
+            Prop("cardPadding") { (view: ExpoTvosSearchView, padding: Double) in
+                view.cardPadding = CGFloat(max(0, min(100, padding)))  // Clamp to reasonable range
+            }
         }
     }
 }

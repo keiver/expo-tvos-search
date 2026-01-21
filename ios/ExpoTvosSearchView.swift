@@ -46,13 +46,20 @@ class SearchViewModel: ObservableObject {
     // Card dimension options (configurable from JS)
     var cardWidth: CGFloat = 280
     var cardHeight: CGFloat = 420
+
+    // Image display options (configurable from JS)
+    var imageContentMode: ContentMode = .fill
+
+    // Layout spacing options (configurable from JS)
+    var cardMargin: CGFloat = 40  // Spacing between cards
+    var cardPadding: CGFloat = 16  // Padding inside cards
 }
 
 struct TvosSearchContentView: View {
     @ObservedObject var viewModel: SearchViewModel
 
     private var gridColumns: [GridItem] {
-        Array(repeating: GridItem(.flexible(), spacing: 40), count: viewModel.columns)
+        Array(repeating: GridItem(.flexible(), spacing: viewModel.cardMargin), count: viewModel.columns)
     }
 
     var body: some View {
@@ -141,7 +148,7 @@ struct TvosSearchContentView: View {
 
     private var resultsGridView: some View {
         ScrollView {
-            LazyVGrid(columns: gridColumns, spacing: 50) {
+            LazyVGrid(columns: gridColumns, spacing: viewModel.cardMargin) {
                 ForEach(viewModel.results) { item in
                     SearchResultCard(
                         item: item,
@@ -155,6 +162,8 @@ struct TvosSearchContentView: View {
                         accentColor: viewModel.accentColor,
                         cardWidth: viewModel.cardWidth,
                         cardHeight: viewModel.cardHeight,
+                        imageContentMode: viewModel.imageContentMode,
+                        cardPadding: viewModel.cardPadding,
                         onSelect: { viewModel.onSelectItem?(item.id) }
                     )
                 }
@@ -177,15 +186,15 @@ struct SearchResultCard: View {
     let accentColor: Color
     let cardWidth: CGFloat
     let cardHeight: CGFloat
+    let imageContentMode: ContentMode
+    let cardPadding: CGFloat
     let onSelect: () -> Void
     @FocusState private var isFocused: Bool
 
     private let placeholderColor = Color(white: 0.2)
 
     // Title overlay constants
-    private let overlayGradientHeight: CGFloat = 30
-    private let titleBarHeight: CGFloat = 36
-    private let overlayOpacity: Double = 0.8
+    private var overlayHeight: CGFloat { cardHeight * 0.25 }  // 25% of card
 
     var body: some View {
         Button(action: onSelect) {
@@ -203,7 +212,7 @@ struct SearchResultCard: View {
                                 case .success(let image):
                                     image
                                         .resizable()
-                                        .aspectRatio(contentMode: .fill)
+                                        .aspectRatio(contentMode: imageContentMode)
                                         .frame(width: cardWidth, height: cardHeight)
                                 case .failure:
                                     placeholderIcon
@@ -219,40 +228,32 @@ struct SearchResultCard: View {
                     .frame(width: cardWidth, height: cardHeight)
                     .clipped()
 
-                    // Title overlay (gradient + title bar)
+                    // Title overlay with native material blur
                     if showTitleOverlay {
-                        VStack(spacing: 0) {
-                            // Gradient fade
-                            LinearGradient(
-                                colors: [.clear, .black.opacity(overlayOpacity)],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                            .frame(height: overlayGradientHeight)
-
-                            // Title bar
-                            HStack {
-                                if enableMarquee {
-                                    MarqueeText(
-                                        item.title,
-                                        font: .callout,
-                                        leftFade: 8,
-                                        rightFade: 8,
-                                        startDelay: marqueeDelay,
-                                        animate: isFocused
-                                    )
+                        HStack(alignment: .center) {
+                            if enableMarquee {
+                                MarqueeText(
+                                    item.title,
+                                    font: .headline,  // Larger font for better visibility
+                                    leftFade: 12,
+                                    rightFade: 12,
+                                    startDelay: marqueeDelay,
+                                    animate: isFocused
+                                )
+                                .foregroundColor(.white)
+                            } else {
+                                Text(item.title)
+                                    .font(.headline)
                                     .foregroundColor(.white)
-                                } else {
-                                    Text(item.title)
-                                        .font(.callout)
-                                        .foregroundColor(.white)
-                                        .lineLimit(1)
-                                }
+                                    .lineLimit(2)
                             }
-                            .padding(.horizontal, 12)
-                            .frame(width: cardWidth, height: titleBarHeight, alignment: .leading)
-                            .background(Color.black.opacity(overlayOpacity))
                         }
+                        .padding(.horizontal, cardPadding)
+                        .frame(width: cardWidth, height: overlayHeight, alignment: .leading)
+                        .background(
+                            .ultraThinMaterial,  // Native material blur
+                            in: Rectangle()
+                        )
                     }
                 }
                 .frame(width: cardWidth, height: cardHeight)
@@ -408,6 +409,31 @@ class ExpoTvosSearchView: ExpoView {
     var cardHeight: CGFloat = 420 {
         didSet {
             viewModel.cardHeight = cardHeight
+        }
+    }
+
+    var imageContentMode: String = "fill" {
+        didSet {
+            switch imageContentMode.lowercased() {
+            case "fit":
+                viewModel.imageContentMode = .fit
+            case "contain":
+                viewModel.imageContentMode = .fit  // SwiftUI uses .fit for contain
+            default:
+                viewModel.imageContentMode = .fill
+            }
+        }
+    }
+
+    var cardMargin: CGFloat = 40 {
+        didSet {
+            viewModel.cardMargin = cardMargin
+        }
+    }
+
+    var cardPadding: CGFloat = 16 {
+        didSet {
+            viewModel.cardPadding = cardPadding
         }
     }
 
@@ -625,6 +651,9 @@ class ExpoTvosSearchView: ExpoView {
     var accentColor: String = "#FFC312"
     var cardWidth: CGFloat = 280
     var cardHeight: CGFloat = 420
+    var imageContentMode: String = "fill"
+    var cardMargin: CGFloat = 40
+    var cardPadding: CGFloat = 16
 
     let onSearch = EventDispatcher()
     let onSelectItem = EventDispatcher()
