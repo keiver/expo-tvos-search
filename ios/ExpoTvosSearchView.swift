@@ -292,6 +292,7 @@ struct SearchResultCard: View {
                             Spacer(minLength: 0)
                         }
                         .padding(.horizontal, cardPadding)
+                        .frame(maxHeight: .infinity)
                         .frame(width: cardWidth, height: overlayHeight)
                         .background(
                             .ultraThinMaterial,  // Native material blur
