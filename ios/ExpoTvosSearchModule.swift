@@ -131,6 +131,10 @@ public class ExpoTvosSearchModule: Module {
             Prop("cardPadding") { (view: ExpoTvosSearchView, padding: Double) in
                 view.cardPadding = CGFloat(max(0, min(100, padding)))  // Clamp to reasonable range
             }
+
+            Prop("overlayTitleSize") { (view: ExpoTvosSearchView, size: Double) in
+                view.overlayTitleSize = CGFloat(max(8, min(72, size)))  // Clamp to reasonable font size range
+            }
         }
     }
 }

@@ -53,6 +53,7 @@ class SearchViewModel: ObservableObject {
     // Layout spacing options (configurable from JS)
     var cardMargin: CGFloat = 40  // Spacing between cards
     var cardPadding: CGFloat = 16  // Padding inside cards
+    var overlayTitleSize: CGFloat = 20  // Font size for overlay title
 }
 
 struct TvosSearchContentView: View {
@@ -164,6 +165,7 @@ struct TvosSearchContentView: View {
                         cardHeight: viewModel.cardHeight,
                         imageContentMode: viewModel.imageContentMode,
                         cardPadding: viewModel.cardPadding,
+                        overlayTitleSize: viewModel.overlayTitleSize,
                         onSelect: { viewModel.onSelectItem?(item.id) }
                     )
                 }
@@ -188,6 +190,7 @@ struct SearchResultCard: View {
     let cardHeight: CGFloat
     let imageContentMode: ContentMode
     let cardPadding: CGFloat
+    let overlayTitleSize: CGFloat
     let onSelect: () -> Void
     @FocusState private var isFocused: Bool
 
@@ -230,12 +233,12 @@ struct SearchResultCard: View {
 
                     // Title overlay with native material blur
                     if showTitleOverlay {
-                        VStack(alignment: .center) {
+                        VStack(alignment: .center, spacing: 0) {
                             Spacer(minLength: 0)
                             if enableMarquee {
                                 MarqueeText(
                                     item.title,
-                                    font: .headline,  // Larger font for better visibility
+                                    font: .system(size: overlayTitleSize, weight: .semibold),
                                     leftFade: 12,
                                     rightFade: 12,
                                     startDelay: marqueeDelay,
@@ -245,7 +248,7 @@ struct SearchResultCard: View {
                                 .frame(maxWidth: .infinity)
                             } else {
                                 Text(item.title)
-                                    .font(.headline)
+                                    .font(.system(size: overlayTitleSize, weight: .semibold))
                                     .foregroundColor(.white)
                                     .lineLimit(2)
                                     .multilineTextAlignment(.center)
@@ -262,10 +265,22 @@ struct SearchResultCard: View {
                     }
                 }
                 .frame(width: cardWidth, height: cardHeight)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .clipShape(
+                    UnevenRoundedRectangle(
+                        topLeadingRadius: 12,
+                        bottomLeadingRadius: (showTitle || showSubtitle) ? 0 : 12,
+                        bottomTrailingRadius: (showTitle || showSubtitle) ? 0 : 12,
+                        topTrailingRadius: 12
+                    )
+                )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(showFocusBorder && isFocused ? accentColor : Color.clear, lineWidth: 4)
+                    UnevenRoundedRectangle(
+                        topLeadingRadius: 12,
+                        bottomLeadingRadius: (showTitle || showSubtitle) ? 0 : 12,
+                        bottomTrailingRadius: (showTitle || showSubtitle) ? 0 : 12,
+                        topTrailingRadius: 12
+                    )
+                    .stroke(showFocusBorder && isFocused ? accentColor : Color.clear, lineWidth: 4)
                 )
 
                 if showTitle || showSubtitle {
@@ -286,7 +301,7 @@ struct SearchResultCard: View {
                                 .lineLimit(1)
                         }
                     }
-                    .padding(.horizontal, cardPadding)
+                    .padding(cardPadding)
                     .frame(width: cardWidth, alignment: .leading)
                 }
             }
@@ -296,9 +311,15 @@ struct SearchResultCard: View {
     }
 
     private var placeholderIcon: some View {
-        Image(systemName: "film")
-            .font(.system(size: 50))
-            .foregroundColor(textColor ?? .secondary)
+        ZStack {
+            Circle()
+                .fill(Color.white.opacity(0.1))
+                .frame(width: 120, height: 120)
+
+            Image(systemName: "photo")
+                .font(.system(size: 60, weight: .light))
+                .foregroundColor(.white.opacity(0.7))
+        }
     }
 }
 
@@ -440,6 +461,12 @@ class ExpoTvosSearchView: ExpoView {
     var cardPadding: CGFloat = 16 {
         didSet {
             viewModel.cardPadding = cardPadding
+        }
+    }
+
+    var overlayTitleSize: CGFloat = 20 {
+        didSet {
+            viewModel.overlayTitleSize = overlayTitleSize
         }
     }
 

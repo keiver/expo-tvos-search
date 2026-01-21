@@ -221,6 +221,13 @@ export interface TvosSearchViewProps {
      */
     cardPadding?: number;
     /**
+     * Font size for title in the blur overlay (when showTitleOverlay is true).
+     * Allows customization of overlay text size for different card layouts.
+     * @default 20
+     * @example 18 for smaller cards, 24 for larger cards
+     */
+    overlayTitleSize?: number;
+    /**
      * Callback fired when the search text changes.
      * Debounce this handler to avoid excessive API calls.
      */

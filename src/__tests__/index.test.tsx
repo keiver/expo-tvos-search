@@ -113,6 +113,7 @@ describe('TvosSearchViewProps defaults', () => {
       showTitleOverlay: true,
       enableMarquee: true,
       marqueeDelay: 1.5,
+      overlayTitleSize: 20,
     };
 
     // Verify default documentation matches Swift implementation
@@ -120,5 +121,58 @@ describe('TvosSearchViewProps defaults', () => {
     expect(expectedDefaults.showTitleOverlay).toBe(true);
     expect(expectedDefaults.enableMarquee).toBe(true);
     expect(expectedDefaults.marqueeDelay).toBe(1.5);
+    expect(expectedDefaults.overlayTitleSize).toBe(20);
+  });
+});
+
+describe('TvosSearchViewProps overlayTitleSize', () => {
+  beforeEach(() => {
+    jest.resetModules();
+    mockTvOSPlatform();
+    mockNativeModuleAvailable();
+  });
+
+  it('accepts overlayTitleSize as a number', () => {
+    const { TvosSearchView } = require('../index');
+
+    // Should not throw when overlayTitleSize is provided
+    expect(() => {
+      TvosSearchView({
+        results: [],
+        onSearch: jest.fn(),
+        onSelectItem: jest.fn(),
+        overlayTitleSize: 18,
+      });
+    }).not.toThrow();
+  });
+
+  it('accepts overlayTitleSize with various values', () => {
+    const { TvosSearchView } = require('../index');
+
+    const testCases = [12, 18, 20, 24, 32];
+
+    testCases.forEach((size) => {
+      expect(() => {
+        TvosSearchView({
+          results: [],
+          onSearch: jest.fn(),
+          onSelectItem: jest.fn(),
+          overlayTitleSize: size,
+        });
+      }).not.toThrow();
+    });
+  });
+
+  it('works without overlayTitleSize (uses default)', () => {
+    const { TvosSearchView } = require('../index');
+
+    // Should not throw when overlayTitleSize is omitted
+    expect(() => {
+      TvosSearchView({
+        results: [],
+        onSearch: jest.fn(),
+        onSelectItem: jest.fn(),
+      });
+    }).not.toThrow();
   });
 });
