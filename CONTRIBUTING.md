@@ -95,7 +95,7 @@ Swift unit tests are located in `ios/ExpoTvosSearchTests/`. To run them:
 
 Or run from command line:
 ```bash
-xcodebuild test -workspace example/ios/*.xcworkspace -scheme ExpoTvosSearch -destination 'platform=tvOS Simulator,name=Apple TV'
+cd ios && xcodebuild test -scheme ExpoTvosSearch -destination 'platform=tvOS Simulator,name=Apple TV'
 ```
 
 ## Building Locally
@@ -195,6 +195,9 @@ Common scopes:
 - `search`: Search input and query handling
 - `results`: Result grid and display
 - `focus`: Focus management and navigation
+- `marquee`: Marquee scrolling animation
+- `validation`: Input validation and error handling
+- `props`: Prop definitions and TypeScript interfaces
 - `ios`: iOS/tvOS native module code
 - `types`: TypeScript type definitions
 - `deps`: Dependency updates

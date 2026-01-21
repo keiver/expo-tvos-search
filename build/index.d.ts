@@ -44,7 +44,7 @@ export interface SearchViewErrorEvent {
 export interface ValidationWarningEvent {
     nativeEvent: {
         /** Type of validation warning */
-        type: "field_truncated" | "value_clamped" | "url_invalid";
+        type: "field_truncated" | "value_clamped" | "url_invalid" | "validation_failed";
         /** Human-readable warning message */
         message: string;
         /** Optional additional context */

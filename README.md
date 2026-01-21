@@ -169,6 +169,63 @@ export function SearchScreen() {
 }
 ```
 
+> **⚠️ IMPORTANT**: Always debounce the `onSearch` callback to prevent excessive API calls or expensive operations on every keystroke. In production apps, use a debounce library like lodash or implement your own debounce function:
+>
+> ```tsx
+> import { useMemo } from 'react';
+> import { debounce } from 'lodash'; // or your preferred debounce implementation
+>
+> function SearchScreen() {
+>   const [results, setResults] = useState([]);
+>
+>   const debouncedSearch = useMemo(
+>     () => debounce((query: string) => {
+>       // Your actual search logic (API call, etc.)
+>       fetchSearchResults(query).then(setResults);
+>     }, 300), // 300ms delay
+>     []
+>   );
+>
+>   return (
+>     <TvosSearchView
+>       results={results}
+>       onSearch={(e) => debouncedSearch(e.nativeEvent.query)}
+>       onSelectItem={handleSelect}
+>     />
+>   );
+> }
+> ```
+
+### Error Handling and Monitoring
+
+The library provides error and validation warning callbacks for production monitoring:
+
+```tsx
+<TvosSearchView
+  results={results}
+  onSearch={handleSearch}
+  onSelectItem={handleSelect}
+  onError={(e) => {
+    const { category, message, context } = e.nativeEvent;
+    // Log to your error monitoring service
+    console.error(`[Search Error] ${category}: ${message}`, context);
+    // Examples: 'module_unavailable', 'validation_failed', 'image_load_failed', 'unknown'
+  }}
+  onValidationWarning={(e) => {
+    const { type, message, context } = e.nativeEvent;
+    // Log non-fatal issues for monitoring
+    console.warn(`[Validation] ${type}: ${message}`, context);
+    // Examples: 'field_truncated', 'value_clamped', 'url_invalid', 'validation_failed'
+  }}
+/>
+```
+
+These callbacks help you:
+- Monitor data quality issues (truncated fields, invalid URLs)
+- Track when props are clamped to safe ranges
+- Detect when results exceed the 500-item limit
+- Log errors for debugging in production
+
 ### Customizing Colors and Card Dimensions
 
 You can customize the appearance of the search interface with color and dimension props:
@@ -251,7 +308,7 @@ Check out Tomo TV to see `expo-tvos-search` in action and reference its implemen
 |------|------|---------|-------------|
 | `results` | `SearchResult[]` | `[]` | Array of search results |
 | `columns` | `number` | `5` | Number of columns in the grid |
-| `placeholder` | `string` | `"Search..."` | Search field placeholder |
+| `placeholder` | `string` | `"Search movies and videos..."` | Search field placeholder |
 | `isLoading` | `boolean` | `false` | Shows loading indicator |
 | `showTitle` | `boolean` | `false` | Show title below each result |
 | `showSubtitle` | `boolean` | `false` | Show subtitle below title |
@@ -264,15 +321,19 @@ Check out Tomo TV to see `expo-tvos-search` in action and reference its implemen
 | `searchingText` | `string` | `"Searching..."` | Text shown during search |
 | `noResultsText` | `string` | `"No results found"` | Text shown when no results found |
 | `noResultsHintText` | `string` | `"Try a different search term"` | Hint text below no results message |
-| `textColor` | `string` | system default | Color for text and UI elements (hex: "#FFFFFF") |
-| `accentColor` | `string` | `"#FFC312"` | Accent color for focused elements (hex: "#E50914") |
+| `textColor` | `string` | system default | Color for text and UI elements (hex format, e.g., "#FFFFFF") |
+| `accentColor` | `string` | `"#FFC312"` | Accent color for focused elements (hex format, e.g., "#FFC312") |
 | `cardWidth` | `number` | `280` | Width of each result card in points |
 | `cardHeight` | `number` | `420` | Height of each result card in points |
 | `imageContentMode` | `'fill' \| 'fit' \| 'contain'` | `'fill'` | How images fill the card: `fill` (crop to fill), `fit`/`contain` (letterbox) |
 | `cardMargin` | `number` | `40` | Spacing between cards in the grid (horizontal and vertical) |
 | `cardPadding` | `number` | `16` | Padding inside the card for overlay content (title/subtitle) |
+| `overlayTitleSize` | `number` | `20` | Font size for title text in the blur overlay (when showTitleOverlay is true) |
 | `onSearch` | `function` | required | Called when search text changes |
 | `onSelectItem` | `function` | required | Called when result is selected |
+| `onError` | `function` | optional | Called when errors occur (image loading failures, validation errors) |
+| `onValidationWarning` | `function` | optional | Called for non-fatal warnings (truncated fields, clamped values, invalid URLs) |
+| `style` | `ViewStyle` | optional | Style object for the view container |
 
 ## SearchResult Type
 
@@ -416,6 +477,19 @@ Tests cover:
 - `isNativeSearchAvailable()` behavior on different platforms
 - Component rendering when native module is unavailable
 - Event structure validation
+
+## Contributing
+
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on:
+- Code of conduct
+- Development setup
+- Testing requirements
+- Commit message conventions
+- Pull request process
+
+### Adding New Props
+
+If you're adding new props to the library, follow the comprehensive checklist in [.claude/CLAUDE-adding-new-props.md](.claude/CLAUDE-adding-new-props.md). This memory bank provides a 9-step guide ensuring props are properly wired from TypeScript through to Swift rendering.
 
 ## License
 

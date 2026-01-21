@@ -55,7 +55,7 @@ export interface SearchViewErrorEvent {
 export interface ValidationWarningEvent {
   nativeEvent: {
     /** Type of validation warning */
-    type: "field_truncated" | "value_clamped" | "url_invalid";
+    type: "field_truncated" | "value_clamped" | "url_invalid" | "validation_failed";
     /** Human-readable warning message */
     message: string;
     /** Optional additional context */
@@ -115,7 +115,7 @@ export interface TvosSearchViewProps {
 
   /**
    * Placeholder text shown in the search field when empty.
-   * @default "Search..."
+   * @default "Search movies and videos..."
    */
   placeholder?: string;
 

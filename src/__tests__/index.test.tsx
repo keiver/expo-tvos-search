@@ -104,7 +104,7 @@ describe('TvosSearchViewProps defaults', () => {
     // The actual defaults are applied in Swift (ExpoTvosSearchView.swift)
     const expectedDefaults = {
       columns: 5,
-      placeholder: 'Search...',
+      placeholder: 'Search movies and videos...', // Matches Swift default
       isLoading: false,
       showTitle: false,
       showSubtitle: false,

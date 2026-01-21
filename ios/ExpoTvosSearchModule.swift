@@ -17,6 +17,13 @@ public class ExpoTvosSearchModule: Module {
             Prop("results") { (view: ExpoTvosSearchView, results: [[String: Any]]) in
                 // Limit results array size to prevent memory issues
                 let limitedResults = Array(results.prefix(Self.maxResults))
+                if results.count > Self.maxResults {
+                    view.onValidationWarning([
+                        "type": "value_clamped",
+                        "message": "Results array truncated from \(results.count) to \(Self.maxResults) items",
+                        "context": "maxResults=\(Self.maxResults)"
+                    ])
+                }
                 view.updateResults(limitedResults)
             }
 

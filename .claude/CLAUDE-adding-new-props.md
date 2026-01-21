@@ -253,6 +253,8 @@ Rebuilds TypeScript declarations and ensures no compilation errors.
 
 ❌ **Not updating defaults test** - Keep the defaults documentation test in sync.
 
+❌ **Using tvOS 16.0+ APIs without compatibility checks** - See tvOS Version Compatibility section below.
+
 ---
 
 ## Validation Checklist
@@ -269,6 +271,61 @@ Before considering a new prop "complete", verify:
 - [ ] Demo app tested on tvOS simulator
 - [ ] Default values match across TypeScript, Swift ViewModel, and Swift View
 - [ ] Value validation/clamping implemented (for numeric props)
+
+---
+
+## tvOS Version Compatibility
+
+**CRITICAL**: Some SwiftUI APIs are only available in newer tvOS versions. Always check API availability when using newer SwiftUI features.
+
+### Common APIs Requiring tvOS 16.0+
+
+- `UnevenRoundedRectangle` - Use custom `SelectiveRoundedRectangle` shape instead
+- Various new modifiers and views introduced in iOS/tvOS 16+
+
+### Backwards-Compatible Solution: SelectiveRoundedRectangle
+
+The library includes a custom `SelectiveRoundedRectangle` shape that works on all tvOS versions:
+
+```swift
+// ✅ GOOD - Works on all tvOS versions
+.clipShape(
+    SelectiveRoundedRectangle(
+        topLeadingRadius: 12,
+        topTrailingRadius: 12,
+        bottomLeadingRadius: 0,
+        bottomTrailingRadius: 0
+    )
+)
+
+// ❌ BAD - Requires tvOS 16.0+, will fail compilation
+.clipShape(
+    UnevenRoundedRectangle(
+        topLeadingRadius: 12,
+        bottomLeadingRadius: 0,
+        bottomTrailingRadius: 0,
+        topTrailingRadius: 12
+    )
+)
+```
+
+### How to Handle Version-Specific APIs
+
+If you need to use a newer API:
+
+1. **Option A**: Create a backwards-compatible alternative (preferred)
+2. **Option B**: Use `@available(tvOS 16.0, *)` checks with fallbacks
+
+```swift
+// Option B example:
+if #available(tvOS 16.0, *) {
+    // Use new API
+} else {
+    // Use fallback for older versions
+}
+```
+
+**Always prefer Option A** for library code to ensure maximum compatibility.
 
 ---
 

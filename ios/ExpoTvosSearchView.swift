@@ -3,6 +3,41 @@ import SwiftUI
 
 #if os(tvOS)
 
+/// Custom shape for cards with selectively rounded corners
+/// Provides backwards compatibility for tvOS versions before 16.0
+struct SelectiveRoundedRectangle: Shape {
+    var topLeadingRadius: CGFloat
+    var topTrailingRadius: CGFloat
+    var bottomLeadingRadius: CGFloat
+    var bottomTrailingRadius: CGFloat
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+
+        let tl = min(topLeadingRadius, min(rect.width, rect.height) / 2)
+        let tr = min(topTrailingRadius, min(rect.width, rect.height) / 2)
+        let bl = min(bottomLeadingRadius, min(rect.width, rect.height) / 2)
+        let br = min(bottomTrailingRadius, min(rect.width, rect.height) / 2)
+
+        path.move(to: CGPoint(x: rect.minX + tl, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.maxX - tr, y: rect.minY))
+        path.addArc(center: CGPoint(x: rect.maxX - tr, y: rect.minY + tr),
+                   radius: tr, startAngle: .degrees(-90), endAngle: .degrees(0), clockwise: false)
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY - br))
+        path.addArc(center: CGPoint(x: rect.maxX - br, y: rect.maxY - br),
+                   radius: br, startAngle: .degrees(0), endAngle: .degrees(90), clockwise: false)
+        path.addLine(to: CGPoint(x: rect.minX + bl, y: rect.maxY))
+        path.addArc(center: CGPoint(x: rect.minX + bl, y: rect.maxY - bl),
+                   radius: bl, startAngle: .degrees(90), endAngle: .degrees(180), clockwise: false)
+        path.addLine(to: CGPoint(x: rect.minX, y: rect.minY + tl))
+        path.addArc(center: CGPoint(x: rect.minX + tl, y: rect.minY + tl),
+                   radius: tl, startAngle: .degrees(180), endAngle: .degrees(270), clockwise: false)
+        path.closeSubpath()
+
+        return path
+    }
+}
+
 struct SearchResultItem: Identifiable, Equatable {
     let id: String
     let title: String
@@ -266,19 +301,19 @@ struct SearchResultCard: View {
                 }
                 .frame(width: cardWidth, height: cardHeight)
                 .clipShape(
-                    UnevenRoundedRectangle(
+                    SelectiveRoundedRectangle(
                         topLeadingRadius: 12,
+                        topTrailingRadius: 12,
                         bottomLeadingRadius: (showTitle || showSubtitle) ? 0 : 12,
-                        bottomTrailingRadius: (showTitle || showSubtitle) ? 0 : 12,
-                        topTrailingRadius: 12
+                        bottomTrailingRadius: (showTitle || showSubtitle) ? 0 : 12
                     )
                 )
                 .overlay(
-                    UnevenRoundedRectangle(
+                    SelectiveRoundedRectangle(
                         topLeadingRadius: 12,
+                        topTrailingRadius: 12,
                         bottomLeadingRadius: (showTitle || showSubtitle) ? 0 : 12,
-                        bottomTrailingRadius: (showTitle || showSubtitle) ? 0 : 12,
-                        topTrailingRadius: 12
+                        bottomTrailingRadius: (showTitle || showSubtitle) ? 0 : 12
                     )
                     .stroke(showFocusBorder && isFocused ? accentColor : Color.clear, lineWidth: 4)
                 )
@@ -524,8 +559,7 @@ class ExpoTvosSearchView: ExpoView {
             guard let id = dict["id"] as? String, !id.isEmpty else {
                 skippedCount += 1
                 #if DEBUG
-                let idValue = dict["id"]
-                print("[expo-tvos-search] Result at index \(index) skipped: missing or empty 'id' field (value: \(String(describing: idValue)))")
+                print("[expo-tvos-search] Result at index \(index) skipped: missing or empty 'id' field")
                 #endif
                 continue
             }
@@ -533,8 +567,7 @@ class ExpoTvosSearchView: ExpoView {
             guard let title = dict["title"] as? String, !title.isEmpty else {
                 skippedCount += 1
                 #if DEBUG
-                let titleValue = dict["title"]
-                print("[expo-tvos-search] Result at index \(index) (id: '\(id)') skipped: missing or empty 'title' field (value: \(String(describing: titleValue)))")
+                print("[expo-tvos-search] Result at index \(index) (id: '\(id)') skipped: missing or empty 'title' field")
                 #endif
                 continue
             }
@@ -603,28 +636,49 @@ class ExpoTvosSearchView: ExpoView {
 
         // Emit validation warnings for production monitoring
         if skippedCount > 0 {
+            #if DEBUG
+            let skipContext = "validResults=\(validResults.count), skipped=\(skippedCount)"
+            #else
+            let skipContext = "validation completed"
+            #endif
+
             onValidationWarning([
                 "type": "validation_failed",
                 "message": "Skipped \(skippedCount) result(s) due to missing required fields",
-                "context": "validResults=\(validResults.count), skipped=\(skippedCount)"
+                "context": skipContext
             ])
         }
         if urlValidationFailures > 0 {
+            #if DEBUG
+            let urlContext = "Non-HTTP/HTTPS or malformed URLs"
+            #else
+            let urlContext = "validation completed"
+            #endif
+
             onValidationWarning([
                 "type": "url_invalid",
                 "message": "\(urlValidationFailures) image URL(s) failed validation",
-                "context": "Non-HTTP/HTTPS or malformed URLs"
+                "context": urlContext
             ])
         }
         if truncatedFields > 0 {
+            #if DEBUG
+            let truncContext = "Check id, title, or subtitle field lengths"
+            #else
+            let truncContext = "validation completed"
+            #endif
+
             onValidationWarning([
                 "type": "field_truncated",
                 "message": "Truncated \(truncatedFields) result(s) with fields exceeding 500 characters",
-                "context": "Check id, title, or subtitle field lengths"
+                "context": truncContext
             ])
         }
 
-        viewModel.results = validResults
+        // Ensure UI updates happen on main thread
+        DispatchQueue.main.async { [weak self] in
+            self?.viewModel.results = validResults
+        }
     }
 }
 
