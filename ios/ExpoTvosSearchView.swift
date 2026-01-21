@@ -38,6 +38,14 @@ class SearchViewModel: ObservableObject {
     var searchingText: String = "Searching..."
     var noResultsText: String = "No results found"
     var noResultsHintText: String = "Try a different search term"
+
+    // Color customization options (configurable from JS)
+    var textColor: Color? = nil
+    var accentColor: Color = Color(red: 1, green: 0.765, blue: 0.07) // #FFC312 (gold)
+
+    // Card dimension options (configurable from JS)
+    var cardWidth: CGFloat = 280
+    var cardHeight: CGFloat = 420
 }
 
 struct TvosSearchContentView: View {
@@ -82,10 +90,10 @@ struct TvosSearchContentView: View {
         VStack(spacing: 20) {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 80))
-                .foregroundColor(.secondary)
+                .foregroundColor(viewModel.textColor ?? .secondary)
             Text(viewModel.emptyStateText)
                 .font(.headline)
-                .foregroundColor(.secondary)
+                .foregroundColor(viewModel.textColor ?? .secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -96,7 +104,7 @@ struct TvosSearchContentView: View {
                 .scaleEffect(1.5)
             Text(viewModel.searchingText)
                 .font(.headline)
-                .foregroundColor(.secondary)
+                .foregroundColor(viewModel.textColor ?? .secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -105,13 +113,13 @@ struct TvosSearchContentView: View {
         VStack(spacing: 20) {
             Image(systemName: "film.stack")
                 .font(.system(size: 80))
-                .foregroundColor(.secondary)
+                .foregroundColor(viewModel.textColor ?? .secondary)
             Text(viewModel.noResultsText)
                 .font(.headline)
-                .foregroundColor(.secondary)
+                .foregroundColor(viewModel.textColor ?? .secondary)
             Text(viewModel.noResultsHintText)
                 .font(.subheadline)
-                .foregroundColor(.secondary)
+                .foregroundColor(viewModel.textColor ?? .secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -143,6 +151,10 @@ struct TvosSearchContentView: View {
                         showTitleOverlay: viewModel.showTitleOverlay,
                         enableMarquee: viewModel.enableMarquee,
                         marqueeDelay: viewModel.marqueeDelay,
+                        textColor: viewModel.textColor,
+                        accentColor: viewModel.accentColor,
+                        cardWidth: viewModel.cardWidth,
+                        cardHeight: viewModel.cardHeight,
                         onSelect: { viewModel.onSelectItem?(item.id) }
                     )
                 }
@@ -161,16 +173,14 @@ struct SearchResultCard: View {
     let showTitleOverlay: Bool
     let enableMarquee: Bool
     let marqueeDelay: Double
+    let textColor: Color?
+    let accentColor: Color
+    let cardWidth: CGFloat
+    let cardHeight: CGFloat
     let onSelect: () -> Void
     @FocusState private var isFocused: Bool
 
     private let placeholderColor = Color(white: 0.2)
-    private let focusedBorderColor = Color(red: 1, green: 0.765, blue: 0.07) // #FFC312
-
-    // Fixed card dimensions for consistent grid layout
-    // Width calculated for 5 columns: (1920 - 120 padding - 160 spacing) / 5 ≈ 280
-    private let cardWidth: CGFloat = 280
-    private var cardHeight: CGFloat { cardWidth * 1.5 } // 2:3 aspect ratio
 
     // Title overlay constants
     private let overlayGradientHeight: CGFloat = 30
@@ -249,7 +259,7 @@ struct SearchResultCard: View {
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
-                        .stroke(showFocusBorder && isFocused ? focusedBorderColor : Color.clear, lineWidth: 4)
+                        .stroke(showFocusBorder && isFocused ? accentColor : Color.clear, lineWidth: 4)
                 )
 
                 if showTitle || showSubtitle {
@@ -266,7 +276,7 @@ struct SearchResultCard: View {
                         if showSubtitle, let subtitle = item.subtitle {
                             Text(subtitle)
                                 .font(.caption)
-                                .foregroundColor(.secondary)
+                                .foregroundColor(textColor ?? .secondary)
                                 .lineLimit(1)
                         }
                     }
@@ -281,7 +291,7 @@ struct SearchResultCard: View {
     private var placeholderIcon: some View {
         Image(systemName: "film")
             .font(.system(size: 50))
-            .foregroundColor(.secondary)
+            .foregroundColor(textColor ?? .secondary)
     }
 }
 
@@ -370,6 +380,34 @@ class ExpoTvosSearchView: ExpoView {
     var noResultsHintText: String = "Try a different search term" {
         didSet {
             viewModel.noResultsHintText = noResultsHintText
+        }
+    }
+
+    var textColor: String? = nil {
+        didSet {
+            if let hexColor = textColor {
+                viewModel.textColor = Color(hex: hexColor)
+            } else {
+                viewModel.textColor = nil
+            }
+        }
+    }
+
+    var accentColor: String = "#FFC312" {
+        didSet {
+            viewModel.accentColor = Color(hex: accentColor) ?? Color(red: 1, green: 0.765, blue: 0.07)
+        }
+    }
+
+    var cardWidth: CGFloat = 280 {
+        didSet {
+            viewModel.cardWidth = cardWidth
+        }
+    }
+
+    var cardHeight: CGFloat = 420 {
+        didSet {
+            viewModel.cardHeight = cardHeight
         }
     }
 
@@ -531,6 +569,40 @@ class ExpoTvosSearchView: ExpoView {
     }
 }
 
+// MARK: - Color Extension for Hex String Parsing
+extension Color {
+    /// Initialize a Color from a hex string (e.g., "#FFFFFF", "#FF5733", "FFC312")
+    /// Returns nil if the string cannot be parsed as a valid hex color
+    init?(hex: String) {
+        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+        var int: UInt64 = 0
+
+        guard Scanner(string: hex).scanHexInt64(&int) else {
+            return nil
+        }
+
+        let a, r, g, b: UInt64
+        switch hex.count {
+        case 3: // RGB (12-bit)
+            (a, r, g, b) = (255, (int >> 8) * 17, (int >> 4 & 0xF) * 17, (int & 0xF) * 17)
+        case 6: // RGB (24-bit)
+            (a, r, g, b) = (255, int >> 16, int >> 8 & 0xFF, int & 0xFF)
+        case 8: // ARGB (32-bit)
+            (a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
+        default:
+            return nil
+        }
+
+        self.init(
+            .sRGB,
+            red: Double(r) / 255,
+            green: Double(g) / 255,
+            blue: Double(b) / 255,
+            opacity: Double(a) / 255
+        )
+    }
+}
+
 #else
 
 // Fallback for non-tvOS platforms (iOS)
@@ -549,6 +621,10 @@ class ExpoTvosSearchView: ExpoView {
     var searchingText: String = "Searching..."
     var noResultsText: String = "No results found"
     var noResultsHintText: String = "Try a different search term"
+    var textColor: String? = nil
+    var accentColor: String = "#FFC312"
+    var cardWidth: CGFloat = 280
+    var cardHeight: CGFloat = 420
 
     let onSearch = EventDispatcher()
     let onSelectItem = EventDispatcher()

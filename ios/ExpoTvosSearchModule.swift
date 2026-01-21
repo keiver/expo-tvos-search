@@ -103,6 +103,22 @@ public class ExpoTvosSearchModule: Module {
             Prop("noResultsHintText") { (view: ExpoTvosSearchView, text: String) in
                 view.noResultsHintText = String(text.prefix(Self.maxStringLength))
             }
+
+            Prop("textColor") { (view: ExpoTvosSearchView, colorHex: String?) in
+                view.textColor = colorHex
+            }
+
+            Prop("accentColor") { (view: ExpoTvosSearchView, colorHex: String) in
+                view.accentColor = colorHex
+            }
+
+            Prop("cardWidth") { (view: ExpoTvosSearchView, width: Double) in
+                view.cardWidth = CGFloat(max(50, min(1000, width)))  // Clamp to reasonable range
+            }
+
+            Prop("cardHeight") { (view: ExpoTvosSearchView, height: Double) in
+                view.cardHeight = CGFloat(max(50, min(1000, height)))  // Clamp to reasonable range
+            }
         }
     }
 }

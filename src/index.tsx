@@ -201,6 +201,38 @@ export interface TvosSearchViewProps {
   noResultsHintText?: string;
 
   /**
+   * Color for text and UI elements in the search interface.
+   * Hex color string (e.g., "#FFFFFF", "#E5E5E5").
+   * @default Uses system default based on userInterfaceStyle
+   * @example "#E5E5E5" for light gray text on dark background
+   */
+  textColor?: string;
+
+  /**
+   * Accent color for focused elements and highlights.
+   * Hex color string (e.g., "#FFC312").
+   * @default "#FFC312" (gold)
+   * @example "#E50914" for Netflix red
+   */
+  accentColor?: string;
+
+  /**
+   * Width of each result card in points.
+   * Allows customization for portrait, landscape, or square layouts.
+   * @default 280
+   * @example 420 for landscape cards
+   */
+  cardWidth?: number;
+
+  /**
+   * Height of each result card in points.
+   * Allows customization for portrait, landscape, or square layouts.
+   * @default 420
+   * @example 240 for landscape cards (16:9 ratio with width=420)
+   */
+  cardHeight?: number;
+
+  /**
    * Callback fired when the search text changes.
    * Debounce this handler to avoid excessive API calls.
    */

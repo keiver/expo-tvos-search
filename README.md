@@ -169,6 +169,34 @@ export function SearchScreen() {
 }
 ```
 
+### Customizing Colors and Card Dimensions
+
+You can customize the appearance of the search interface with color and dimension props:
+
+```tsx
+<TvosSearchView
+  results={results}
+  onSearch={handleSearch}
+  onSelectItem={handleSelect}
+  // Custom colors
+  textColor="#E5E5E5"      // Light gray text on dark background
+  accentColor="#E50914"    // Red focused borders (Netflix style)
+  // Custom card dimensions
+  cardWidth={420}          // Landscape cards
+  cardHeight={240}         // 16:9 aspect ratio
+  style={{ flex: 1 }}
+/>
+```
+
+**Color props:**
+- `textColor` - Affects subtitle text, empty state text, and placeholder icons
+- `accentColor` - Affects focused card borders and highlights
+
+**Dimension props:**
+- Default: 280x420 (portrait, 2:3 aspect ratio)
+- Landscape example: 420x240 (16:9)
+- Square example: 300x300 (1:1)
+
 ## Example App
 
 **[Tomo TV](https://github.com/keiver/tomotv)** is a production tvOS application that uses `expo-tvos-search` in a real-world Jellyfin client. It demonstrates the search component integrated with a complete media browsing experience, including:
@@ -205,6 +233,10 @@ Check out Tomo TV to see `expo-tvos-search` in action and reference its implemen
 | `searchingText` | `string` | `"Searching..."` | Text shown during search |
 | `noResultsText` | `string` | `"No results found"` | Text shown when no results found |
 | `noResultsHintText` | `string` | `"Try a different search term"` | Hint text below no results message |
+| `textColor` | `string` | system default | Color for text and UI elements (hex: "#FFFFFF") |
+| `accentColor` | `string` | `"#FFC312"` | Accent color for focused elements (hex: "#E50914") |
+| `cardWidth` | `number` | `280` | Width of each result card in points |
+| `cardHeight` | `number` | `420` | Height of each result card in points |
 | `onSearch` | `function` | required | Called when search text changes |
 | `onSelectItem` | `function` | required | Called when result is selected |
 
