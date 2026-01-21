@@ -741,6 +741,7 @@ class ExpoTvosSearchView: ExpoView {
     var imageContentMode: String = "fill"
     var cardMargin: CGFloat = 40
     var cardPadding: CGFloat = 16
+    var overlayTitleSize: CGFloat = 20
 
     let onSearch = EventDispatcher()
     let onSelectItem = EventDispatcher()
