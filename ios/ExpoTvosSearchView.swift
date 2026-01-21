@@ -230,7 +230,8 @@ struct SearchResultCard: View {
 
                     // Title overlay with native material blur
                     if showTitleOverlay {
-                        HStack(alignment: .center) {
+                        VStack(alignment: .center) {
+                            Spacer(minLength: 0)
                             if enableMarquee {
                                 MarqueeText(
                                     item.title,
@@ -241,15 +242,19 @@ struct SearchResultCard: View {
                                     animate: isFocused
                                 )
                                 .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
                             } else {
                                 Text(item.title)
                                     .font(.headline)
                                     .foregroundColor(.white)
                                     .lineLimit(2)
+                                    .multilineTextAlignment(.center)
+                                    .frame(maxWidth: .infinity)
                             }
+                            Spacer(minLength: 0)
                         }
                         .padding(.horizontal, cardPadding)
-                        .frame(width: cardWidth, height: overlayHeight, alignment: .leading)
+                        .frame(width: cardWidth, height: overlayHeight)
                         .background(
                             .ultraThinMaterial,  // Native material blur
                             in: Rectangle()
@@ -281,6 +286,7 @@ struct SearchResultCard: View {
                                 .lineLimit(1)
                         }
                     }
+                    .padding(.horizontal, cardPadding)
                     .frame(width: cardWidth, alignment: .leading)
                 }
             }
