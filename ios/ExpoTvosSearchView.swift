@@ -364,14 +364,26 @@ class ExpoTvosSearchView: ExpoView {
     private var hostingController: UIHostingController<TvosSearchContentView>?
     private let viewModel = SearchViewModel()
 
-    // Serial queue to synchronize gesture handler state changes
-    private let gestureStateQueue = DispatchQueue(label: "com.expo.tvos-search.gestureState")
-    
     // Track if we've disabled RN gesture handlers for keyboard input
     private var gestureHandlersDisabled = false
 
     // Store references to disabled gesture recognizers so we can re-enable them
     private var disabledGestureRecognizers: [UIGestureRecognizer] = []
+    
+    /// Maximum depth to traverse up the view hierarchy when disabling gesture recognizers.
+    ///
+    /// This limit is used to avoid walking arbitrarily far up the view hierarchy and
+    /// unintentionally affecting unrelated UI components in distant ancestor views.
+    ///
+    /// A value of `5` has been chosen based on typical tvOS layouts used with this view,
+    /// where the relevant React Native container views are located within a few levels of
+    /// the `ExpoTvosSearchView` itself. Gesture recognizers attached to ancestors deeper
+    /// than this limit are **not** inspected or modified by the traversal and therefore
+    /// will not be disabled or re-enabled by the `shouldSkipGestureRecognizer` logic.
+    ///
+    /// If you integrate this view into a significantly deeper view hierarchy and need
+    /// additional ancestors to be considered, adjust this constant accordingly.
+    private static let maxGestureRecognizerTraversalDepth = 5
 
     var columns: Int = 5 {
         didSet {
@@ -533,30 +545,9 @@ class ExpoTvosSearchView: ExpoView {
         NotificationCenter.default.removeObserver(self)
 
         // Re-enable RN gesture handlers if still disabled
-        // Check state atomically but perform cleanup without nested sync to avoid deadlock
-        var shouldCleanup = false
-        var recognizersToReEnable: [UIGestureRecognizer] = []
-        
-        gestureStateQueue.sync {
-            shouldCleanup = gestureHandlersDisabled
+        if gestureHandlersDisabled {
             gestureHandlersDisabled = false
-            recognizersToReEnable = disabledGestureRecognizers
-            disabledGestureRecognizers.removeAll()
-        }
-        
-        // Re-enable gesture recognizers on main thread if needed (without nested sync)
-        if shouldCleanup {
-            if Thread.isMainThread {
-                for recognizer in recognizersToReEnable {
-                    recognizer.isEnabled = true
-                }
-            } else {
-                DispatchQueue.main.sync {
-                    for recognizer in recognizersToReEnable {
-                        recognizer.isEnabled = true
-                    }
-                }
-            }
+            enableParentGestureRecognizers()
             
             NotificationCenter.default.post(
                 name: RCTTVEnableGestureHandlersCancelTouchesNotification,
@@ -619,64 +610,24 @@ class ExpoTvosSearchView: ExpoView {
             return
         }
 
-        // Define the work to be done atomically
-        let performDisable = { [weak self] in
-            guard let self = self else { return }
-            
-            // This must be called on main thread for UIKit operations
-            assert(Thread.isMainThread, "performDisable must be called on main thread")
-            
-            // Atomically check state, disable recognizers, and update state within queue
-            self.gestureStateQueue.sync {
-                // Skip if already disabled
-                guard !self.gestureHandlersDisabled else { return }
-                self.gestureHandlersDisabled = true
-                
-                // Disable gesture recognizers immediately (we're on main thread)
-                var recognizers: [UIGestureRecognizer] = []
-                var currentView: UIView? = self.superview
-                while let view = currentView {
-                    for recognizer in view.gestureRecognizers ?? [] {
-                        // Only disable tap and long press recognizers
-                        // Keep swipe and pan recognizers enabled for keyboard navigation
-                        let isTapOrPress = recognizer is UITapGestureRecognizer ||
-                                           recognizer is UILongPressGestureRecognizer
-                        if isTapOrPress && recognizer.isEnabled {
-                            recognizer.isEnabled = false
-                            recognizers.append(recognizer)
-                        }
-                    }
-                    currentView = view.superview
-                }
-                
-                // Store disabled recognizers atomically with flag update
-                self.disabledGestureRecognizers = recognizers
-                
-                #if DEBUG
-                print("[expo-tvos-search] Disabled \(recognizers.count) tap/press recognizers (kept swipe/pan for navigation)")
-                #endif
-            }
-            
-            // Post notification to set cancelsTouchesInView = NO
-            NotificationCenter.default.post(
-                name: RCTTVDisableGestureHandlersCancelTouchesNotification,
-                object: nil
-            )
+        guard !gestureHandlersDisabled else { return }
+        gestureHandlersDisabled = true
 
-            // Fire event for JS-side fallback handling
-            self.onSearchFieldFocused([:])
+        // Approach 1: Post notification to set cancelsTouchesInView = NO
+        NotificationCenter.default.post(
+            name: RCTTVDisableGestureHandlersCancelTouchesNotification,
+            object: nil
+        )
 
-            #if DEBUG
-            print("[expo-tvos-search] Search field focused: gesture handling modified")
-            #endif
-        }
-        
-        // Execute synchronously if already on main thread, otherwise dispatch
-        if Thread.isMainThread {
-            performDisable()
-        } else {
-            DispatchQueue.main.async(execute: performDisable)
-        }
+        // Approach 2: Disable gesture recognizers in parent views with depth limit
+        disableParentGestureRecognizers()
+
+        // Fire event for JS-side fallback handling
+        onSearchFieldFocused([:])
+
+        #if DEBUG
+        print("[expo-tvos-search] Search field focused: gesture handling modified")
+        #endif
     }
 
     @objc private func handleTextFieldDidEndEditing(_ notification: Notification) {
@@ -687,48 +638,117 @@ class ExpoTvosSearchView: ExpoView {
             return
         }
 
-        // Define the work to be done atomically
-        let performEnable = { [weak self] in
-            guard let self = self else { return }
-            
-            // This must be called on main thread for UIKit operations
-            assert(Thread.isMainThread, "performEnable must be called on main thread")
-            
-            // Atomically check state, re-enable recognizers, and update state within queue
-            self.gestureStateQueue.sync {
-                // Skip if already enabled
-                guard self.gestureHandlersDisabled else { return }
-                self.gestureHandlersDisabled = false
+        guard gestureHandlersDisabled else { return }
+        gestureHandlersDisabled = false
+
+        // Re-enable gesture recognizers
+        enableParentGestureRecognizers()
+
+        // Post notification to re-enable cancelsTouchesInView
+        NotificationCenter.default.post(
+            name: RCTTVEnableGestureHandlersCancelTouchesNotification,
+            object: nil
+        )
+
+        // Fire event for JS-side handling
+        onSearchFieldBlurred([:])
+
+        #if DEBUG
+        print("[expo-tvos-search] Search field unfocused: enabled RN gesture handlers")
+        #endif
+    }
+
+    /// Walks up the view hierarchy and disables only TAP gesture recognizers
+    /// We keep swipe/pan recognizers enabled so the user can navigate the keyboard
+    /// Only tap recognizers are disabled to allow click-to-select to reach SwiftUI
+    /// Limits traversal depth to avoid affecting unrelated UI components
+    private func disableParentGestureRecognizers() {
+        disabledGestureRecognizers.removeAll()
+
+        var currentDepth = 0
+        var currentView: UIView? = self.superview
+        
+        while let view = currentView, currentDepth < Self.maxGestureRecognizerTraversalDepth {
+            for recognizer in view.gestureRecognizers ?? [] {
+                // Only disable tap and long press recognizers
+                // Keep swipe and pan recognizers enabled for keyboard navigation
+                let isTapOrPress = recognizer is UITapGestureRecognizer ||
+                                   recognizer is UILongPressGestureRecognizer
                 
-                // Re-enable gesture recognizers immediately (we're on main thread)
-                for recognizer in self.disabledGestureRecognizers {
-                    recognizer.isEnabled = true
+                // Skip recognizers that might be critical for app navigation
+                // Check if the recognizer's view has a specific accessibility identifier
+                // or is marked as important for navigation
+                let isCritical = shouldSkipGestureRecognizer(recognizer, in: view)
+                
+                if isTapOrPress && recognizer.isEnabled && !isCritical {
+                    recognizer.isEnabled = false
+                    disabledGestureRecognizers.append(recognizer)
                 }
-                
-                // Clear array atomically with flag update
-                self.disabledGestureRecognizers.removeAll()
             }
+            currentView = view.superview
+            currentDepth += 1
+        }
+
+        #if DEBUG
+        print("[expo-tvos-search] Disabled \(disabledGestureRecognizers.count) tap/press recognizers in \(currentDepth) levels (kept swipe/pan for navigation)")
+        #endif
+    }
+    
+    /// Determines if a gesture recognizer should be skipped during disabling
+    /// This helps protect critical gesture recognizers used by other parts of the app
+    private func shouldSkipGestureRecognizer(_ recognizer: UIGestureRecognizer, in view: UIView) -> Bool {
+        // Skip if the gesture recognizer has a delegate set, as it might be managed by another component
+        // This is a conservative approach to avoid breaking other parts of the app
+        if let delegate = recognizer.delegate {
+            // Check if the delegate is from the React Native gesture handling system
+            let delegateClassName = String(describing: type(of: delegate))
+            // Allow disabling RN gesture handlers but skip custom delegates
+            // Note: This checks for React Native framework classes which typically have RCT or React prefix
+            let isReactNativeDelegate =
+                delegateClassName.hasPrefix("RCT") ||
+                delegateClassName.hasPrefix("React")
             
-            // Post notification to re-enable cancelsTouchesInView
-            NotificationCenter.default.post(
-                name: RCTTVEnableGestureHandlersCancelTouchesNotification,
-                object: nil
-            )
-
-            // Fire event for JS-side handling
-            self.onSearchFieldBlurred([:])
-
-            #if DEBUG
-            print("[expo-tvos-search] Search field unfocused: enabled RN gesture handlers")
-            #endif
+            if !isReactNativeDelegate {
+                return true
+            }
         }
         
-        // Execute synchronously if already on main thread, otherwise dispatch
-        if Thread.isMainThread {
-            performEnable()
-        } else {
-            DispatchQueue.main.async(execute: performEnable)
+        // Skip recognizers attached to navigation bars, tab bars, or other critical UI
+        if view is UINavigationBar || view is UITabBar || view is UIToolbar {
+            return true
         }
+        
+        // Skip recognizers on views with accessibility identifiers suggesting they're navigation elements
+        if let accessibilityId = view.accessibilityIdentifier,
+           isNavigationRelatedAccessibilityId(accessibilityId) {
+            return true
+        }
+        
+        return false
+    }
+    
+    /// Returns true if the accessibility identifier suggests the view is related to navigation UI
+    /// Uses token-based matching to avoid false positives from generic substring matches.
+    private func isNavigationRelatedAccessibilityId(_ accessibilityId: String) -> Bool {
+        let lowercasedId = accessibilityId.lowercased()
+        let separators = CharacterSet(charactersIn: "._- ")
+        let components = lowercasedId.components(separatedBy: separators)
+        
+        for component in components {
+            if component == "navigation" || component == "tabbar" || component == "toolbar" {
+                return true
+            }
+        }
+        
+        return false
+    }
+    
+    /// Re-enables all gesture recognizers that were previously disabled
+    private func enableParentGestureRecognizers() {
+        for recognizer in disabledGestureRecognizers {
+            recognizer.isEnabled = true
+        }
+        disabledGestureRecognizers.removeAll()
     }
 
     func updateResults(_ results: [[String: Any]]) {
