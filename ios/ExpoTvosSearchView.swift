@@ -373,8 +373,19 @@ class ExpoTvosSearchView: ExpoView {
     // Store references to disabled gesture recognizers so we can re-enable them
     private var disabledGestureRecognizers: [UIGestureRecognizer] = []
     
-    // Maximum depth to traverse up the view hierarchy when disabling gesture recognizers
-    // This prevents affecting unrelated UI components in distant ancestor views
+    /// Maximum depth to traverse up the view hierarchy when disabling gesture recognizers.
+    ///
+    /// This limit is used to avoid walking arbitrarily far up the view hierarchy and
+    /// unintentionally affecting unrelated UI components in distant ancestor views.
+    ///
+    /// A value of `5` has been chosen based on typical tvOS layouts used with this view,
+    /// where the relevant React Native container views are located within a few levels of
+    /// the `ExpoTvosSearchView` itself. Gesture recognizers attached to ancestors deeper
+    /// than this limit are **not** inspected or modified by the traversal and therefore
+    /// will not be disabled or re‑enabled by the `shouldSkipGestureRecognizer` logic.
+    ///
+    /// If you integrate this view into a significantly deeper view hierarchy and need
+    /// additional ancestors to be considered, adjust this constant accordingly.
     private static let maxGestureRecognizerTraversalDepth = 5
 
     var columns: Int = 5 {
