@@ -625,9 +625,7 @@ class ExpoTvosSearchView: ExpoView {
 
         // Use serial queue to ensure atomic state changes
         var shouldDisable = false
-        gestureStateQueue.sync { [weak self] in
-            guard let self = self else { return }
-            
+        gestureStateQueue.sync {
             // Skip if already disabled to prevent duplicate operations
             guard !self.gestureHandlersDisabled else { return }
             self.gestureHandlersDisabled = true
@@ -671,9 +669,7 @@ class ExpoTvosSearchView: ExpoView {
 
         // Use serial queue to ensure atomic state changes
         var shouldEnable = false
-        gestureStateQueue.sync { [weak self] in
-            guard let self = self else { return }
-            
+        gestureStateQueue.sync {
             // Skip if already enabled to prevent duplicate operations
             guard self.gestureHandlersDisabled else { return }
             self.gestureHandlersDisabled = false
