@@ -586,13 +586,17 @@ class ExpoTvosSearchView: ExpoView {
                 }
                 
                 // Remove hosting controller view from hierarchy (accessing .view on main thread)
-                hostingControllerRef?.view.removeFromSuperview()
+                // Only access view if it's already loaded to avoid triggering view load
+                if let controller = hostingControllerRef, controller.isViewLoaded {
+                    controller.view.removeFromSuperview()
+                }
             }
             
             if Thread.isMainThread {
                 cleanup()
             } else {
                 // Use async to avoid blocking and potential deadlocks
+                // The cleanup captures values, not self, so it's safe to execute after deallocation
                 DispatchQueue.main.async(execute: cleanup)
             }
         }
