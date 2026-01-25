@@ -551,7 +551,7 @@ class ExpoTvosSearchView: ExpoView {
 
         // Atomically check and re-enable RN gesture handlers if still disabled
         let shouldCleanup: Bool
-        do {
+        {
             stateLock.lock()
             defer { stateLock.unlock() }
             
@@ -627,7 +627,7 @@ class ExpoTvosSearchView: ExpoView {
 
         // Atomically check and set state to prevent race conditions
         let wasAlreadyDisabled: Bool
-        do {
+        {
             stateLock.lock()
             defer { stateLock.unlock() }
             
@@ -667,7 +667,7 @@ class ExpoTvosSearchView: ExpoView {
 
         // Atomically check and set state to prevent race conditions
         let wasDisabled: Bool
-        do {
+        {
             stateLock.lock()
             defer { stateLock.unlock() }
             
@@ -706,7 +706,7 @@ class ExpoTvosSearchView: ExpoView {
         // This should normally be empty due to the atomic state management,
         // but we handle it defensively to prevent recognizers from being lost
         let previouslyDisabled: [UIGestureRecognizer]
-        do {
+        {
             stateLock.lock()
             defer { stateLock.unlock() }
             
@@ -750,7 +750,7 @@ class ExpoTvosSearchView: ExpoView {
         // Atomically update the disabledGestureRecognizers array
         // Recognizers are already disabled at this point, so we're just storing the references
         let finalCount: Int
-        do {
+        {
             stateLock.lock()
             defer { stateLock.unlock() }
             
@@ -819,7 +819,7 @@ class ExpoTvosSearchView: ExpoView {
     private func enableParentGestureRecognizers() {
         // Atomically get and clear the disabledGestureRecognizers array
         let recognizersToEnable: [UIGestureRecognizer]
-        do {
+        {
             stateLock.lock()
             defer { stateLock.unlock() }
             
