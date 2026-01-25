@@ -698,11 +698,12 @@ class ExpoTvosSearchView: ExpoView {
         disabledGestureRecognizers = []
         stateLock.unlock()
         
+        // Re-enable outside the lock since UIKit operations can take time
         for recognizer in previouslyDisabled {
             recognizer.isEnabled = true
         }
         
-        // Collect recognizers to disable
+        // Collect and disable recognizers to prevent them from being enabled between collection and storage
         var recognizersToDisable: [UIGestureRecognizer] = []
         
         var currentDepth = 0
@@ -721,6 +722,7 @@ class ExpoTvosSearchView: ExpoView {
                 let isCritical = shouldSkipGestureRecognizer(recognizer, in: view)
                 
                 if isTapOrPress && recognizer.isEnabled && !isCritical {
+                    // Disable immediately to prevent race with enable calls
                     recognizer.isEnabled = false
                     recognizersToDisable.append(recognizer)
                 }
@@ -730,15 +732,17 @@ class ExpoTvosSearchView: ExpoView {
         }
 
         // Atomically update the disabledGestureRecognizers array
+        // Recognizers are already disabled at this point, so we're just storing the references
         stateLock.lock()
         disabledGestureRecognizers = recognizersToDisable
+        let finalCount = disabledGestureRecognizers.count
         stateLock.unlock()
 
         #if DEBUG
         if !previouslyDisabled.isEmpty {
             print("[expo-tvos-search] Warning: Re-enabled \(previouslyDisabled.count) orphaned gesture recognizers before disabling new ones")
         }
-        print("[expo-tvos-search] Disabled \(recognizersToDisable.count) tap/press recognizers in \(currentDepth) levels (kept swipe/pan for navigation)")
+        print("[expo-tvos-search] Disabled \(finalCount) tap/press recognizers in \(currentDepth) levels (kept swipe/pan for navigation)")
         #endif
     }
     
