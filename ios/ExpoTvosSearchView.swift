@@ -638,9 +638,31 @@ class ExpoTvosSearchView: ExpoView {
             guard let self = self else { return }
             
             // Disable gesture recognizers (UIKit requires main thread)
-            self.gestureStateQueue.sync {
-                self.disableParentGestureRecognizers()
+            // Collect recognizers to disable
+            var recognizers: [UIGestureRecognizer] = []
+            var currentView: UIView? = self.superview
+            while let view = currentView {
+                for recognizer in view.gestureRecognizers ?? [] {
+                    // Only disable tap and long press recognizers
+                    // Keep swipe and pan recognizers enabled for keyboard navigation
+                    let isTapOrPress = recognizer is UITapGestureRecognizer ||
+                                       recognizer is UILongPressGestureRecognizer
+                    if isTapOrPress && recognizer.isEnabled {
+                        recognizer.isEnabled = false
+                        recognizers.append(recognizer)
+                    }
+                }
+                currentView = view.superview
             }
+            
+            // Store disabled recognizers with queue protection
+            self.gestureStateQueue.sync {
+                self.disabledGestureRecognizers = recognizers
+            }
+            
+            #if DEBUG
+            print("[expo-tvos-search] Disabled \(recognizers.count) tap/press recognizers (kept swipe/pan for navigation)")
+            #endif
             
             // Post notification to set cancelsTouchesInView = NO
             NotificationCenter.default.post(
@@ -682,8 +704,16 @@ class ExpoTvosSearchView: ExpoView {
             guard let self = self else { return }
             
             // Re-enable gesture recognizers (UIKit requires main thread)
+            // Get recognizers with queue protection
+            var recognizers: [UIGestureRecognizer] = []
             self.gestureStateQueue.sync {
-                self.enableParentGestureRecognizers()
+                recognizers = self.disabledGestureRecognizers
+                self.disabledGestureRecognizers.removeAll()
+            }
+            
+            // Re-enable them on main thread
+            for recognizer in recognizers {
+                recognizer.isEnabled = true
             }
             
             // Post notification to re-enable cancelsTouchesInView
@@ -699,42 +729,6 @@ class ExpoTvosSearchView: ExpoView {
             print("[expo-tvos-search] Search field unfocused: enabled RN gesture handlers")
             #endif
         }
-    }
-
-    /// Walks up the view hierarchy and disables only TAP gesture recognizers
-    /// We keep swipe/pan recognizers enabled so the user can navigate the keyboard
-    /// Only tap recognizers are disabled to allow click-to-select to reach SwiftUI
-    /// NOTE: This method MUST be called on the main thread AND within gestureStateQueue.sync
-    private func disableParentGestureRecognizers() {
-        disabledGestureRecognizers.removeAll()
-
-        var currentView: UIView? = self.superview
-        while let view = currentView {
-            for recognizer in view.gestureRecognizers ?? [] {
-                // Only disable tap and long press recognizers
-                // Keep swipe and pan recognizers enabled for keyboard navigation
-                let isTapOrPress = recognizer is UITapGestureRecognizer ||
-                                   recognizer is UILongPressGestureRecognizer
-                if isTapOrPress && recognizer.isEnabled {
-                    recognizer.isEnabled = false
-                    disabledGestureRecognizers.append(recognizer)
-                }
-            }
-            currentView = view.superview
-        }
-
-        #if DEBUG
-        print("[expo-tvos-search] Disabled \(disabledGestureRecognizers.count) tap/press recognizers (kept swipe/pan for navigation)")
-        #endif
-    }
-
-    /// Re-enables all gesture recognizers that were previously disabled
-    /// NOTE: This method MUST be called on the main thread AND within gestureStateQueue.sync
-    private func enableParentGestureRecognizers() {
-        for recognizer in disabledGestureRecognizers {
-            recognizer.isEnabled = true
-        }
-        disabledGestureRecognizers.removeAll()
     }
 
     func updateResults(_ results: [[String: Any]]) {
