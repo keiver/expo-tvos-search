@@ -270,7 +270,7 @@ Explore all 7 configurations in the [demo app](https://github.com/keiver/expo-tv
 
 ### Apple TV Hardware Keyboard Support (v1.3.2+)
 
-On real Apple TV hardware, React Native's gesture handlers can intercept Siri Remote events before they reach the native search field. Use the focus callbacks with `TVEventControl` to ensure keyboard input works correctly:
+The search view automatically manages gesture handlers on focus changes to ensure keyboard input works correctly on real Apple TV hardware. If you need additional control or encounter issues on specific devices, you can use the focus callbacks with `TVEventControl`:
 
 ```tsx
 import { TVEventControl } from 'react-native';
