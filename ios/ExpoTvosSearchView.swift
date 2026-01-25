@@ -626,16 +626,16 @@ class ExpoTvosSearchView: ExpoView {
         }
 
         // Atomically check and set state to prevent race conditions
-        let wasAlreadyDisabled: Bool
-        {
+        let wasAlreadyDisabled: Bool = {
             stateLock.lock()
             defer { stateLock.unlock() }
-            
-            wasAlreadyDisabled = gestureHandlersDisabled
-            if !wasAlreadyDisabled {
+
+            let alreadyDisabled = gestureHandlersDisabled
+            if !alreadyDisabled {
                 gestureHandlersDisabled = true
             }
-        }
+            return alreadyDisabled
+        }()
         
         // If already disabled, skip to prevent duplicate operations
         guard !wasAlreadyDisabled else { return }
