@@ -268,6 +268,26 @@ Explore all 7 configurations in the [demo app](https://github.com/keiver/expo-tv
 />
 ```
 
+### Apple TV Hardware Keyboard Support (v1.3.2+)
+
+On real Apple TV hardware, React Native's gesture handlers can intercept Siri Remote events before they reach the native search field. Use the focus callbacks with `TVEventControl` to ensure keyboard input works correctly:
+
+```tsx
+import { TVEventControl } from 'react-native';
+
+<TvosSearchView
+  onSearchFieldFocused={() => {
+    TVEventControl.disableGestureHandlersCancelTouches();
+  }}
+  onSearchFieldBlurred={() => {
+    TVEventControl.enableGestureHandlersCancelTouches();
+  }}
+  // ... other props
+/>
+```
+
+**Note:** This is primarily needed on physical Apple TV devices. The simulator uses Mac keyboard input which bypasses this issue.
+
 ### Customizing Colors and Card Dimensions
 
 ```tsx
@@ -322,6 +342,7 @@ import type {
   SelectItemEvent,
   SearchViewErrorEvent,
   ValidationWarningEvent,
+  SearchFieldFocusEvent,
   SearchResult,
 } from 'expo-tvos-search';
 
@@ -355,6 +376,11 @@ interface ValidationWarningEvent {
     message: string;
     context?: string;
   };
+}
+
+// Search field focus events (v1.3.2+)
+interface SearchFieldFocusEvent {
+  nativeEvent: Record<string, never>;
 }
 
 // Search result shape
@@ -470,6 +496,8 @@ const handleError = (event: SearchViewErrorEvent) => {
 | `onSelectItem` | `function` | required | Called when result is selected |
 | `onError` | `function` | optional | **(v1.2.0+)** Called when errors occur (image loading failures, validation errors) |
 | `onValidationWarning` | `function` | optional | **(v1.2.0+)** Called for non-fatal warnings (truncated fields, clamped values, invalid URLs) |
+| `onSearchFieldFocused` | `function` | optional | **(v1.3.2+)** Called when native search field gains focus. Use with `TVEventControl` for Apple TV hardware keyboard support. |
+| `onSearchFieldBlurred` | `function` | optional | **(v1.3.2+)** Called when native search field loses focus. Use to re-enable gesture handlers. |
 
 ### Other
 

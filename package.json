@@ -73,6 +73,7 @@
     "ios",
     "expo-module.config.json",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "engines": {

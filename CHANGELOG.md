@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.2] - 2025-01-25
+
+### Added
+- **Apple TV hardware keyboard support**: New `onSearchFieldFocused` and `onSearchFieldBlurred` event callbacks
+  - Enables proper Siri Remote keyboard input on physical Apple TV devices
+  - Works with `TVEventControl.disableGestureHandlersCancelTouches()` for JS-side handling
+  - Native Swift implementation automatically disables tap/press gesture recognizers when search field is focused
+  - Keeps swipe/pan recognizers enabled for keyboard navigation
+- TypeScript type `SearchFieldFocusEvent` for the new focus events
+
+### Fixed
+- Siri Remote click events not reaching native SwiftUI search field on real Apple TV hardware
+- React Native gesture handlers intercepting keyboard input before it reached SwiftUI `.searchable` modifier
+
+## [1.3.1] - 2025-01-21
+
+### Fixed
+- Minor stability improvements
+- Documentation updates
+
+## [1.3.0] - 2025-01-20
+
+### Added
+- `cardMargin` prop - Customize spacing between cards in the grid (default: 40)
+- `cardPadding` prop - Customize padding inside cards for overlay content (default: 16)
+- `overlayTitleSize` prop - Customize font size for title in blur overlay (default: 20)
+
+### Changed
+- Improved grid layout flexibility with customizable spacing
+
 ## [1.2.3] - 2025-01-20
 - Patch release for npm publish workflow fix.
 
@@ -14,6 +44,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.2.0] - 2025-01-17
 
 ### Added
+- `onError` callback - Receive notifications for fatal errors (image loading failures, validation errors)
+- `onValidationWarning` callback - Receive non-fatal warnings (truncated fields, clamped values, invalid URLs)
+- `SearchViewErrorEvent` and `ValidationWarningEvent` TypeScript types
 - JSDoc documentation for all TypeScript exports
 - `SearchEvent` and `SelectItemEvent` type interfaces for improved type safety
 - Coverage thresholds (80% global) in Jest configuration
@@ -61,13 +94,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Grid layout for search results with configurable columns
 - `TvosSearchView` React Native component
 - `isNativeSearchAvailable()` utility function
-- Support for:
-  - Search result images with async loading
-  - Loading state indicator
-  - Custom placeholder text
-  - Title and subtitle display options
-  - Focus border styling
-  - Top inset for tab bar clearance
+- Core props:
+  - `results`, `columns`, `placeholder`, `isLoading`
+  - `cardWidth`, `cardHeight` - Customizable card dimensions
+  - `imageContentMode` - Image scaling (`fill`, `fit`, `contain`)
+  - `textColor`, `accentColor` - Color customization
+  - `showTitle`, `showSubtitle`, `showFocusBorder` - Display options
+  - `topInset` - Tab bar clearance
+  - `emptyStateText`, `searchingText`, `noResultsText`, `noResultsHintText` - Text customization
+- `onSearch` and `onSelectItem` event callbacks
 - Automatic fallback when native module is unavailable
-- TypeScript type definitions
+- TypeScript type definitions (`SearchResult`, `TvosSearchViewProps`, etc.)
 - Comprehensive test suite
