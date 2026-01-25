@@ -1,6 +1,11 @@
 import ExpoModulesCore
 import SwiftUI
 
+// React Native tvOS notification names for controlling gesture handler behavior
+// These match the constants in RCTTVRemoteHandler.h
+private let RCTTVDisableGestureHandlersCancelTouchesNotification = Notification.Name("RCTTVDisableGestureHandlersCancelTouchesNotification")
+private let RCTTVEnableGestureHandlersCancelTouchesNotification = Notification.Name("RCTTVEnableGestureHandlersCancelTouchesNotification")
+
 #if os(tvOS)
 
 /// Custom shape for cards with selectively rounded corners
@@ -359,6 +364,9 @@ class ExpoTvosSearchView: ExpoView {
     private var hostingController: UIHostingController<TvosSearchContentView>?
     private let viewModel = SearchViewModel()
 
+    // Track if we've disabled RN gesture handlers for keyboard input
+    private var gestureHandlersDisabled = false
+
     var columns: Int = 5 {
         didSet {
             viewModel.columns = columns
@@ -513,6 +521,17 @@ class ExpoTvosSearchView: ExpoView {
     }
 
     deinit {
+        // Remove notification observers
+        NotificationCenter.default.removeObserver(self)
+
+        // Re-enable RN gesture handlers if still disabled
+        if gestureHandlersDisabled {
+            NotificationCenter.default.post(
+                name: RCTTVEnableGestureHandlersCancelTouchesNotification,
+                object: nil
+            )
+        }
+
         // Clean up hosting controller and view model references to prevent memory leaks
         hostingController?.view.removeFromSuperview()
         hostingController = nil
@@ -543,6 +562,63 @@ class ExpoTvosSearchView: ExpoView {
             controller.view.leadingAnchor.constraint(equalTo: leadingAnchor),
             controller.view.trailingAnchor.constraint(equalTo: trailingAnchor)
         ])
+
+        // Observe text field editing to detect when search keyboard is active
+        // Filter by checking if text field is within our view hierarchy
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleTextFieldDidBeginEditing),
+            name: UITextField.textDidBeginEditingNotification,
+            object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleTextFieldDidEndEditing),
+            name: UITextField.textDidEndEditingNotification,
+            object: nil
+        )
+    }
+
+    @objc private func handleTextFieldDidBeginEditing(_ notification: Notification) {
+        // Only handle if the text field is within our hosting controller's view hierarchy
+        guard let textField = notification.object as? UITextField,
+              let hostingView = hostingController?.view,
+              textField.isDescendant(of: hostingView) else {
+            return
+        }
+
+        guard !gestureHandlersDisabled else { return }
+        gestureHandlersDisabled = true
+
+        // Disable RN gesture handlers so keyboard input reaches SwiftUI
+        NotificationCenter.default.post(
+            name: RCTTVDisableGestureHandlersCancelTouchesNotification,
+            object: nil
+        )
+        #if DEBUG
+        print("[expo-tvos-search] Search field focused: disabled RN gesture handlers")
+        #endif
+    }
+
+    @objc private func handleTextFieldDidEndEditing(_ notification: Notification) {
+        // Only handle if the text field is within our hosting controller's view hierarchy
+        guard let textField = notification.object as? UITextField,
+              let hostingView = hostingController?.view,
+              textField.isDescendant(of: hostingView) else {
+            return
+        }
+
+        guard gestureHandlersDisabled else { return }
+        gestureHandlersDisabled = false
+
+        // Re-enable RN gesture handlers
+        NotificationCenter.default.post(
+            name: RCTTVEnableGestureHandlersCancelTouchesNotification,
+            object: nil
+        )
+        #if DEBUG
+        print("[expo-tvos-search] Search field unfocused: enabled RN gesture handlers")
+        #endif
     }
 
     func updateResults(_ results: [[String: Any]]) {
