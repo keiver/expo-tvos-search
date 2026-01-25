@@ -550,12 +550,16 @@ class ExpoTvosSearchView: ExpoView {
         NotificationCenter.default.removeObserver(self)
 
         // Atomically check and re-enable RN gesture handlers if still disabled
-        stateLock.lock()
-        let shouldCleanup = gestureHandlersDisabled
-        if shouldCleanup {
-            gestureHandlersDisabled = false
+        let shouldCleanup: Bool
+        do {
+            stateLock.lock()
+            defer { stateLock.unlock() }
+            
+            shouldCleanup = gestureHandlersDisabled
+            if shouldCleanup {
+                gestureHandlersDisabled = false
+            }
         }
-        stateLock.unlock()
         
         if shouldCleanup {
             enableParentGestureRecognizers()
@@ -622,12 +626,16 @@ class ExpoTvosSearchView: ExpoView {
         }
 
         // Atomically check and set state to prevent race conditions
-        stateLock.lock()
-        let wasAlreadyDisabled = gestureHandlersDisabled
-        if !wasAlreadyDisabled {
-            gestureHandlersDisabled = true
+        let wasAlreadyDisabled: Bool
+        do {
+            stateLock.lock()
+            defer { stateLock.unlock() }
+            
+            wasAlreadyDisabled = gestureHandlersDisabled
+            if !wasAlreadyDisabled {
+                gestureHandlersDisabled = true
+            }
         }
-        stateLock.unlock()
         
         // If already disabled, skip to prevent duplicate operations
         guard !wasAlreadyDisabled else { return }
@@ -658,12 +666,16 @@ class ExpoTvosSearchView: ExpoView {
         }
 
         // Atomically check and set state to prevent race conditions
-        stateLock.lock()
-        let wasDisabled = gestureHandlersDisabled
-        if wasDisabled {
-            gestureHandlersDisabled = false
+        let wasDisabled: Bool
+        do {
+            stateLock.lock()
+            defer { stateLock.unlock() }
+            
+            wasDisabled = gestureHandlersDisabled
+            if wasDisabled {
+                gestureHandlersDisabled = false
+            }
         }
-        stateLock.unlock()
         
         // If already enabled, skip to prevent duplicate operations
         guard wasDisabled else { return }
@@ -693,10 +705,14 @@ class ExpoTvosSearchView: ExpoView {
         // First, re-enable any previously disabled recognizers for safety
         // This should normally be empty due to the atomic state management,
         // but we handle it defensively to prevent recognizers from being lost
-        stateLock.lock()
-        let previouslyDisabled = disabledGestureRecognizers
-        disabledGestureRecognizers = []
-        stateLock.unlock()
+        let previouslyDisabled: [UIGestureRecognizer]
+        do {
+            stateLock.lock()
+            defer { stateLock.unlock() }
+            
+            previouslyDisabled = disabledGestureRecognizers
+            disabledGestureRecognizers = []
+        }
         
         // Re-enable outside the lock since UIKit operations can take time
         for recognizer in previouslyDisabled {
@@ -733,10 +749,14 @@ class ExpoTvosSearchView: ExpoView {
 
         // Atomically update the disabledGestureRecognizers array
         // Recognizers are already disabled at this point, so we're just storing the references
-        stateLock.lock()
-        disabledGestureRecognizers = recognizersToDisable
-        let finalCount = disabledGestureRecognizers.count
-        stateLock.unlock()
+        let finalCount: Int
+        do {
+            stateLock.lock()
+            defer { stateLock.unlock() }
+            
+            disabledGestureRecognizers = recognizersToDisable
+            finalCount = disabledGestureRecognizers.count
+        }
 
         #if DEBUG
         if !previouslyDisabled.isEmpty {
@@ -798,10 +818,14 @@ class ExpoTvosSearchView: ExpoView {
     /// Re-enables all gesture recognizers that were previously disabled
     private func enableParentGestureRecognizers() {
         // Atomically get and clear the disabledGestureRecognizers array
-        stateLock.lock()
-        let recognizersToEnable = disabledGestureRecognizers
-        disabledGestureRecognizers.removeAll()
-        stateLock.unlock()
+        let recognizersToEnable: [UIGestureRecognizer]
+        do {
+            stateLock.lock()
+            defer { stateLock.unlock() }
+            
+            recognizersToEnable = disabledGestureRecognizers
+            disabledGestureRecognizers.removeAll()
+        }
         
         // Re-enable the recognizers
         for recognizer in recognizersToEnable {
