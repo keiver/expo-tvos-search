@@ -369,6 +369,10 @@ class ExpoTvosSearchView: ExpoView {
 
     // Store references to disabled gesture recognizers so we can re-enable them
     private var disabledGestureRecognizers: [UIGestureRecognizer] = []
+    
+    // Maximum depth to traverse up the view hierarchy when disabling gesture recognizers
+    // This prevents affecting unrelated UI components in distant ancestor views
+    private static let maxGestureRecognizerTraversalDepth = 5
 
     var columns: Int = 5 {
         didSet {
@@ -654,13 +658,10 @@ class ExpoTvosSearchView: ExpoView {
     private func disableParentGestureRecognizers() {
         disabledGestureRecognizers.removeAll()
 
-        // Limit traversal to 5 levels to avoid affecting unrelated UI components
-        // This prevents disabling gesture recognizers in sibling views or distant ancestors
-        let maxTraversalDepth = 5
         var currentDepth = 0
         var currentView: UIView? = self.superview
         
-        while let view = currentView, currentDepth < maxTraversalDepth {
+        while let view = currentView, currentDepth < Self.maxGestureRecognizerTraversalDepth {
             for recognizer in view.gestureRecognizers ?? [] {
                 // Only disable tap and long press recognizers
                 // Keep swipe and pan recognizers enabled for keyboard navigation
@@ -691,10 +692,11 @@ class ExpoTvosSearchView: ExpoView {
     private func shouldSkipGestureRecognizer(_ recognizer: UIGestureRecognizer, in view: UIView) -> Bool {
         // Skip if the gesture recognizer has a delegate set, as it might be managed by another component
         // This is a conservative approach to avoid breaking other parts of the app
-        if recognizer.delegate != nil {
+        if let delegate = recognizer.delegate {
             // Check if the delegate is from the React Native gesture handling system
-            let delegateClassName = String(describing: type(of: recognizer.delegate!))
+            let delegateClassName = String(describing: type(of: delegate))
             // Allow disabling RN gesture handlers but skip custom delegates
+            // Note: This checks for React Native framework classes which typically have RCT prefix
             if !delegateClassName.contains("RCT") && !delegateClassName.contains("React") {
                 return true
             }
