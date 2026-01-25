@@ -68,13 +68,15 @@ To test your changes in a real tvOS app:
 
 ### GitHub Dependency Syntax
 
-When testing unreleased changes, use a git branch reference in `package.json`:
+When testing unreleased changes, use a git branch reference in `package.json`.
 
+**Use GitHub branch (WORKS):**
 ```json
-// Use GitHub branch (WORKS)
 "expo-tvos-search": "github:keiver/expo-tvos-search#branch-name"
+```
 
-// DON'T use local file path (Metro bundler fails to resolve)
+**DON'T use local file path (Metro bundler fails to resolve):**
+```json
 "expo-tvos-search": "file:../expo-tvos-search"
 ```
 
