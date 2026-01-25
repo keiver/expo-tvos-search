@@ -615,7 +615,7 @@ class ExpoTvosSearchView: ExpoView {
         onSearchFieldFocused([:])
 
         #if DEBUG
-        print("[expo-tvos-search] Search field focused: disabled RN gesture handlers (recognizers: \(disabledGestureRecognizers.count))")
+        print("[expo-tvos-search] Search field focused: gesture handling modified")
         #endif
     }
 
@@ -647,22 +647,30 @@ class ExpoTvosSearchView: ExpoView {
         #endif
     }
 
-    /// Walks up the view hierarchy and disables all gesture recognizers
-    /// This is more aggressive than cancelsTouchesInView and completely prevents
-    /// RN from processing Siri Remote events while the search keyboard is active
+    /// Walks up the view hierarchy and disables only TAP gesture recognizers
+    /// We keep swipe/pan recognizers enabled so the user can navigate the keyboard
+    /// Only tap recognizers are disabled to allow click-to-select to reach SwiftUI
     private func disableParentGestureRecognizers() {
         disabledGestureRecognizers.removeAll()
 
         var currentView: UIView? = self.superview
         while let view = currentView {
             for recognizer in view.gestureRecognizers ?? [] {
-                if recognizer.isEnabled {
+                // Only disable tap and long press recognizers
+                // Keep swipe and pan recognizers enabled for keyboard navigation
+                let isTapOrPress = recognizer is UITapGestureRecognizer ||
+                                   recognizer is UILongPressGestureRecognizer
+                if isTapOrPress && recognizer.isEnabled {
                     recognizer.isEnabled = false
                     disabledGestureRecognizers.append(recognizer)
                 }
             }
             currentView = view.superview
         }
+
+        #if DEBUG
+        print("[expo-tvos-search] Disabled \(disabledGestureRecognizers.count) tap/press recognizers (kept swipe/pan for navigation)")
+        #endif
     }
 
     /// Re-enables all gesture recognizers that were previously disabled
