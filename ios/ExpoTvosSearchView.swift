@@ -539,11 +539,9 @@ class ExpoTvosSearchView: ExpoView {
         
         gestureStateQueue.sync {
             shouldCleanup = gestureHandlersDisabled
-            if gestureHandlersDisabled {
-                gestureHandlersDisabled = false
-                recognizersToReEnable = disabledGestureRecognizers
-                disabledGestureRecognizers.removeAll()
-            }
+            gestureHandlersDisabled = false
+            recognizersToReEnable = disabledGestureRecognizers
+            disabledGestureRecognizers.removeAll()
         }
         
         // Re-enable gesture recognizers on main thread if needed (without nested sync)
@@ -624,10 +622,8 @@ class ExpoTvosSearchView: ExpoView {
         // Use serial queue to ensure atomic state changes
         var shouldDisable = false
         gestureStateQueue.sync {
-            // Skip if already disabled to prevent duplicate operations
-            guard !self.gestureHandlersDisabled else { return }
+            shouldDisable = !self.gestureHandlersDisabled
             self.gestureHandlersDisabled = true
-            shouldDisable = true
         }
         
         // Only proceed if we acquired the disabled state
@@ -690,10 +686,8 @@ class ExpoTvosSearchView: ExpoView {
         // Use serial queue to ensure atomic state changes
         var shouldEnable = false
         gestureStateQueue.sync {
-            // Skip if already enabled to prevent duplicate operations
-            guard self.gestureHandlersDisabled else { return }
+            shouldEnable = self.gestureHandlersDisabled
             self.gestureHandlersDisabled = false
-            shouldEnable = true
         }
         
         // Only proceed if we changed the state
