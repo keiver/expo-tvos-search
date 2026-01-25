@@ -382,7 +382,7 @@ class ExpoTvosSearchView: ExpoView {
     /// where the relevant React Native container views are located within a few levels of
     /// the `ExpoTvosSearchView` itself. Gesture recognizers attached to ancestors deeper
     /// than this limit are **not** inspected or modified by the traversal and therefore
-    /// will not be disabled or re‑enabled by the `shouldSkipGestureRecognizer` logic.
+    /// will not be disabled or re-enabled by the `shouldSkipGestureRecognizer` logic.
     ///
     /// If you integrate this view into a significantly deeper view hierarchy and need
     /// additional ancestors to be considered, adjust this constant accordingly.
