@@ -747,26 +747,7 @@ class ExpoTvosSearchView: ExpoView {
                 if isTapOrPress && recognizer.isEnabled && !isCritical {
                     recognizer.isEnabled = false
                     disabledGestureRecognizers.append(recognizer)
-        // Define the work to be done atomically
-        let performEnable = { [weak self] in
-            guard let self = self else { return }
-            
-            // This must be called on main thread for UIKit operations
-            assert(Thread.isMainThread, "performEnable must be called on main thread")
-            
-            // Atomically check state, re-enable recognizers, and update state within queue
-            self.gestureStateQueue.sync {
-                // Skip if already enabled
-                guard self.gestureHandlersDisabled else { return }
-                self.gestureHandlersDisabled = false
-                
-                // Re-enable gesture recognizers immediately (we're on main thread)
-                for recognizer in self.disabledGestureRecognizers {
-                    recognizer.isEnabled = true
                 }
-                
-                // Clear array atomically with flag update
-                self.disabledGestureRecognizers.removeAll()
             }
             currentView = view.superview
             currentDepth += 1
@@ -803,35 +784,35 @@ class ExpoTvosSearchView: ExpoView {
         
         // Skip recognizers on views with accessibility identifiers suggesting they're navigation elements
         if let accessibilityId = view.accessibilityIdentifier,
-           (accessibilityId.lowercased().contains("navigation") ||
-            accessibilityId.lowercased().contains("tabbar") ||
-            accessibilityId.lowercased().contains("toolbar")) {
+           isNavigationRelatedAccessibilityId(accessibilityId) {
             return true
         }
         
         return false
     }
-            
-            // Post notification to re-enable cancelsTouchesInView
-            NotificationCenter.default.post(
-                name: RCTTVEnableGestureHandlersCancelTouchesNotification,
-                object: nil
-            )
-
-            // Fire event for JS-side handling
-            self.onSearchFieldBlurred([:])
-
-            #if DEBUG
-            print("[expo-tvos-search] Search field unfocused: enabled RN gesture handlers")
-            #endif
+    
+    /// Returns true if the accessibility identifier suggests the view is related to navigation UI
+    /// Uses token-based matching to avoid false positives from generic substring matches.
+    private func isNavigationRelatedAccessibilityId(_ accessibilityId: String) -> Bool {
+        let lowercasedId = accessibilityId.lowercased()
+        let separators = CharacterSet(charactersIn: "._- ")
+        let components = lowercasedId.components(separatedBy: separators)
+        
+        for component in components {
+            if component == "navigation" || component == "tabbar" || component == "toolbar" {
+                return true
+            }
         }
         
-        // Execute synchronously if already on main thread, otherwise dispatch
-        if Thread.isMainThread {
-            performEnable()
-        } else {
-            DispatchQueue.main.async(execute: performEnable)
+        return false
+    }
+    
+    /// Re-enables all gesture recognizers that were previously disabled
+    private func enableParentGestureRecognizers() {
+        for recognizer in disabledGestureRecognizers {
+            recognizer.isEnabled = true
         }
+        disabledGestureRecognizers.removeAll()
     }
 
     func updateResults(_ results: [[String: Any]]) {
