@@ -533,21 +533,35 @@ class ExpoTvosSearchView: ExpoView {
         NotificationCenter.default.removeObserver(self)
 
         // Re-enable RN gesture handlers if still disabled
-        // Use serial queue to ensure atomic access to state
         var wasDisabled = false
         gestureStateQueue.sync {
             wasDisabled = gestureHandlersDisabled
             if gestureHandlersDisabled {
-                // Re-enable any disabled gesture recognizers
-                for recognizer in disabledGestureRecognizers {
-                    recognizer.isEnabled = true
-                }
-                disabledGestureRecognizers.removeAll()
+                gestureHandlersDisabled = false
             }
         }
         
-        // Post notification if gestures were disabled
+        // Re-enable gesture recognizers and post notification on main thread if needed
         if wasDisabled {
+            // UIKit operations must be on main thread, but we're in deinit so dispatch sync
+            if Thread.isMainThread {
+                gestureStateQueue.sync {
+                    for recognizer in disabledGestureRecognizers {
+                        recognizer.isEnabled = true
+                    }
+                    disabledGestureRecognizers.removeAll()
+                }
+            } else {
+                DispatchQueue.main.sync {
+                    self.gestureStateQueue.sync {
+                        for recognizer in self.disabledGestureRecognizers {
+                            recognizer.isEnabled = true
+                        }
+                        self.disabledGestureRecognizers.removeAll()
+                    }
+                }
+            }
+            
             NotificationCenter.default.post(
                 name: RCTTVEnableGestureHandlersCancelTouchesNotification,
                 object: nil
@@ -610,20 +624,27 @@ class ExpoTvosSearchView: ExpoView {
         }
 
         // Use serial queue to ensure atomic state changes
+        var shouldDisable = false
         gestureStateQueue.sync { [weak self] in
             guard let self = self else { return }
             
             // Skip if already disabled to prevent duplicate operations
             guard !self.gestureHandlersDisabled else { return }
             self.gestureHandlersDisabled = true
-            
-            // Disable gesture recognizers (can be done on any thread)
-            self.disableParentGestureRecognizers()
+            shouldDisable = true
         }
         
-        // Post notifications and events on main thread
+        // Only proceed if we acquired the disabled state
+        guard shouldDisable else { return }
+        
+        // Perform UI operations on main thread
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
+            
+            // Disable gesture recognizers (UIKit requires main thread)
+            self.gestureStateQueue.sync {
+                self.disableParentGestureRecognizers()
+            }
             
             // Post notification to set cancelsTouchesInView = NO
             NotificationCenter.default.post(
@@ -649,20 +670,27 @@ class ExpoTvosSearchView: ExpoView {
         }
 
         // Use serial queue to ensure atomic state changes
+        var shouldEnable = false
         gestureStateQueue.sync { [weak self] in
             guard let self = self else { return }
             
             // Skip if already enabled to prevent duplicate operations
             guard self.gestureHandlersDisabled else { return }
             self.gestureHandlersDisabled = false
-            
-            // Re-enable gesture recognizers (can be done on any thread)
-            self.enableParentGestureRecognizers()
+            shouldEnable = true
         }
         
-        // Post notifications and events on main thread
+        // Only proceed if we changed the state
+        guard shouldEnable else { return }
+        
+        // Perform UI operations on main thread
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
+            
+            // Re-enable gesture recognizers (UIKit requires main thread)
+            self.gestureStateQueue.sync {
+                self.enableParentGestureRecognizers()
+            }
             
             // Post notification to re-enable cancelsTouchesInView
             NotificationCenter.default.post(
@@ -682,7 +710,7 @@ class ExpoTvosSearchView: ExpoView {
     /// Walks up the view hierarchy and disables only TAP gesture recognizers
     /// We keep swipe/pan recognizers enabled so the user can navigate the keyboard
     /// Only tap recognizers are disabled to allow click-to-select to reach SwiftUI
-    /// NOTE: This method MUST be called from within gestureStateQueue.sync to ensure thread-safety
+    /// NOTE: This method MUST be called on the main thread AND within gestureStateQueue.sync
     private func disableParentGestureRecognizers() {
         disabledGestureRecognizers.removeAll()
 
@@ -707,7 +735,7 @@ class ExpoTvosSearchView: ExpoView {
     }
 
     /// Re-enables all gesture recognizers that were previously disabled
-    /// NOTE: This method MUST be called from within gestureStateQueue.sync to ensure thread-safety
+    /// NOTE: This method MUST be called on the main thread AND within gestureStateQueue.sync
     private func enableParentGestureRecognizers() {
         for recognizer in disabledGestureRecognizers {
             recognizer.isEnabled = true
