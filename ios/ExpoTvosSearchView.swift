@@ -547,21 +547,7 @@ class ExpoTvosSearchView: ExpoView {
         // Re-enable RN gesture handlers if still disabled
         if gestureHandlersDisabled {
             gestureHandlersDisabled = false
-            
-            // Re-enable gesture recognizers
-            if Thread.isMainThread {
-                for recognizer in disabledGestureRecognizers {
-                    recognizer.isEnabled = true
-                }
-            } else {
-                DispatchQueue.main.sync {
-                    for recognizer in disabledGestureRecognizers {
-                        recognizer.isEnabled = true
-                    }
-                }
-            }
-            
-            disabledGestureRecognizers.removeAll()
+            enableParentGestureRecognizers()
             
             NotificationCenter.default.post(
                 name: RCTTVEnableGestureHandlersCancelTouchesNotification,
