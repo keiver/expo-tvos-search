@@ -358,6 +358,48 @@ struct SearchResultCard: View {
 class ExpoTvosSearchView: ExpoView {
     private var hostingController: UIHostingController<TvosSearchContentView>?
     private let viewModel = SearchViewModel()
+    
+    // MARK: - Static Reference Counting for Gesture Handler State
+    
+    /// Tracks the number of instances that currently have gesture handlers disabled.
+    /// This ensures we only post the enable notification when the last instance re-enables handlers.
+    private static var disabledInstanceCount = 0
+    
+    /// Tracks whether this specific instance has disabled gesture handlers.
+    /// Used to prevent double-counting and ensure proper cleanup in deinit.
+    private var gestureHandlersDisabled = false
+    
+    /// Disables React Native TV gesture handlers for this instance.
+    /// Only posts the notification when this is the first instance to disable handlers.
+    func disableGestureHandlers() {
+        guard !gestureHandlersDisabled else { return }
+        
+        gestureHandlersDisabled = true
+        Self.disabledInstanceCount += 1
+        
+        if Self.disabledInstanceCount == 1 {
+            NotificationCenter.default.post(
+                name: NSNotification.Name("RCTTVDisableGestureHandlersCancelTouches"),
+                object: nil
+            )
+        }
+    }
+    
+    /// Enables React Native TV gesture handlers for this instance.
+    /// Only posts the notification when this is the last instance to re-enable handlers.
+    func enableGestureHandlers() {
+        guard gestureHandlersDisabled else { return }
+        
+        gestureHandlersDisabled = false
+        Self.disabledInstanceCount -= 1
+        
+        if Self.disabledInstanceCount == 0 {
+            NotificationCenter.default.post(
+                name: NSNotification.Name("RCTTVEnableGestureHandlersCancelTouches"),
+                object: nil
+            )
+        }
+    }
 
     var columns: Int = 5 {
         didSet {
@@ -513,6 +555,18 @@ class ExpoTvosSearchView: ExpoView {
     }
 
     deinit {
+        // Clean up gesture handler state using reference counting
+        // This ensures we only re-enable handlers when the last instance is deallocated
+        if gestureHandlersDisabled {
+            Self.disabledInstanceCount -= 1
+            if Self.disabledInstanceCount == 0 {
+                NotificationCenter.default.post(
+                    name: NSNotification.Name("RCTTVEnableGestureHandlersCancelTouches"),
+                    object: nil
+                )
+            }
+        }
+        
         // Clean up hosting controller and view model references to prevent memory leaks
         hostingController?.view.removeFromSuperview()
         hostingController = nil

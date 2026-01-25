@@ -1,3 +1,4 @@
+/// <reference types="react" />
 import type { ViewStyle } from "react-native";
 /**
  * Event payload for search text changes.
