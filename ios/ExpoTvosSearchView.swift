@@ -566,12 +566,11 @@ class ExpoTvosSearchView: ExpoView {
             }
         }
         
-        // Capture references for cleanup without retaining self
-        let hostingView = hostingController?.view
+        // Capture hosting controller reference without accessing UIKit properties
+        let hostingControllerRef = hostingController
         
         // Perform UIKit cleanup on main thread if needed
-        if shouldCleanup || hostingView != nil {
-            // Use sync if already on main thread, async otherwise
+        if shouldCleanup || hostingControllerRef != nil {
             let cleanup = {
                 // Re-enable gesture recognizers
                 for recognizer in recognizersToReEnable {
@@ -586,14 +585,15 @@ class ExpoTvosSearchView: ExpoView {
                     )
                 }
                 
-                // Remove hosting controller view from hierarchy
-                hostingView?.removeFromSuperview()
+                // Remove hosting controller view from hierarchy (accessing .view on main thread)
+                hostingControllerRef?.view.removeFromSuperview()
             }
             
             if Thread.isMainThread {
                 cleanup()
             } else {
-                DispatchQueue.main.sync(execute: cleanup)
+                // Use async to avoid blocking and potential deadlocks
+                DispatchQueue.main.async(execute: cleanup)
             }
         }
         
