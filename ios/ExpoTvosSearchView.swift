@@ -364,9 +364,6 @@ class ExpoTvosSearchView: ExpoView {
     private var hostingController: UIHostingController<TvosSearchContentView>?
     private let viewModel = SearchViewModel()
 
-    // Serial queue to synchronize gesture handler state changes
-    private let gestureStateQueue = DispatchQueue(label: "com.expo.tvos-search.gestureState")
-    
     // Track if we've disabled RN gesture handlers for keyboard input
     private var gestureHandlersDisabled = false
 
@@ -548,30 +545,23 @@ class ExpoTvosSearchView: ExpoView {
         NotificationCenter.default.removeObserver(self)
 
         // Re-enable RN gesture handlers if still disabled
-        // Check state atomically but perform cleanup without nested sync to avoid deadlock
-        var shouldCleanup = false
-        var recognizersToReEnable: [UIGestureRecognizer] = []
-        
-        gestureStateQueue.sync {
-            shouldCleanup = gestureHandlersDisabled
+        if gestureHandlersDisabled {
             gestureHandlersDisabled = false
-            recognizersToReEnable = disabledGestureRecognizers
-            disabledGestureRecognizers.removeAll()
-        }
-        
-        // Re-enable gesture recognizers on main thread if needed (without nested sync)
-        if shouldCleanup {
+            
+            // Re-enable gesture recognizers
             if Thread.isMainThread {
-                for recognizer in recognizersToReEnable {
+                for recognizer in disabledGestureRecognizers {
                     recognizer.isEnabled = true
                 }
             } else {
                 DispatchQueue.main.sync {
-                    for recognizer in recognizersToReEnable {
+                    for recognizer in disabledGestureRecognizers {
                         recognizer.isEnabled = true
                     }
                 }
             }
+            
+            disabledGestureRecognizers.removeAll()
             
             NotificationCenter.default.post(
                 name: RCTTVEnableGestureHandlersCancelTouchesNotification,
@@ -634,64 +624,24 @@ class ExpoTvosSearchView: ExpoView {
             return
         }
 
-        // Define the work to be done atomically
-        let performDisable = { [weak self] in
-            guard let self = self else { return }
-            
-            // This must be called on main thread for UIKit operations
-            assert(Thread.isMainThread, "performDisable must be called on main thread")
-            
-            // Atomically check state, disable recognizers, and update state within queue
-            self.gestureStateQueue.sync {
-                // Skip if already disabled
-                guard !self.gestureHandlersDisabled else { return }
-                self.gestureHandlersDisabled = true
-                
-                // Disable gesture recognizers immediately (we're on main thread)
-                var recognizers: [UIGestureRecognizer] = []
-                var currentView: UIView? = self.superview
-                while let view = currentView {
-                    for recognizer in view.gestureRecognizers ?? [] {
-                        // Only disable tap and long press recognizers
-                        // Keep swipe and pan recognizers enabled for keyboard navigation
-                        let isTapOrPress = recognizer is UITapGestureRecognizer ||
-                                           recognizer is UILongPressGestureRecognizer
-                        if isTapOrPress && recognizer.isEnabled {
-                            recognizer.isEnabled = false
-                            recognizers.append(recognizer)
-                        }
-                    }
-                    currentView = view.superview
-                }
-                
-                // Store disabled recognizers atomically with flag update
-                self.disabledGestureRecognizers = recognizers
-                
-                #if DEBUG
-                print("[expo-tvos-search] Disabled \(recognizers.count) tap/press recognizers (kept swipe/pan for navigation)")
-                #endif
-            }
-            
-            // Post notification to set cancelsTouchesInView = NO
-            NotificationCenter.default.post(
-                name: RCTTVDisableGestureHandlersCancelTouchesNotification,
-                object: nil
-            )
+        guard !gestureHandlersDisabled else { return }
+        gestureHandlersDisabled = true
 
-            // Fire event for JS-side fallback handling
-            self.onSearchFieldFocused([:])
+        // Approach 1: Post notification to set cancelsTouchesInView = NO
+        NotificationCenter.default.post(
+            name: RCTTVDisableGestureHandlersCancelTouchesNotification,
+            object: nil
+        )
 
-            #if DEBUG
-            print("[expo-tvos-search] Search field focused: gesture handling modified")
-            #endif
-        }
-        
-        // Execute synchronously if already on main thread, otherwise dispatch
-        if Thread.isMainThread {
-            performDisable()
-        } else {
-            DispatchQueue.main.async(execute: performDisable)
-        }
+        // Approach 2: Disable gesture recognizers in parent views with depth limit
+        disableParentGestureRecognizers()
+
+        // Fire event for JS-side fallback handling
+        onSearchFieldFocused([:])
+
+        #if DEBUG
+        print("[expo-tvos-search] Search field focused: gesture handling modified")
+        #endif
     }
 
     @objc private func handleTextFieldDidEndEditing(_ notification: Notification) {
