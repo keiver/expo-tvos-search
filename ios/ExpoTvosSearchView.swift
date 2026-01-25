@@ -650,27 +650,70 @@ class ExpoTvosSearchView: ExpoView {
     /// Walks up the view hierarchy and disables only TAP gesture recognizers
     /// We keep swipe/pan recognizers enabled so the user can navigate the keyboard
     /// Only tap recognizers are disabled to allow click-to-select to reach SwiftUI
+    /// Limits traversal depth to avoid affecting unrelated UI components
     private func disableParentGestureRecognizers() {
         disabledGestureRecognizers.removeAll()
 
+        // Limit traversal to 5 levels to avoid affecting unrelated UI components
+        // This prevents disabling gesture recognizers in sibling views or distant ancestors
+        let maxTraversalDepth = 5
+        var currentDepth = 0
         var currentView: UIView? = self.superview
-        while let view = currentView {
+        
+        while let view = currentView, currentDepth < maxTraversalDepth {
             for recognizer in view.gestureRecognizers ?? [] {
                 // Only disable tap and long press recognizers
                 // Keep swipe and pan recognizers enabled for keyboard navigation
                 let isTapOrPress = recognizer is UITapGestureRecognizer ||
                                    recognizer is UILongPressGestureRecognizer
-                if isTapOrPress && recognizer.isEnabled {
+                
+                // Skip recognizers that might be critical for app navigation
+                // Check if the recognizer's view has a specific accessibility identifier
+                // or is marked as important for navigation
+                let isCritical = shouldSkipGestureRecognizer(recognizer, in: view)
+                
+                if isTapOrPress && recognizer.isEnabled && !isCritical {
                     recognizer.isEnabled = false
                     disabledGestureRecognizers.append(recognizer)
                 }
             }
             currentView = view.superview
+            currentDepth += 1
         }
 
         #if DEBUG
-        print("[expo-tvos-search] Disabled \(disabledGestureRecognizers.count) tap/press recognizers (kept swipe/pan for navigation)")
+        print("[expo-tvos-search] Disabled \(disabledGestureRecognizers.count) tap/press recognizers in \(currentDepth) levels (kept swipe/pan for navigation)")
         #endif
+    }
+    
+    /// Determines if a gesture recognizer should be skipped during disabling
+    /// This helps protect critical gesture recognizers used by other parts of the app
+    private func shouldSkipGestureRecognizer(_ recognizer: UIGestureRecognizer, in view: UIView) -> Bool {
+        // Skip if the gesture recognizer has a delegate set, as it might be managed by another component
+        // This is a conservative approach to avoid breaking other parts of the app
+        if recognizer.delegate != nil {
+            // Check if the delegate is from the React Native gesture handling system
+            let delegateClassName = String(describing: type(of: recognizer.delegate!))
+            // Allow disabling RN gesture handlers but skip custom delegates
+            if !delegateClassName.contains("RCT") && !delegateClassName.contains("React") {
+                return true
+            }
+        }
+        
+        // Skip recognizers attached to navigation bars, tab bars, or other critical UI
+        if view is UINavigationBar || view is UITabBar || view is UIToolbar {
+            return true
+        }
+        
+        // Skip recognizers on views with accessibility identifiers suggesting they're navigation elements
+        if let accessibilityId = view.accessibilityIdentifier,
+           (accessibilityId.lowercased().contains("navigation") ||
+            accessibilityId.lowercased().contains("tabbar") ||
+            accessibilityId.lowercased().contains("toolbar")) {
+            return true
+        }
+        
+        return false
     }
 
     /// Re-enables all gesture recognizers that were previously disabled
