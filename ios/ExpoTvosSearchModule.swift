@@ -42,7 +42,15 @@ public class ExpoTvosSearchModule: Module {
 
             Prop("placeholder") { (view: ExpoTvosSearchView, placeholder: String) in
                 // Limit placeholder length to prevent layout issues
-                view.placeholder = String(placeholder.prefix(Self.maxStringLength))
+                let truncated = String(placeholder.prefix(Self.maxStringLength))
+                if truncated.count < placeholder.count {
+                    view.onValidationWarning([
+                        "type": "value_truncated",
+                        "message": "placeholder truncated to \(Self.maxStringLength) characters",
+                        "context": "original length: \(placeholder.count)"
+                    ])
+                }
+                view.placeholder = truncated
             }
 
             Prop("isLoading") { (view: ExpoTvosSearchView, isLoading: Bool) in
@@ -96,19 +104,51 @@ public class ExpoTvosSearchModule: Module {
             }
 
             Prop("emptyStateText") { (view: ExpoTvosSearchView, text: String) in
-                view.emptyStateText = String(text.prefix(Self.maxStringLength))
+                let truncated = String(text.prefix(Self.maxStringLength))
+                if truncated.count < text.count {
+                    view.onValidationWarning([
+                        "type": "value_truncated",
+                        "message": "emptyStateText truncated to \(Self.maxStringLength) characters",
+                        "context": "original length: \(text.count)"
+                    ])
+                }
+                view.emptyStateText = truncated
             }
 
             Prop("searchingText") { (view: ExpoTvosSearchView, text: String) in
-                view.searchingText = String(text.prefix(Self.maxStringLength))
+                let truncated = String(text.prefix(Self.maxStringLength))
+                if truncated.count < text.count {
+                    view.onValidationWarning([
+                        "type": "value_truncated",
+                        "message": "searchingText truncated to \(Self.maxStringLength) characters",
+                        "context": "original length: \(text.count)"
+                    ])
+                }
+                view.searchingText = truncated
             }
 
             Prop("noResultsText") { (view: ExpoTvosSearchView, text: String) in
-                view.noResultsText = String(text.prefix(Self.maxStringLength))
+                let truncated = String(text.prefix(Self.maxStringLength))
+                if truncated.count < text.count {
+                    view.onValidationWarning([
+                        "type": "value_truncated",
+                        "message": "noResultsText truncated to \(Self.maxStringLength) characters",
+                        "context": "original length: \(text.count)"
+                    ])
+                }
+                view.noResultsText = truncated
             }
 
             Prop("noResultsHintText") { (view: ExpoTvosSearchView, text: String) in
-                view.noResultsHintText = String(text.prefix(Self.maxStringLength))
+                let truncated = String(text.prefix(Self.maxStringLength))
+                if truncated.count < text.count {
+                    view.onValidationWarning([
+                        "type": "value_truncated",
+                        "message": "noResultsHintText truncated to \(Self.maxStringLength) characters",
+                        "context": "original length: \(text.count)"
+                    ])
+                }
+                view.noResultsHintText = truncated
             }
 
             Prop("textColor") { (view: ExpoTvosSearchView, colorHex: String?) in

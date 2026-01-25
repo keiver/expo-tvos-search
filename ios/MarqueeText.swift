@@ -140,6 +140,7 @@ struct MarqueeText: View {
             guard !Task.isCancelled else { return }
 
             await MainActor.run {
+                guard !Task.isCancelled else { return }
                 withAnimation(.linear(duration: duration).repeatForever(autoreverses: false)) {
                     offset = -distance
                 }
