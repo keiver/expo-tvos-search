@@ -549,8 +549,9 @@ class ExpoTvosSearchView: ExpoView {
         // Remove notification observers
         NotificationCenter.default.removeObserver(self)
 
-        // Atomically check and re-enable RN gesture handlers if still disabled
+        // Atomically check and capture state for cleanup
         let shouldCleanup: Bool
+        let recognizersToReEnable: [UIGestureRecognizer]
         {
             stateLock.lock()
             defer { stateLock.unlock() }
@@ -558,20 +559,45 @@ class ExpoTvosSearchView: ExpoView {
             shouldCleanup = gestureHandlersDisabled
             if shouldCleanup {
                 gestureHandlersDisabled = false
+                recognizersToReEnable = disabledGestureRecognizers
+                disabledGestureRecognizers.removeAll()
+            } else {
+                recognizersToReEnable = []
             }
         }
         
-        if shouldCleanup {
-            enableParentGestureRecognizers()
+        // Capture references for cleanup without retaining self
+        let hostingView = hostingController?.view
+        
+        // Perform UIKit cleanup on main thread if needed
+        if shouldCleanup || hostingView != nil {
+            // Use sync if already on main thread, async otherwise
+            let cleanup = {
+                // Re-enable gesture recognizers
+                for recognizer in recognizersToReEnable {
+                    recognizer.isEnabled = true
+                }
+                
+                // Post notification to re-enable cancelsTouchesInView
+                if shouldCleanup {
+                    NotificationCenter.default.post(
+                        name: RCTTVEnableGestureHandlersCancelTouchesNotification,
+                        object: nil
+                    )
+                }
+                
+                // Remove hosting controller view from hierarchy
+                hostingView?.removeFromSuperview()
+            }
             
-            NotificationCenter.default.post(
-                name: RCTTVEnableGestureHandlersCancelTouchesNotification,
-                object: nil
-            )
+            if Thread.isMainThread {
+                cleanup()
+            } else {
+                DispatchQueue.main.sync(execute: cleanup)
+            }
         }
-
-        // Clean up hosting controller and view model references to prevent memory leaks
-        hostingController?.view.removeFromSuperview()
+        
+        // Clean up references (safe on any thread)
         hostingController = nil
         viewModel.onSearch = nil
         viewModel.onSelectItem = nil
@@ -666,16 +692,16 @@ class ExpoTvosSearchView: ExpoView {
         }
 
         // Atomically check and set state to prevent race conditions
-        let wasDisabled: Bool
-        {
+        let wasDisabled: Bool = {
             stateLock.lock()
             defer { stateLock.unlock() }
             
-            wasDisabled = gestureHandlersDisabled
-            if wasDisabled {
+            let disabled = gestureHandlersDisabled
+            if disabled {
                 gestureHandlersDisabled = false
             }
-        }
+            return disabled
+        }()
         
         // If already enabled, skip to prevent duplicate operations
         guard wasDisabled else { return }
