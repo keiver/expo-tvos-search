@@ -690,6 +690,18 @@ class ExpoTvosSearchView: ExpoView {
     /// Only tap recognizers are disabled to allow click-to-select to reach SwiftUI
     /// Limits traversal depth to avoid affecting unrelated UI components
     private func disableParentGestureRecognizers() {
+        // First, re-enable any previously disabled recognizers for safety
+        // This should normally be empty due to the atomic state management,
+        // but we handle it defensively to prevent recognizers from being lost
+        stateLock.lock()
+        let previouslyDisabled = disabledGestureRecognizers
+        disabledGestureRecognizers = []
+        stateLock.unlock()
+        
+        for recognizer in previouslyDisabled {
+            recognizer.isEnabled = true
+        }
+        
         // Collect recognizers to disable
         var recognizersToDisable: [UIGestureRecognizer] = []
         
@@ -723,6 +735,9 @@ class ExpoTvosSearchView: ExpoView {
         stateLock.unlock()
 
         #if DEBUG
+        if !previouslyDisabled.isEmpty {
+            print("[expo-tvos-search] Warning: Re-enabled \(previouslyDisabled.count) orphaned gesture recognizers before disabling new ones")
+        }
         print("[expo-tvos-search] Disabled \(recognizersToDisable.count) tap/press recognizers in \(currentDepth) levels (kept swipe/pan for navigation)")
         #endif
     }
