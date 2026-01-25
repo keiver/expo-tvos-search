@@ -3,7 +3,6 @@
 [![npm version](https://img.shields.io/npm/v/expo-tvos-search.svg)](https://www.npmjs.com/package/expo-tvos-search)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Test Status](https://github.com/keiver/expo-tvos-search/workflows/Test%20PR/badge.svg)](https://github.com/keiver/expo-tvos-search/actions)
-[![Bundle Size](https://img.shields.io/bundlephobia/minzip/expo-tvos-search)](https://bundlephobia.com/package/expo-tvos-search)
 
 A native tvOS search component for Expo and React Native using SwiftUI's `.searchable` modifier. Provides the native tvOS search experience with automatic focus handling, remote control support, and flexible customization for media apps.
 
@@ -13,7 +12,7 @@ A native tvOS search component for Expo and React Native using SwiftUI's `.searc
 - React Native tvOS 0.71+
 
 <p align="center">
-  <img src="screenshots/demo-mini.png" width="80%" alt="Demo Mini screen for expo-tvos-search" style="border-radius: 16px;max-width: 100%;"/>
+  <img src="screenshots/default.png" alt="expo-tvos-search fullscreen native tvOS search component" style="border-radius: 16px;max-width: 100%;"/>
 </p>
 
 ## Installation
@@ -28,54 +27,17 @@ Or install from GitHub:
 npx expo install github:keiver/expo-tvos-search
 ```
 
-Then follow the **tvOS prerequisites** below and rebuild your native project.
+## Prerequisites for tvOS Builds
 
-## Quick Start
+Your project must be configured for React Native tvOS to use this module.
 
-### Try the Demo App
-
-**[expo-tvos-search-demo](https://github.com/keiver/expo-tvos-search-demo)** - Comprehensive showcase with 7 tabs demonstrating all library features:
-
-- **Default** - 4-column grid with custom colors
-- **Portrait** - Netflix-style tall cards (280×420)
-- **Landscape** - Wide 16:9 cards (500×280)
-- **Mini** - Compact 5-column layout (240×360)
-- **External Title** - Titles displayed below cards
-- **Minimal** - Bare minimum setup (5 props)
-- **Help** - Feature overview and usage guide
-
-Clone and run:
-```bash
-git clone https://github.com/keiver/expo-tvos-search-demo.git
-cd expo-tvos-search-demo
-npm install
-npm run prebuild
-npm run tvos
-```
-
-The demo uses a planet search theme with 8 planets (Mercury to Neptune) and demonstrates all library features with real working code.
-
-## Prerequisites for tvOS Builds (Expo)
-
-Your project must be configured for React Native tvOS to build and run this module.
-
-**Quick Checklist:**
-
-- ✅ `react-native-tvos` in use
-- ✅ `@react-native-tvos/config-tv` installed + added to Expo plugins
-- ✅ Run prebuild with `EXPO_TV=1`
-
-### 1. Swap to react-native-tvos
-
-Replace `react-native` with the [tvOS fork](https://github.com/react-native-tvos/react-native-tvos):
+### 1. Install react-native-tvos
 
 ```bash
-npm remove react-native && npm install react-native-tvos@latest
+npm install react-native-tvos@latest
 ```
 
 ### 2. Install the tvOS config plugin
-
-Install:
 
 ```bash
 npx expo install @react-native-tvos/config-tv
@@ -91,32 +53,9 @@ Then add the plugin in `app.json` / `app.config.js`:
 }
 ```
 
-### 3. Generate native projects with tvOS enabled
-
-```bash
-EXPO_TV=1 npx expo prebuild --clean
-```
-
-Then run:
-
-```bash
-npx expo run:ios
-```
-
-
 ## Usage
 
-### Minimal Example
-
-For the absolute minimum setup, see the [Minimal tab](https://github.com/keiver/expo-tvos-search-demo/blob/main/app/(tabs)/minimal.tsx) in the demo app.
-
-<p align="center">
-  <img src="screenshots/demo-default.png" width="80%" alt="Minimal demo screen for expo-tvos-search" style="border-radius: 16px;max-width: 100%;"/><br/>
-</p>
-
-### Complete Example
-
-This example from the demo's [Portrait tab](https://github.com/keiver/expo-tvos-search-demo/blob/main/app/(tabs)/portrait.tsx) shows a complete implementation with best practices:
+This example from the demo's [Portrait tab](https://github.com/keiver/expo-tvos-search-demo/blob/main/app/(tabs)/portrait.tsx) shows a complete implementation:
 
 ```tsx
 import { useState } from 'react';
@@ -136,7 +75,7 @@ const PLANETS: SearchResult[] = [
     subtitle: 'Our home planet, the only known world to harbor life',
     imageUrl: require('./assets/planets/earth.webp'),
   },
-  // ... more planets
+  // ... all planets
 ];
 
 export default function SearchScreen() {
@@ -154,7 +93,7 @@ export default function SearchScreen() {
 
     setIsLoading(true);
 
-    // Debounce search (300ms)
+    // Debounce dummy search (300ms)
     setTimeout(() => {
       const filtered = PLANETS.filter(
         planet =>
@@ -194,7 +133,7 @@ export default function SearchScreen() {
         accentColor="#E50914"
         cardWidth={280}
         cardHeight={420}
-        overlayTitleSize={18}  // v1.3.0 - control title font size
+        overlayTitleSize={18}
         style={{ flex: 1 }}
       />
     </LinearGradient>
@@ -202,9 +141,13 @@ export default function SearchScreen() {
 }
 ```
 
-## Layout Styles
+<p align="center">
+  <img src="screenshots/no-results.png" alt="No results for search screen using expo-tvos-search" style="border-radius: 16px;max-width: 100%;"/><br/>
+</p>
 
-Explore all 7 configurations in the [demo app](https://github.com/keiver/expo-tvos-search-demo).
+## Demo App and Common Configurations
+
+Explore all configurations in the [demo app](https://github.com/keiver/expo-tvos-search-demo).
 
 ### Portrait Cards
 
@@ -286,8 +229,6 @@ import { TVEventControl } from 'react-native';
 />
 ```
 
-**Note:** This is primarily needed on physical Apple TV devices. The simulator uses Mac keyboard input which bypasses this issue.
-
 ### Customizing Colors and Card Dimensions
 
 ```tsx
@@ -330,107 +271,8 @@ import { TVEventControl } from 'react-native';
 />
 ```
 
-## TypeScript Support
-
-The library provides comprehensive type definitions for all events and props.
-
-### Event Types
-
-```typescript
-import type {
-  SearchEvent,
-  SelectItemEvent,
-  SearchViewErrorEvent,
-  ValidationWarningEvent,
-  SearchFieldFocusEvent,
-  SearchResult,
-} from 'expo-tvos-search';
-
-// Search event - fired on text change
-interface SearchEvent {
-  nativeEvent: {
-    query: string;
-  };
-}
-
-// Selection event - fired when result is selected
-interface SelectItemEvent {
-  nativeEvent: {
-    id: string;
-  };
-}
-
-// Error event - fatal errors (v1.2.0+)
-interface SearchViewErrorEvent {
-  nativeEvent: {
-    category: 'module_unavailable' | 'validation_failed' | 'image_load_failed' | 'unknown';
-    message: string;
-    context?: string;
-  };
-}
-
-// Validation warning - non-fatal issues (v1.2.0+)
-interface ValidationWarningEvent {
-  nativeEvent: {
-    type: 'field_truncated' | 'value_clamped' | 'url_invalid' | 'validation_failed';
-    message: string;
-    context?: string;
-  };
-}
-
-// Search field focus events (v1.3.2+)
-interface SearchFieldFocusEvent {
-  nativeEvent: Record<string, never>;
-}
-
-// Search result shape
-interface SearchResult {
-  id: string;           // Required, max 500 chars
-  title: string;        // Required, max 500 chars
-  subtitle?: string;    // Optional, max 500 chars
-  imageUrl?: string;    // Optional, HTTPS recommended
-}
-```
-
-### Typed Usage
-
-```typescript
-const handleSearch = (event: SearchEvent) => {
-  const query = event.nativeEvent.query;
-  // TypeScript knows query is a string
-};
-
-const handleSelect = (event: SelectItemEvent) => {
-  const id = event.nativeEvent.id;
-  // TypeScript knows id is a string
-};
-
-const handleError = (event: SearchViewErrorEvent) => {
-  const { category, message, context } = event.nativeEvent;
-  // Full autocomplete for category values
-  if (category === 'image_load_failed') {
-    logger.warn(`Image failed to load: ${message}`, { context });
-  }
-};
-```
-
-## Demo Apps & Examples
-
-### Official Demo App
-
-**[expo-tvos-search-demo](https://github.com/keiver/expo-tvos-search-demo)** - Complete working examples with 7 different layout styles. Browse the [source code](https://github.com/keiver/expo-tvos-search-demo/tree/main/app/(tabs)) for each configuration.
-
-### Apps Using This Library
-
-**[Tomo TV](https://github.com/keiver/tomotv)** - Full-featured tvOS Jellyfin client
-- Real-world integration with media library API
-- Advanced search with live server calls
-- Complete authentication and navigation flow
-
-## See it in action:
-
 <p align="center">
-  <img src="screenshots/expo-tvos-search.gif" width="700" alt="expo-tvos-search screen in action" loading="lazy" />
+  <img src="screenshots/results.png" alt="Results for search screen using expo-tvos-search" style="border-radius: 16px;max-width: 100%;"/><br/>
 </p>
 
 ## Props
@@ -505,126 +347,14 @@ const handleError = (event: SearchViewErrorEvent) => {
 |------|------|---------|-------------|
 | `style` | `ViewStyle` | optional | Style object for the view container |
 
-## SearchResult Type
-
-```typescript
-interface SearchResult {
-  id: string;
-  title: string;
-  subtitle?: string;
-  imageUrl?: string;
-}
-```
-
 ## Result Handling
 
 The native implementation applies the following validation and constraints:
 
 - **Maximum results**: The results array is capped at 500 items. Any results beyond this limit are silently ignored.
 - **Required fields**: Results with empty `id` or `title` are automatically filtered out and not displayed.
-- **Image URL schemes**: Only HTTP and HTTPS URLs are accepted for `imageUrl`. Other URL schemes (e.g., `file://`, `data:`) are rejected.
+- **Image URL schemes**: HTTP, HTTPS, and `data:` URIs are accepted for `imageUrl`. Other URL schemes (e.g., `file://`) are rejected.
 - **HTTPS recommended**: HTTP URLs may be blocked by App Transport Security on tvOS unless explicitly allowed in Info.plist.
-
-## Focus Handling - Do's and Don'ts
-
-The native `.searchable` modifier manages focus automatically. Here's what to do and what to avoid:
-
-### ✅ Do: Render directly in your screen
-
-```tsx
-function SearchScreen() {
-  return (
-    <TvosSearchView
-      results={results}
-      onSearch={handleSearch}
-      onSelectItem={handleSelect}
-      style={{ flex: 1 }}
-    />
-  );
-}
-```
-
-### ❌ Don't: Wrap in focusable containers
-
-```tsx
-// ❌ WRONG - breaks focus navigation
-function SearchScreen() {
-  return (
-    <Pressable>  {/* Don't wrap in Pressable */}
-      <TvosSearchView ... />
-    </Pressable>
-  );
-}
-
-// ❌ WRONG - interferes with native focus
-function SearchScreen() {
-  return (
-    <TouchableOpacity>  {/* Don't wrap in TouchableOpacity */}
-      <TvosSearchView ... />
-    </TouchableOpacity>
-  );
-}
-```
-
-**Why this breaks**: Focusable wrappers steal focus from the native SwiftUI search container, which breaks directional navigation.
-
-### ✅ Do: Use non-interactive containers
-
-```tsx
-// ✅ CORRECT - View is not focusable
-function SearchScreen() {
-  return (
-    <View style={{ flex: 1, backgroundColor: '#000' }}>
-      <TvosSearchView ... />
-    </View>
-  );
-}
-
-// ✅ CORRECT - SafeAreaView is not focusable
-function SearchScreen() {
-  return (
-    <SafeAreaView style={{ flex: 1 }}>
-      <TvosSearchView ... />
-    </SafeAreaView>
-  );
-}
-```
-
-## Troubleshooting
-
-### Native module not found
-
-If you see `requireNativeViewManager("ExpoTvosSearch") returned null`, the native module hasn't been built:
-
-```bash
-# Clean and rebuild with tvOS support
-EXPO_TV=1 npx expo prebuild --clean
-npx expo run:ios
-```
-
-**Note:** Expo Go doesn't support this. Build a dev client or native build instead.
-
-### Images not loading
-
-1. Verify your image URLs are HTTPS (HTTP may be blocked by App Transport Security)
-2. Ensure required authentication parameters are included in image URLs
-3. For local development, ensure your server is accessible from the Apple TV
-
-### Focus issues
-
-If focus doesn't move correctly:
-
-1. Ensure `columns` prop matches your layout (default: 5)
-2. Check `topInset` if the first row is hidden under the tab bar
-3. The native `.searchable` modifier handles focus automatically - avoid wrapping in focusable containers
-
-### Marquee not scrolling
-
-If long titles don't scroll when focused:
-
-1. Verify `enableMarquee={true}` (default)
-2. Check `marqueeDelay` - scrolling starts after this delay (default: 1.5s)
-3. Text only scrolls if it overflows the card width
 
 ## Testing
 
@@ -637,6 +367,7 @@ npm run test:coverage   # Generate coverage report
 ```
 
 Tests cover:
+
 - `isNativeSearchAvailable()` behavior on different platforms
 - Component rendering when native module is unavailable
 - Event structure validation
@@ -644,6 +375,7 @@ Tests cover:
 ## Contributing
 
 We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on:
+
 - Code of conduct
 - Development setup
 - Testing requirements
@@ -656,4 +388,4 @@ If you're adding new props to the library, follow the comprehensive checklist in
 
 ## License
 
-MIT
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

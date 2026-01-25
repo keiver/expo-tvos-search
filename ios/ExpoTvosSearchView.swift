@@ -362,6 +362,9 @@ class ExpoTvosSearchView: ExpoView {
     private var hostingController: UIHostingController<TvosSearchContentView>?
     private let viewModel = SearchViewModel()
 
+    /// Maximum length for string fields (id, title, subtitle) to prevent memory issues.
+    private static let maxStringFieldLength = 500
+
     // Lock to ensure atomic access to gesture handler state
     private let stateLock = NSLock()
     
@@ -503,10 +506,8 @@ class ExpoTvosSearchView: ExpoView {
     var imageContentMode: String = "fill" {
         didSet {
             switch imageContentMode.lowercased() {
-            case "fit":
+            case "fit", "contain":
                 viewModel.imageContentMode = .fit
-            case "contain":
-                viewModel.imageContentMode = .fit  // SwiftUI uses .fit for contain
             default:
                 viewModel.imageContentMode = .fill
             }
@@ -839,6 +840,9 @@ class ExpoTvosSearchView: ExpoView {
     /// Tokens that indicate navigation-related UI elements.
     private static let navigationTokens: Set<String> = ["navigation", "tabbar", "toolbar"]
 
+    /// Maximum number of components to check in accessibility ID parsing to prevent DoS.
+    private static let maxAccessibilityIdComponents = 20
+
     /// Returns true if the accessibility identifier suggests the view is related to navigation UI
     /// Uses token-based matching to avoid false positives from generic substring matches.
     private func isNavigationRelatedAccessibilityId(_ accessibilityId: String) -> Bool {
@@ -847,6 +851,10 @@ class ExpoTvosSearchView: ExpoView {
 
         let separators = CharacterSet(charactersIn: "._- ")
         let components = accessibilityId.lowercased().components(separatedBy: separators)
+
+        // Limit component count to prevent DoS from strings with many separators
+        guard components.count <= Self.maxAccessibilityIdComponents else { return false }
+
         return components.contains { Self.navigationTokens.contains($0) }
     }
     
@@ -872,6 +880,7 @@ class ExpoTvosSearchView: ExpoView {
         var validResults: [SearchResultItem] = []
         var skippedCount = 0
         var urlValidationFailures = 0
+        var httpUrlCount = 0
         var truncatedFields = 0
 
         for (index, dict) in results.enumerated() {
@@ -894,30 +903,34 @@ class ExpoTvosSearchView: ExpoView {
 
             // Validate and sanitize imageUrl if present
             var validatedImageUrl: String? = nil
+            var httpWarningNeeded = false
             if let imageUrl = dict["imageUrl"] as? String, !imageUrl.isEmpty {
-                // Accept HTTP/HTTPS URLs only, reject other schemes for security
+                // Accept HTTP/HTTPS URLs and data: URIs, reject other schemes for security
                 if let url = URL(string: imageUrl),
                    let scheme = url.scheme?.lowercased(),
-                   scheme == "http" || scheme == "https" {
+                   scheme == "http" || scheme == "https" || scheme == "data" {
                     validatedImageUrl = imageUrl
+                    // Warn about insecure HTTP URLs (HTTPS recommended)
+                    if scheme == "http" {
+                        httpUrlCount += 1
+                        #if DEBUG
+                        print("[expo-tvos-search] Result '\(title)' (id: '\(id)'): using insecure HTTP URL. HTTPS is recommended for security.")
+                        #endif
+                    }
                 } else {
                     urlValidationFailures += 1
                     #if DEBUG
-                    print("[expo-tvos-search] Result '\(title)' (id: '\(id)'): invalid imageUrl '\(imageUrl)'. Only HTTP/HTTPS URLs are supported for security reasons.")
+                    print("[expo-tvos-search] Result '\(title)' (id: '\(id)'): invalid imageUrl '\(imageUrl)'. Only HTTP/HTTPS URLs and data: URIs are supported.")
                     #endif
                 }
             }
 
-            // Limit string lengths to prevent memory issues
-            let maxIdLength = 500
-            let maxTitleLength = 500
-            let maxSubtitleLength = 500
-
             // Track if any fields were truncated
-            let idTruncated = id.count > maxIdLength
-            let titleTruncated = title.count > maxTitleLength
+            let maxLen = Self.maxStringFieldLength
             let subtitle = dict["subtitle"] as? String
-            let subtitleTruncated = (subtitle?.count ?? 0) > maxSubtitleLength
+            let idTruncated = id.count > maxLen
+            let titleTruncated = title.count > maxLen
+            let subtitleTruncated = (subtitle?.count ?? 0) > maxLen
 
             if idTruncated || titleTruncated || subtitleTruncated {
                 truncatedFields += 1
@@ -931,9 +944,9 @@ class ExpoTvosSearchView: ExpoView {
             }
 
             validResults.append(SearchResultItem(
-                id: String(id.prefix(maxIdLength)),
-                title: String(title.prefix(maxTitleLength)),
-                subtitle: subtitle.map { String($0.prefix(maxSubtitleLength)) },
+                id: String(id.prefix(maxLen)),
+                title: String(title.prefix(maxLen)),
+                subtitle: subtitle.map { String($0.prefix(maxLen)) },
                 imageUrl: validatedImageUrl
             ))
         }
@@ -941,16 +954,19 @@ class ExpoTvosSearchView: ExpoView {
         // Log summary of validation issues and emit warnings
         #if DEBUG
         if skippedCount > 0 {
-            print("[expo-tvos-search] ⚠️ Skipped \(skippedCount) result(s) due to missing required fields (id or title)")
+            print("[expo-tvos-search] Skipped \(skippedCount) result(s) due to missing required fields (id or title)")
         }
         if urlValidationFailures > 0 {
-            print("[expo-tvos-search] ⚠️ \(urlValidationFailures) image URL(s) failed validation (non-HTTP/HTTPS or malformed)")
+            print("[expo-tvos-search] \(urlValidationFailures) image URL(s) failed validation (non-HTTP/HTTPS or malformed)")
+        }
+        if httpUrlCount > 0 {
+            print("[expo-tvos-search] \(httpUrlCount) image URL(s) use insecure HTTP. HTTPS is recommended.")
         }
         if truncatedFields > 0 {
-            print("[expo-tvos-search] ℹ️ Truncated \(truncatedFields) result(s) with fields exceeding maximum length (500 chars)")
+            print("[expo-tvos-search] Truncated \(truncatedFields) result(s) with fields exceeding maximum length (500 chars)")
         }
         if validResults.count > 0 {
-            print("[expo-tvos-search] ✓ Processed \(validResults.count) valid result(s)")
+            print("[expo-tvos-search] Processed \(validResults.count) valid result(s)")
         }
         #endif
 
@@ -981,6 +997,13 @@ class ExpoTvosSearchView: ExpoView {
                 "context": urlContext
             ])
         }
+        if httpUrlCount > 0 {
+            onValidationWarning([
+                "type": "url_insecure",
+                "message": "\(httpUrlCount) image URL(s) use insecure HTTP. HTTPS is recommended for security.",
+                "context": "Consider using HTTPS URLs to protect user privacy"
+            ])
+        }
         if truncatedFields > 0 {
             #if DEBUG
             let truncContext = "Check id, title, or subtitle field lengths"
@@ -1004,12 +1027,25 @@ class ExpoTvosSearchView: ExpoView {
 
 // MARK: - Color Extension for Hex String Parsing
 extension Color {
+    /// Maximum input length for hex color strings to prevent DoS from very long strings.
+    private static let maxHexInputLength = 20
+
     /// Initialize a Color from a hex string (e.g., "#FFFFFF", "#FF5733", "FFC312")
     /// Returns nil if the string cannot be parsed as a valid hex color
     init?(hex: String) {
-        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
-        var int: UInt64 = 0
+        // Validate input length before processing to prevent DoS
+        guard hex.count <= Self.maxHexInputLength else {
+            return nil
+        }
 
+        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+
+        // Hex colors must be 3, 6, or 8 characters after trimming
+        guard hex.count == 3 || hex.count == 6 || hex.count == 8 else {
+            return nil
+        }
+
+        var int: UInt64 = 0
         guard Scanner(string: hex).scanHexInt64(&int) else {
             return nil
         }
@@ -1067,6 +1103,8 @@ class ExpoTvosSearchView: ExpoView {
     let onSelectItem = EventDispatcher()
     let onError = EventDispatcher()
     let onValidationWarning = EventDispatcher()
+    let onSearchFieldFocused = EventDispatcher()
+    let onSearchFieldBlurred = EventDispatcher()
 
     required init(appContext: AppContext? = nil) {
         super.init(appContext: appContext)

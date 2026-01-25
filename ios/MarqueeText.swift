@@ -81,19 +81,11 @@ struct MarqueeText: View {
             .onAppear {
                 containerWidth = geometry.size.width
             }
-            .onChange(of: animate) { shouldAnimate in
-                if shouldAnimate && needsScroll {
-                    startScrolling()
-                } else {
-                    stopScrolling()
-                }
+            .onChange(of: animate) { _ in
+                updateAnimationState()
             }
-            .onChange(of: needsScroll) { scrollNeeded in
-                if animate && scrollNeeded {
-                    startScrolling()
-                } else {
-                    stopScrolling()
-                }
+            .onChange(of: needsScroll) { _ in
+                updateAnimationState()
             }
             .onDisappear {
                 // Cancel animation task when view disappears to prevent memory leaks
@@ -120,6 +112,15 @@ struct MarqueeText: View {
                 endPoint: .trailing
             )
             .frame(width: needsScroll ? rightFade : 0)
+        }
+    }
+
+    /// Updates animation state based on current `animate` and `needsScroll` values.
+    private func updateAnimationState() {
+        if animate && needsScroll {
+            startScrolling()
+        } else {
+            stopScrolling()
         }
     }
 

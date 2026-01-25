@@ -101,3 +101,42 @@ Target tvOS 15.0+. Avoid APIs requiring tvOS 16.0+ without fallbacks:
 The view automatically manages React Native gesture handlers when the search field is focused to enable hardware keyboard input on Apple TV devices. This is handled via:
 - `RCTTVDisableGestureHandlersCancelTouchesNotification` / `RCTTVEnableGestureHandlersCancelTouchesNotification`
 - Direct gesture recognizer disabling on parent views (tap/long press only, keeps swipe/pan for navigation)
+
+## Release Process
+
+Releases are automated via GitHub Actions (`.github/workflows/release.yml`). No manual version bumping or npm publishing required.
+
+### How to Release
+
+1. Create a PR to `main` with your changes
+2. Add ONE version label to the PR:
+   - `version:patch` - Bug fixes, minor updates (1.3.2 → 1.3.3)
+   - `version:minor` - New features, backwards compatible (1.3.2 → 1.4.0)
+   - `version:major` - Breaking changes (1.3.2 → 2.0.0)
+3. Merge the PR
+
+### What the Workflow Does Automatically
+
+1. Runs `npm run test:coverage` to verify tests pass
+2. Bumps version in `package.json` based on label
+3. Updates CHANGELOG.md with PR title and number
+4. Commits changes with message `chore: release v{version}`
+5. Creates and pushes git tag `v{version}`
+6. Creates GitHub Release with changelog excerpt
+7. Publishes to npm registry
+8. Comments on the PR with release links
+
+### Requirements
+
+- `NPM_TOKEN` secret must be configured in GitHub repository settings
+- PR must be merged (not just closed) for release to trigger
+- Only one version label should be applied per PR
+
+### Pre-release Checklist
+
+Before adding a version label, ensure:
+- [ ] All tests pass (`npm test`)
+- [ ] TypeScript builds (`npm run build`)
+- [ ] CHANGELOG.md has entry for changes (workflow adds PR reference, but detailed notes should exist)
+- [ ] README.md updated if user-facing changes
+- [ ] No breaking changes without `version:major` label
