@@ -364,10 +364,15 @@ class ExpoTvosSearchView: ExpoView {
     private var hostingController: UIHostingController<TvosSearchContentView>?
     private let viewModel = SearchViewModel()
 
+    // Lock to ensure atomic access to gesture handler state
+    private let stateLock = NSLock()
+    
     // Track if we've disabled RN gesture handlers for keyboard input
+    // Access must be synchronized using stateLock
     private var gestureHandlersDisabled = false
 
     // Store references to disabled gesture recognizers so we can re-enable them
+    // Access must be synchronized using stateLock
     private var disabledGestureRecognizers: [UIGestureRecognizer] = []
     
     /// Maximum depth to traverse up the view hierarchy when disabling gesture recognizers.
@@ -544,19 +549,59 @@ class ExpoTvosSearchView: ExpoView {
         // Remove notification observers
         NotificationCenter.default.removeObserver(self)
 
-        // Re-enable RN gesture handlers if still disabled
-        if gestureHandlersDisabled {
-            gestureHandlersDisabled = false
-            enableParentGestureRecognizers()
+        // Atomically check and capture state for cleanup
+        let shouldCleanup: Bool
+        let recognizersToReEnable: [UIGestureRecognizer]
+        {
+            stateLock.lock()
+            defer { stateLock.unlock() }
             
-            NotificationCenter.default.post(
-                name: RCTTVEnableGestureHandlersCancelTouchesNotification,
-                object: nil
-            )
+            shouldCleanup = gestureHandlersDisabled
+            if shouldCleanup {
+                gestureHandlersDisabled = false
+                recognizersToReEnable = disabledGestureRecognizers
+                disabledGestureRecognizers.removeAll()
+            } else {
+                recognizersToReEnable = []
+            }
         }
-
-        // Clean up hosting controller and view model references to prevent memory leaks
-        hostingController?.view.removeFromSuperview()
+        
+        // Capture hosting controller reference without accessing UIKit properties
+        let hostingControllerRef = hostingController
+        
+        // Perform UIKit cleanup on main thread if needed
+        if shouldCleanup || hostingControllerRef != nil {
+            let cleanup = {
+                // Re-enable gesture recognizers
+                for recognizer in recognizersToReEnable {
+                    recognizer.isEnabled = true
+                }
+                
+                // Post notification to re-enable cancelsTouchesInView
+                if shouldCleanup {
+                    NotificationCenter.default.post(
+                        name: RCTTVEnableGestureHandlersCancelTouchesNotification,
+                        object: nil
+                    )
+                }
+                
+                // Remove hosting controller view from hierarchy (accessing .view on main thread)
+                // Only access view if it's already loaded to avoid triggering view load
+                if let controller = hostingControllerRef, controller.isViewLoaded {
+                    controller.view.removeFromSuperview()
+                }
+            }
+            
+            if Thread.isMainThread {
+                cleanup()
+            } else {
+                // Use async to avoid blocking and potential deadlocks
+                // The cleanup captures values, not self, so it's safe to execute after deallocation
+                DispatchQueue.main.async(execute: cleanup)
+            }
+        }
+        
+        // Clean up references (safe on any thread)
         hostingController = nil
         viewModel.onSearch = nil
         viewModel.onSelectItem = nil
@@ -610,8 +655,20 @@ class ExpoTvosSearchView: ExpoView {
             return
         }
 
-        guard !gestureHandlersDisabled else { return }
-        gestureHandlersDisabled = true
+        // Atomically check and set state to prevent race conditions
+        let wasAlreadyDisabled: Bool = {
+            stateLock.lock()
+            defer { stateLock.unlock() }
+
+            let alreadyDisabled = gestureHandlersDisabled
+            if !alreadyDisabled {
+                gestureHandlersDisabled = true
+            }
+            return alreadyDisabled
+        }()
+        
+        // If already disabled, skip to prevent duplicate operations
+        guard !wasAlreadyDisabled else { return }
 
         // Approach 1: Post notification to set cancelsTouchesInView = NO
         NotificationCenter.default.post(
@@ -638,8 +695,20 @@ class ExpoTvosSearchView: ExpoView {
             return
         }
 
-        guard gestureHandlersDisabled else { return }
-        gestureHandlersDisabled = false
+        // Atomically check and set state to prevent race conditions
+        let wasDisabled: Bool = {
+            stateLock.lock()
+            defer { stateLock.unlock() }
+            
+            let disabled = gestureHandlersDisabled
+            if disabled {
+                gestureHandlersDisabled = false
+            }
+            return disabled
+        }()
+        
+        // If already enabled, skip to prevent duplicate operations
+        guard wasDisabled else { return }
 
         // Re-enable gesture recognizers
         enableParentGestureRecognizers()
@@ -663,8 +732,26 @@ class ExpoTvosSearchView: ExpoView {
     /// Only tap recognizers are disabled to allow click-to-select to reach SwiftUI
     /// Limits traversal depth to avoid affecting unrelated UI components
     private func disableParentGestureRecognizers() {
-        disabledGestureRecognizers.removeAll()
-
+        // First, re-enable any previously disabled recognizers for safety
+        // This should normally be empty due to the atomic state management,
+        // but we handle it defensively to prevent recognizers from being lost
+        let previouslyDisabled: [UIGestureRecognizer]
+        {
+            stateLock.lock()
+            defer { stateLock.unlock() }
+            
+            previouslyDisabled = disabledGestureRecognizers
+            disabledGestureRecognizers = []
+        }
+        
+        // Re-enable outside the lock since UIKit operations can take time
+        for recognizer in previouslyDisabled {
+            recognizer.isEnabled = true
+        }
+        
+        // Collect and disable recognizers to prevent them from being enabled between collection and storage
+        var recognizersToDisable: [UIGestureRecognizer] = []
+        
         var currentDepth = 0
         var currentView: UIView? = self.superview
         
@@ -681,16 +768,31 @@ class ExpoTvosSearchView: ExpoView {
                 let isCritical = shouldSkipGestureRecognizer(recognizer, in: view)
                 
                 if isTapOrPress && recognizer.isEnabled && !isCritical {
+                    // Disable immediately to prevent race with enable calls
                     recognizer.isEnabled = false
-                    disabledGestureRecognizers.append(recognizer)
+                    recognizersToDisable.append(recognizer)
                 }
             }
             currentView = view.superview
             currentDepth += 1
         }
 
+        // Atomically update the disabledGestureRecognizers array
+        // Recognizers are already disabled at this point, so we're just storing the references
+        let finalCount: Int
+        {
+            stateLock.lock()
+            defer { stateLock.unlock() }
+            
+            disabledGestureRecognizers = recognizersToDisable
+            finalCount = disabledGestureRecognizers.count
+        }
+
         #if DEBUG
-        print("[expo-tvos-search] Disabled \(disabledGestureRecognizers.count) tap/press recognizers in \(currentDepth) levels (kept swipe/pan for navigation)")
+        if !previouslyDisabled.isEmpty {
+            print("[expo-tvos-search] Warning: Re-enabled \(previouslyDisabled.count) orphaned gesture recognizers before disabling new ones")
+        }
+        print("[expo-tvos-search] Disabled \(finalCount) tap/press recognizers in \(currentDepth) levels (kept swipe/pan for navigation)")
         #endif
     }
     
@@ -745,10 +847,20 @@ class ExpoTvosSearchView: ExpoView {
     
     /// Re-enables all gesture recognizers that were previously disabled
     private func enableParentGestureRecognizers() {
-        for recognizer in disabledGestureRecognizers {
+        // Atomically get and clear the disabledGestureRecognizers array
+        let recognizersToEnable: [UIGestureRecognizer]
+        {
+            stateLock.lock()
+            defer { stateLock.unlock() }
+            
+            recognizersToEnable = disabledGestureRecognizers
+            disabledGestureRecognizers.removeAll()
+        }
+        
+        // Re-enable the recognizers
+        for recognizer in recognizersToEnable {
             recognizer.isEnabled = true
         }
-        disabledGestureRecognizers.removeAll()
     }
 
     func updateResults(_ results: [[String: Any]]) {
