@@ -533,31 +533,29 @@ class ExpoTvosSearchView: ExpoView {
         NotificationCenter.default.removeObserver(self)
 
         // Re-enable RN gesture handlers if still disabled
-        var wasDisabled = false
+        // Check state atomically but perform cleanup without nested sync to avoid deadlock
+        var shouldCleanup = false
+        var recognizersToReEnable: [UIGestureRecognizer] = []
+        
         gestureStateQueue.sync {
-            wasDisabled = gestureHandlersDisabled
+            shouldCleanup = gestureHandlersDisabled
             if gestureHandlersDisabled {
                 gestureHandlersDisabled = false
+                recognizersToReEnable = disabledGestureRecognizers
+                disabledGestureRecognizers.removeAll()
             }
         }
         
-        // Re-enable gesture recognizers and post notification on main thread if needed
-        if wasDisabled {
-            // UIKit operations must be on main thread, but we're in deinit so dispatch sync
+        // Re-enable gesture recognizers on main thread if needed (without nested sync)
+        if shouldCleanup {
             if Thread.isMainThread {
-                gestureStateQueue.sync {
-                    for recognizer in disabledGestureRecognizers {
-                        recognizer.isEnabled = true
-                    }
-                    disabledGestureRecognizers.removeAll()
+                for recognizer in recognizersToReEnable {
+                    recognizer.isEnabled = true
                 }
             } else {
                 DispatchQueue.main.sync {
-                    self.gestureStateQueue.sync {
-                        for recognizer in self.disabledGestureRecognizers {
-                            recognizer.isEnabled = true
-                        }
-                        self.disabledGestureRecognizers.removeAll()
+                    for recognizer in recognizersToReEnable {
+                        recognizer.isEnabled = true
                     }
                 }
             }
