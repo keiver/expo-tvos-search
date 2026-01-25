@@ -51,9 +51,13 @@ To test your changes in a real tvOS app:
 
 2. Configure for tvOS following the [Prerequisites section](README.md#prerequisites-for-tvos-builds-expo) in the README
 
-3. Link your local development version:
+3. Link your development version using a **GitHub branch** (local file paths don't work with Metro bundler):
    ```bash
-   npm install ../expo-tvos-search
+   # Push your changes to a branch first
+   git push origin your-feature-branch
+
+   # Then install from the branch
+   npm install github:keiver/expo-tvos-search#your-feature-branch
    ```
 
 4. Run prebuild and start the app:
@@ -61,6 +65,24 @@ To test your changes in a real tvOS app:
    EXPO_TV=1 npx expo prebuild --clean
    npx expo run:ios
    ```
+
+### GitHub Dependency Syntax
+
+When testing unreleased changes, use a git branch reference in `package.json`:
+
+```json
+// Use GitHub branch (WORKS)
+"expo-tvos-search": "github:keiver/expo-tvos-search#branch-name"
+
+// DON'T use local file path (Metro bundler fails to resolve)
+"expo-tvos-search": "file:../expo-tvos-search"
+```
+
+**Supported formats:**
+- `github:user/repo#branch` - Specific branch
+- `github:user/repo#commit-sha` - Specific commit
+- `github:user/repo#tag` - Specific tag
+- `github:user/repo` - Default branch
 
 ## Running Tests
 

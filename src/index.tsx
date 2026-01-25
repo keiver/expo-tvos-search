@@ -64,6 +64,15 @@ export interface ValidationWarningEvent {
 }
 
 /**
+ * Event payload for search field focus changes.
+ * Fired when the native search field gains or loses focus.
+ * Useful for managing RN gesture handlers via TVEventControl.
+ */
+export interface SearchFieldFocusEvent {
+  nativeEvent: Record<string, never>;
+}
+
+/**
  * Represents a single search result displayed in the grid.
  */
 export interface SearchResult {
@@ -300,6 +309,38 @@ export interface TvosSearchViewProps {
    * ```
    */
   onValidationWarning?: (event: ValidationWarningEvent) => void;
+
+  /**
+   * Optional callback fired when the native search field gains focus.
+   * Use this to disable RN gesture handlers via TVEventControl if the
+   * automatic gesture handling doesn't work on your device.
+   *
+   * @example
+   * ```tsx
+   * import { TVEventControl } from 'react-native';
+   *
+   * onSearchFieldFocused={() => {
+   *   TVEventControl.disableGestureHandlersCancelTouches();
+   * }}
+   * ```
+   */
+  onSearchFieldFocused?: (event: SearchFieldFocusEvent) => void;
+
+  /**
+   * Optional callback fired when the native search field loses focus.
+   * Use this to re-enable RN gesture handlers via TVEventControl if you
+   * disabled them in onSearchFieldFocused.
+   *
+   * @example
+   * ```tsx
+   * import { TVEventControl } from 'react-native';
+   *
+   * onSearchFieldBlurred={() => {
+   *   TVEventControl.enableGestureHandlersCancelTouches();
+   * }}
+   * ```
+   */
+  onSearchFieldBlurred?: (event: SearchFieldFocusEvent) => void;
 
   /**
    * Optional style for the view container.

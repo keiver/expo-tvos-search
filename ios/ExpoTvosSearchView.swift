@@ -367,6 +367,9 @@ class ExpoTvosSearchView: ExpoView {
     // Track if we've disabled RN gesture handlers for keyboard input
     private var gestureHandlersDisabled = false
 
+    // Store references to disabled gesture recognizers so we can re-enable them
+    private var disabledGestureRecognizers: [UIGestureRecognizer] = []
+
     var columns: Int = 5 {
         didSet {
             viewModel.columns = columns
@@ -514,6 +517,8 @@ class ExpoTvosSearchView: ExpoView {
     let onSelectItem = EventDispatcher()
     let onError = EventDispatcher()
     let onValidationWarning = EventDispatcher()
+    let onSearchFieldFocused = EventDispatcher()
+    let onSearchFieldBlurred = EventDispatcher()
 
     required init(appContext: AppContext? = nil) {
         super.init(appContext: appContext)
@@ -526,6 +531,13 @@ class ExpoTvosSearchView: ExpoView {
 
         // Re-enable RN gesture handlers if still disabled
         if gestureHandlersDisabled {
+            // Re-enable any disabled gesture recognizers
+            for recognizer in disabledGestureRecognizers {
+                recognizer.isEnabled = true
+            }
+            disabledGestureRecognizers.removeAll()
+
+            // Also post notification for cancelsTouchesInView
             NotificationCenter.default.post(
                 name: RCTTVEnableGestureHandlersCancelTouchesNotification,
                 object: nil
@@ -590,13 +602,20 @@ class ExpoTvosSearchView: ExpoView {
         guard !gestureHandlersDisabled else { return }
         gestureHandlersDisabled = true
 
-        // Disable RN gesture handlers so keyboard input reaches SwiftUI
+        // Approach 1: Post notification to set cancelsTouchesInView = NO
         NotificationCenter.default.post(
             name: RCTTVDisableGestureHandlersCancelTouchesNotification,
             object: nil
         )
+
+        // Approach 2: Aggressively disable gesture recognizers in parent views
+        disableParentGestureRecognizers()
+
+        // Fire event for JS-side fallback handling
+        onSearchFieldFocused([:])
+
         #if DEBUG
-        print("[expo-tvos-search] Search field focused: disabled RN gesture handlers")
+        print("[expo-tvos-search] Search field focused: disabled RN gesture handlers (recognizers: \(disabledGestureRecognizers.count))")
         #endif
     }
 
@@ -611,14 +630,47 @@ class ExpoTvosSearchView: ExpoView {
         guard gestureHandlersDisabled else { return }
         gestureHandlersDisabled = false
 
-        // Re-enable RN gesture handlers
+        // Re-enable gesture recognizers
+        enableParentGestureRecognizers()
+
+        // Post notification to re-enable cancelsTouchesInView
         NotificationCenter.default.post(
             name: RCTTVEnableGestureHandlersCancelTouchesNotification,
             object: nil
         )
+
+        // Fire event for JS-side handling
+        onSearchFieldBlurred([:])
+
         #if DEBUG
         print("[expo-tvos-search] Search field unfocused: enabled RN gesture handlers")
         #endif
+    }
+
+    /// Walks up the view hierarchy and disables all gesture recognizers
+    /// This is more aggressive than cancelsTouchesInView and completely prevents
+    /// RN from processing Siri Remote events while the search keyboard is active
+    private func disableParentGestureRecognizers() {
+        disabledGestureRecognizers.removeAll()
+
+        var currentView: UIView? = self.superview
+        while let view = currentView {
+            for recognizer in view.gestureRecognizers ?? [] {
+                if recognizer.isEnabled {
+                    recognizer.isEnabled = false
+                    disabledGestureRecognizers.append(recognizer)
+                }
+            }
+            currentView = view.superview
+        }
+    }
+
+    /// Re-enables all gesture recognizers that were previously disabled
+    private func enableParentGestureRecognizers() {
+        for recognizer in disabledGestureRecognizers {
+            recognizer.isEnabled = true
+        }
+        disabledGestureRecognizers.removeAll()
     }
 
     func updateResults(_ results: [[String: Any]]) {

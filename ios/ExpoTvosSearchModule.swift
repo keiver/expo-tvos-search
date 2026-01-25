@@ -12,7 +12,7 @@ public class ExpoTvosSearchModule: Module {
         Name("ExpoTvosSearch")
 
         View(ExpoTvosSearchView.self) {
-            Events("onSearch", "onSelectItem", "onError", "onValidationWarning")
+            Events("onSearch", "onSelectItem", "onError", "onValidationWarning", "onSearchFieldFocused", "onSearchFieldBlurred")
 
             Prop("results") { (view: ExpoTvosSearchView, results: [[String: Any]]) in
                 // Limit results array size to prevent memory issues
