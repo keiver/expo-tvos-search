@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.3.2] - 2025-01-25
+## [1.3.2] - 2026-01-25
 
 ### Added
 - **Apple TV hardware keyboard support**: New `onSearchFieldFocused` and `onSearchFieldBlurred` event callbacks
@@ -22,13 +22,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Siri Remote click events not reaching native SwiftUI search field on real Apple TV hardware
 - React Native gesture handlers intercepting keyboard input before it reached SwiftUI `.searchable` modifier
 
-## [1.3.1] - 2025-01-21
+## [1.3.1] - 2026-01-21
 
 ### Fixed
 - Minor stability improvements
 - Documentation updates
 
-## [1.3.0] - 2025-01-20
+## [1.3.0] - 2026-01-20
 
 ### Added
 - `cardMargin` prop - Customize spacing between cards in the grid (default: 40)
@@ -38,13 +38,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Improved grid layout flexibility with customizable spacing
 
-## [1.2.3] - 2025-01-20
+## [1.2.3] - 2026-01-20
 - Patch release for npm publish workflow fix.
 
 ### Added
 - GitHub Actions workflow step for npm publish, trigger on PR with labels: `release:patch`, `release:minor`, `release:major`
 
-## [1.2.0] - 2025-01-17
+## [1.2.0] - 2026-01-17
 
 ### Added
 - `onError` callback - Receive notifications for fatal errors (image loading failures, validation errors)
@@ -76,7 +76,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - TypeScript build now compiles successfully with `jsx: "react"` option
 - Empty strings no longer pass validation for required fields
 
-## [1.1.0] - 2025-01-15
+## [1.1.0] - 2026-01-15
 
 ### Added
 - Marquee scrolling animation for long titles that overflow card width
@@ -89,9 +89,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Title display now uses overlay by default instead of below-card text
 - Improved focus state visual feedback
 
-## [1.0.0] - 2025-01-10
+## [1.0.0] - 2026-01-10
 
-### Added
+### Added 
 - Initial release
 - Native SwiftUI search view with `.searchable` modifier
 - Grid layout for search results with configurable columns
