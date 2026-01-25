@@ -682,6 +682,7 @@ class ExpoTvosSearchView: ExpoView {
     /// Walks up the view hierarchy and disables only TAP gesture recognizers
     /// We keep swipe/pan recognizers enabled so the user can navigate the keyboard
     /// Only tap recognizers are disabled to allow click-to-select to reach SwiftUI
+    /// NOTE: This method MUST be called from within gestureStateQueue.sync to ensure thread-safety
     private func disableParentGestureRecognizers() {
         disabledGestureRecognizers.removeAll()
 
@@ -706,6 +707,7 @@ class ExpoTvosSearchView: ExpoView {
     }
 
     /// Re-enables all gesture recognizers that were previously disabled
+    /// NOTE: This method MUST be called from within gestureStateQueue.sync to ensure thread-safety
     private func enableParentGestureRecognizers() {
         for recognizer in disabledGestureRecognizers {
             recognizer.isEnabled = true
