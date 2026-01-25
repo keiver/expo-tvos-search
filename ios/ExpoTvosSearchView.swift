@@ -775,8 +775,12 @@ class ExpoTvosSearchView: ExpoView {
             // Check if the delegate is from the React Native gesture handling system
             let delegateClassName = String(describing: type(of: delegate))
             // Allow disabling RN gesture handlers but skip custom delegates
-            // Note: This checks for React Native framework classes which typically have RCT prefix
-            if !delegateClassName.contains("RCT") && !delegateClassName.contains("React") {
+            // Note: This checks for React Native framework classes which typically have RCT or React prefix
+            let isReactNativeDelegate =
+                delegateClassName.hasPrefix("RCT") ||
+                delegateClassName.hasPrefix("React")
+            
+            if !isReactNativeDelegate {
                 return true
             }
         }
