@@ -376,7 +376,7 @@ class ExpoTvosSearchView: ExpoView {
 
     var columns: Int = 5 {
         didSet {
-            viewModel.columns = max(1, min(columns, 20))
+            viewModel.columns = max(1, min(columns, 10))
         }
     }
 
@@ -613,10 +613,6 @@ class ExpoTvosSearchView: ExpoView {
 
         // Fire JS event
         onSearchFieldFocused([:])
-
-        #if DEBUG
-        print("[expo-tvos-search] Search field focused: gesture handling modified")
-        #endif
     }
 
     @objc private func handleTextFieldDidEndEditing(_ notification: Notification) {
@@ -643,10 +639,6 @@ class ExpoTvosSearchView: ExpoView {
 
         // Fire JS event
         onSearchFieldBlurred([:])
-
-        #if DEBUG
-        print("[expo-tvos-search] Search field unfocused: gesture handling restored")
-        #endif
     }
 
     // MARK: - Validation Warning Helper
@@ -681,10 +673,6 @@ class ExpoTvosSearchView: ExpoView {
             }
             currentView = view.superview
         }
-
-        #if DEBUG
-        print("[expo-tvos-search] Disabled \(disabledGestureRecognizers.count) tap/press recognizers")
-        #endif
     }
 
     /// Re-enables all gesture recognizers that were previously disabled.
@@ -692,11 +680,6 @@ class ExpoTvosSearchView: ExpoView {
         for recognizer in disabledGestureRecognizers {
             recognizer.isEnabled = true
         }
-
-        #if DEBUG
-        print("[expo-tvos-search] Re-enabled \(disabledGestureRecognizers.count) gesture recognizers")
-        #endif
-
         disabledGestureRecognizers.removeAll()
     }
 
@@ -839,48 +822,14 @@ class ExpoTvosSearchView: ExpoView {
 
 // MARK: - Color Extension for Hex String Parsing
 extension Color {
-    /// Maximum input length for hex color strings to prevent DoS from very long strings.
-    private static let maxHexInputLength = 20
-
     /// Initialize a Color from a hex string (e.g., "#FFFFFF", "#FF5733", "FFC312")
-    /// Returns nil if the string cannot be parsed as a valid hex color
+    /// Returns nil if the string cannot be parsed as a valid hex color.
+    /// Parsing logic is in HexColorParser for testability.
     init?(hex: String) {
-        // Validate input length before processing to prevent DoS
-        guard hex.count <= Self.maxHexInputLength else {
+        guard let rgba = HexColorParser.parse(hex) else {
             return nil
         }
-
-        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
-
-        // Hex colors must be 3, 6, or 8 characters after trimming
-        guard hex.count == 3 || hex.count == 6 || hex.count == 8 else {
-            return nil
-        }
-
-        var int: UInt64 = 0
-        guard Scanner(string: hex).scanHexInt64(&int) else {
-            return nil
-        }
-
-        let a, r, g, b: UInt64
-        switch hex.count {
-        case 3: // RGB (12-bit)
-            (a, r, g, b) = (255, (int >> 8) * 17, (int >> 4 & 0xF) * 17, (int & 0xF) * 17)
-        case 6: // RGB (24-bit)
-            (a, r, g, b) = (255, int >> 16, int >> 8 & 0xFF, int & 0xFF)
-        case 8: // ARGB (32-bit)
-            (a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
-        default:
-            return nil
-        }
-
-        self.init(
-            .sRGB,
-            red: Double(r) / 255,
-            green: Double(g) / 255,
-            blue: Double(b) / 255,
-            opacity: Double(a) / 255
-        )
+        self.init(.sRGB, red: rgba.red, green: rgba.green, blue: rgba.blue, opacity: rgba.alpha)
     }
 }
 
