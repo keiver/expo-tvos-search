@@ -365,6 +365,10 @@ class ExpoTvosSearchView: ExpoView {
     /// Maximum length for string fields (id, title, subtitle) to prevent memory issues.
     private static let maxStringFieldLength = 500
 
+    /// Maximum number of results to process to prevent memory exhaustion.
+    /// Matches the documented limit in TypeScript types.
+    private static let maxResultsCount = 500
+
     // Lock to ensure atomic access to gesture handler state
     private let stateLock = NSLock()
     
@@ -545,13 +549,14 @@ class ExpoTvosSearchView: ExpoView {
     }
 
     deinit {
+        // Note: NotificationCenter automatically removes observers on deallocation (iOS 9+/tvOS 9+)
+        // so we don't need to call removeObserver manually for selector-based observers.
+
         // Atomically check and capture state for cleanup
         let shouldCleanup: Bool
         let recognizersToReEnable: [UIGestureRecognizer]
 
         stateLock.lock()
-        defer { stateLock.unlock() }
-
         shouldCleanup = gestureHandlersDisabled
         if shouldCleanup {
             gestureHandlersDisabled = false
@@ -560,19 +565,13 @@ class ExpoTvosSearchView: ExpoView {
         } else {
             recognizersToReEnable = []
         }
+        stateLock.unlock()
 
         // Capture hosting controller reference without accessing UIKit properties
         let hostingControllerRef = hostingController
 
-        // Capture self for observer removal - must happen before deallocation completes
-        // but needs to be on main thread for UIKit safety
-        let observerTarget: AnyObject = self
-
         // Perform UIKit cleanup on main thread
         let cleanup = {
-            // Remove notification observers on main thread to avoid use-after-free
-            NotificationCenter.default.removeObserver(observerTarget)
-
             // Re-enable gesture recognizers
             for recognizer in recognizersToReEnable {
                 recognizer.isEnabled = true
@@ -586,7 +585,7 @@ class ExpoTvosSearchView: ExpoView {
                 )
             }
 
-            // Remove hosting controller view from hierarchy (accessing .view on main thread)
+            // Remove hosting controller view from hierarchy
             // Only access view if it's already loaded to avoid triggering view load
             if let controller = hostingControllerRef, controller.isViewLoaded {
                 controller.view.removeFromSuperview()
@@ -596,9 +595,8 @@ class ExpoTvosSearchView: ExpoView {
         if Thread.isMainThread {
             cleanup()
         } else {
-            // Use async for cleanup - NotificationCenter holds weak references to observers,
-            // so observer removal doesn't need to complete synchronously before deallocation.
-            // Using sync could deadlock if deallocation occurs from main thread autorelease pool.
+            // Use async for UIKit cleanup - gesture recognizers and view removal
+            // must happen on main thread
             DispatchQueue.main.async(execute: cleanup)
         }
     }
@@ -823,8 +821,9 @@ class ExpoTvosSearchView: ExpoView {
             }
         }
         
-        // Skip recognizers attached to navigation bars, tab bars, or other critical UI
-        if view is UINavigationBar || view is UITabBar || view is UIToolbar {
+        // Skip recognizers attached to navigation bars or tab bars
+        // Note: UIToolbar is not available on tvOS
+        if view is UINavigationBar || view is UITabBar {
             return true
         }
         
@@ -877,13 +876,23 @@ class ExpoTvosSearchView: ExpoView {
     }
 
     func updateResults(_ results: [[String: Any]]) {
+        // Limit results to prevent memory exhaustion from malicious/buggy input
+        let limitedResults = results.prefix(Self.maxResultsCount)
+        let truncatedResultsCount = results.count - limitedResults.count
+
         var validResults: [SearchResultItem] = []
         var skippedCount = 0
         var urlValidationFailures = 0
         var httpUrlCount = 0
         var truncatedFields = 0
 
-        for (index, dict) in results.enumerated() {
+        #if DEBUG
+        if truncatedResultsCount > 0 {
+            print("[expo-tvos-search] Truncated \(truncatedResultsCount) results (max \(Self.maxResultsCount) allowed)")
+        }
+        #endif
+
+        for (index, dict) in limitedResults.enumerated() {
             // Validate required fields
             guard let id = dict["id"] as? String, !id.isEmpty else {
                 skippedCount += 1
@@ -970,6 +979,13 @@ class ExpoTvosSearchView: ExpoView {
         #endif
 
         // Emit validation warnings for production monitoring
+        if truncatedResultsCount > 0 {
+            onValidationWarning([
+                "type": "results_truncated",
+                "message": "Truncated \(truncatedResultsCount) result(s) exceeding maximum of \(Self.maxResultsCount)",
+                "context": "Consider implementing pagination"
+            ])
+        }
         if skippedCount > 0 {
             #if DEBUG
             let skipContext = "validResults=\(validResults.count), skipped=\(skippedCount)"
