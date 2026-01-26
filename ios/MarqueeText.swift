@@ -80,6 +80,7 @@ struct MarqueeText: View {
             }
             .onAppear {
                 containerWidth = geometry.size.width
+                updateAnimationState()
             }
             .onChange(of: animate) { _ in
                 updateAnimationState()
@@ -125,6 +126,9 @@ struct MarqueeText: View {
     }
 
     private func startScrolling() {
+        // Belt-and-suspenders: never start scrolling unless animate is true
+        guard animate else { return }
+
         animationTask?.cancel()
         offset = 0
 
@@ -141,7 +145,9 @@ struct MarqueeText: View {
             guard !Task.isCancelled else { return }
 
             await MainActor.run {
-                guard !Task.isCancelled else { return }
+                // Re-check cancellation AND animate flag to catch the race where
+                // focus changed between the sleep finishing and this block executing
+                guard !Task.isCancelled, self.animate else { return }
                 withAnimation(.linear(duration: duration).repeatForever(autoreverses: false)) {
                     offset = -distance
                 }
@@ -152,8 +158,12 @@ struct MarqueeText: View {
     private func stopScrolling() {
         animationTask?.cancel()
         animationTask = nil
-        withAnimation(.easeOut(duration: 0.2)) {
-            offset = 0
+        // Only create an animation transaction when offset actually needs resetting;
+        // avoids spurious transactions on unfocused cards during init.
+        if offset != 0 {
+            withAnimation(.easeOut(duration: 0.2)) {
+                offset = 0
+            }
         }
     }
 }
