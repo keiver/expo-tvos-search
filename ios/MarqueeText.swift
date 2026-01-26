@@ -16,8 +16,27 @@ struct MarqueeText: View {
     @State private var containerWidth: CGFloat = 0
     @State private var offset: CGFloat = 0
     @State private var animationTask: Task<Void, Never>?
+    @State private var isScrolling: Bool = false
 
     private let calculator = MarqueeAnimationCalculator()
+
+    /// Distance the text scrolls based on current measured width
+    private var scrollDistance: CGFloat {
+        calculator.scrollDistance(textWidth: textWidth)
+    }
+
+    /// Duration of one scroll cycle at the configured speed
+    private var scrollDuration: Double {
+        calculator.animationDuration(for: scrollDistance)
+    }
+
+    /// View-scoped animation that switches between scrolling and reset modes.
+    /// Using `.animation(_:value:)` prevents transaction leaking to sibling views.
+    private var offsetAnimation: Animation? {
+        isScrolling
+            ? .linear(duration: scrollDuration).repeatForever(autoreverses: false)
+            : .easeOut(duration: 0.2)
+    }
 
     init(
         _ text: String,
@@ -62,6 +81,7 @@ struct MarqueeText: View {
                             .font(font)
                             .fixedSize()
                             .offset(x: offset)
+                            .animation(offsetAnimation, value: offset)
                     } else {
                         Text(text)
                             .font(font)
@@ -92,6 +112,7 @@ struct MarqueeText: View {
                 // Cancel animation task when view disappears to prevent memory leaks
                 animationTask?.cancel()
                 animationTask = nil
+                isScrolling = false
             }
         }
     }
@@ -126,14 +147,15 @@ struct MarqueeText: View {
     }
 
     private func startScrolling() {
-        // Belt-and-suspenders: never start scrolling unless animate is true
         guard animate else { return }
 
         animationTask?.cancel()
+        // Reset to start position; the .animation() modifier on the view
+        // handles animation — no withAnimation needed.
+        isScrolling = false
         offset = 0
 
         let distance = calculator.scrollDistance(textWidth: textWidth)
-        let duration = calculator.animationDuration(for: distance)
 
         animationTask = Task {
             do {
@@ -145,12 +167,11 @@ struct MarqueeText: View {
             guard !Task.isCancelled else { return }
 
             await MainActor.run {
-                // Re-check cancellation AND animate flag to catch the race where
-                // focus changed between the sleep finishing and this block executing
                 guard !Task.isCancelled, self.animate else { return }
-                withAnimation(.linear(duration: duration).repeatForever(autoreverses: false)) {
-                    offset = -distance
-                }
+                // Set isScrolling BEFORE offset so the .animation() modifier
+                // picks up the repeating animation for this offset change.
+                isScrolling = true
+                offset = -distance
             }
         }
     }
@@ -158,12 +179,14 @@ struct MarqueeText: View {
     private func stopScrolling() {
         animationTask?.cancel()
         animationTask = nil
-        // Only create an animation transaction when offset actually needs resetting;
-        // avoids spurious transactions on unfocused cards during init.
+        // Set isScrolling to false so the .animation() modifier applies
+        // easeOut for the return transition. Only animate when offset
+        // actually needs resetting to avoid spurious animations during init.
         if offset != 0 {
-            withAnimation(.easeOut(duration: 0.2)) {
-                offset = 0
-            }
+            isScrolling = false
+            offset = 0
+        } else {
+            isScrolling = false
         }
     }
 }

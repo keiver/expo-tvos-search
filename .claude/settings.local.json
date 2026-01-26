@@ -37,7 +37,8 @@
       "Bash(node -e:*)",
       "Bash(git rebase:*)",
       "Bash(gh pr view:*)",
-      "Bash(swift -typecheck:*)"
+      "Bash(swift -typecheck:*)",
+      "Bash(git show:*)"
     ]
   }
 }
