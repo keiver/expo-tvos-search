@@ -551,8 +551,10 @@ class ExpoTvosSearchView: ExpoView {
         // Remove notification observers explicitly (also auto-removed on dealloc, but explicit is safer)
         NotificationCenter.default.removeObserver(self)
 
-        // Re-enable any disabled gesture recognizers
+        // Re-enable any disabled gesture recognizers (only needed on real hardware)
+        #if !targetEnvironment(simulator)
         enableParentGestureRecognizers()
+        #endif
 
         // Post notification to re-enable cancelsTouchesInView if needed
         if gestureHandlersDisabled {
@@ -624,14 +626,20 @@ class ExpoTvosSearchView: ExpoView {
         guard !gestureHandlersDisabled else { return }
         gestureHandlersDisabled = true
 
-        // Post notification to RN
+        // Post notification to RN to stop cancelling touches
         NotificationCenter.default.post(
             name: RCTTVDisableGestureHandlersCancelTouchesNotification,
             object: nil
         )
 
-        // Disable gesture recognizers
+        // Only disable parent gesture recognizers on real hardware.
+        // On the Simulator, the RCT notification alone is sufficient and
+        // disabling gesture recognizers interferes with keyboard input
+        // (Mac keyboard events are delivered as UIPress events through the
+        // responder chain, which breaks when recognizers are disabled).
+        #if !targetEnvironment(simulator)
         disableParentGestureRecognizers()
+        #endif
 
         // Fire JS event
         onSearchFieldFocused([:])
@@ -652,8 +660,10 @@ class ExpoTvosSearchView: ExpoView {
         guard gestureHandlersDisabled else { return }
         gestureHandlersDisabled = false
 
-        // Re-enable gesture recognizers
+        // Re-enable gesture recognizers (only needed on real hardware)
+        #if !targetEnvironment(simulator)
         enableParentGestureRecognizers()
+        #endif
 
         // Post notification to RN
         NotificationCenter.default.post(

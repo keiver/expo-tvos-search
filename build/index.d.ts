@@ -305,6 +305,12 @@ export interface TvosSearchViewProps {
     style?: ViewStyle;
 }
 /**
+ * Pre-creates the native SwiftUI view hierarchy so the first mount of
+ * TvosSearchView is near-instant. Call once at app startup (e.g. in root layout).
+ * No-op on non-tvOS platforms or when the native module is unavailable.
+ */
+export declare function prewarmSearchView(): void;
+/**
  * Native tvOS search view component using SwiftUI's `.searchable` modifier.
  *
  * This component provides a native search experience on tvOS with proper focus
