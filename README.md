@@ -213,7 +213,11 @@ Explore all configurations in the [demo app](https://github.com/keiver/expo-tvos
 
 ### Apple TV Hardware Keyboard Support (v1.3.2+)
 
-The search view automatically manages gesture handlers on focus changes to ensure keyboard input works correctly on real Apple TV hardware. If you need additional control or encounter issues on specific devices, you can use the focus callbacks with `TVEventControl`:
+On real Apple TV hardware, React Native's `RCTTVRemoteHandler` installs gesture recognizers that consume Siri Remote presses before they reach SwiftUI's `.searchable` text field, which prevents keyboard input. When the search field gains focus, this component temporarily disables touch cancellation using the official `react-native-tvos` notification API, and also disables tap/long-press recognizers from parent views (to cover cases like `react-native-gesture-handler`). Swipe and pan recognizers stay active for keyboard navigation. Everything is restored when focus leaves the field. This only applies to physical devices -- the Simulator doesn't need it.
+
+If this interferes with gesture handling in your app, please [open an issue](https://github.com/keiver/expo-tvos-search/issues) so we can sort it out.
+
+For additional control, you can use the focus callbacks with `TVEventControl`:
 
 ```tsx
 import { TVEventControl } from 'react-native';

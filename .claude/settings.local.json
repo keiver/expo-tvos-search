@@ -38,7 +38,10 @@
       "Bash(git rebase:*)",
       "Bash(gh pr view:*)",
       "Bash(swift -typecheck:*)",
-      "Bash(git show:*)"
+      "Bash(git show:*)",
+      "Bash(tree:*)",
+      "WebFetch(domain:registry.npmjs.org)",
+      "Bash(npm ls:*)"
     ]
   }
 }

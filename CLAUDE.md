@@ -102,6 +102,11 @@ The view automatically manages React Native gesture handlers when the search fie
 - `RCTTVDisableGestureHandlersCancelTouchesNotification` / `RCTTVEnableGestureHandlersCancelTouchesNotification`
 - Direct gesture recognizer disabling on parent views (tap/long press only, keeps swipe/pan for navigation)
 
+## Lessons Learned
+
+- **This is a library, not an app.** When reviewing code, doing security audits, or suggesting changes, always keep this in mind. The threat model is different: inputs come from developers integrating the lib, not from untrusted end users. A developer passing bad data into their own search results is a bug in their app, not a vulnerability in this lib. Don't apply app-level threat modeling to library code.
+- **Know the audience.** Consumers are tvOS/Expo developers building media apps (Jellyfin clients, streaming apps). Recommendations should be practical for that context, not generic.
+
 ## Release Process
 
 Releases are automated via GitHub Actions (`.github/workflows/release.yml`). No manual version bumping or npm publishing required.
