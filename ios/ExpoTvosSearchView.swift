@@ -359,26 +359,6 @@ struct SearchResultCard: View {
 }
 
 class ExpoTvosSearchView: ExpoView {
-    // MARK: - Prewarm Cache
-
-    static var cachedViewModel: SearchViewModel?
-    static var cachedHostingController: UIHostingController<TvosSearchContentView>?
-
-    /// Pre-creates the SwiftUI view hierarchy and UIHostingController so the
-    /// first mount of TvosSearchView is near-instant. Call once at app startup.
-    static func prewarmViewHierarchy() {
-        guard cachedViewModel == nil else { return }
-        let vm = SearchViewModel()
-        let contentView = TvosSearchContentView(viewModel: vm)
-        let controller = UIHostingController(rootView: contentView)
-        controller.view.backgroundColor = .clear
-        cachedViewModel = vm
-        cachedHostingController = controller
-        #if DEBUG
-        print("[expo-tvos-search] View hierarchy prewarmed")
-        #endif
-    }
-
     private var hostingController: UIHostingController<TvosSearchContentView>?
     private var viewModel = SearchViewModel()
 
@@ -566,20 +546,10 @@ class ExpoTvosSearchView: ExpoView {
     }
 
     private func setupView() {
-        // Reuse cached instances from prewarm if available
-        if let cachedVM = Self.cachedViewModel,
-           let cachedController = Self.cachedHostingController {
-            viewModel = cachedVM
-            hostingController = cachedController
-            Self.cachedViewModel = nil
-            Self.cachedHostingController = nil
-        } else {
-            // Create fresh instances (fallback when prewarm wasn't called)
-            let contentView = TvosSearchContentView(viewModel: viewModel)
-            let controller = UIHostingController(rootView: contentView)
-            controller.view.backgroundColor = .clear
-            hostingController = controller
-        }
+        let contentView = TvosSearchContentView(viewModel: viewModel)
+        let controller = UIHostingController(rootView: contentView)
+        controller.view.backgroundColor = .clear
+        hostingController = controller
 
         // Configure viewModel callbacks
         viewModel.onSearch = { [weak self] query in
@@ -918,8 +888,6 @@ extension Color {
 
 // Fallback for non-tvOS platforms (iOS)
 class ExpoTvosSearchView: ExpoView {
-    static func prewarmViewHierarchy() {}
-
     var columns: Int = 5
     var placeholder: String = "Search movies and videos..."
     var isLoading: Bool = false

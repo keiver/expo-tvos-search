@@ -1,30 +1,6 @@
 import React from "react";
 import { Platform } from "react-native";
 /**
- * Native module for imperative calls (e.g. prewarm).
- * Loaded alongside the view manager on tvOS only.
- */
-let NativeModule = null;
-if (Platform.OS === "ios" && Platform.isTV) {
-    try {
-        const { requireNativeModule } = require("expo-modules-core");
-        if (typeof requireNativeModule === "function") {
-            NativeModule = requireNativeModule("ExpoTvosSearch");
-        }
-    }
-    catch {
-        // Module not available, prewarm will be a no-op
-    }
-}
-/**
- * Pre-creates the native SwiftUI view hierarchy so the first mount of
- * TvosSearchView is near-instant. Call once at app startup (e.g. in root layout).
- * No-op on non-tvOS platforms or when the native module is unavailable.
- */
-export function prewarmSearchView() {
-    NativeModule?.prewarm();
-}
-/**
  * Native view component loaded at module initialization.
  * Returns null on non-tvOS platforms or when the native module is unavailable.
  */
