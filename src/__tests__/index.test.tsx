@@ -595,3 +595,63 @@ describe('TvosSearchView with native module available', () => {
     expect(result).not.toBeNull();
   });
 });
+
+describe('prewarmSearchView', () => {
+  beforeEach(() => {
+    jest.resetModules();
+    globalThis.__mockPrewarmFn.mockClear();
+  });
+
+  describe('on tvOS with native module available', () => {
+    beforeEach(() => {
+      mockTvOSPlatform();
+      mockNativeModuleAvailable();
+    });
+
+    it('calls NativeModule.prewarm()', () => {
+      const { prewarmSearchView } = require('../index');
+      prewarmSearchView();
+      expect(globalThis.__mockPrewarmFn).toHaveBeenCalledTimes(1);
+    });
+
+    it('can be called multiple times without error', () => {
+      const { prewarmSearchView } = require('../index');
+      prewarmSearchView();
+      prewarmSearchView();
+      expect(globalThis.__mockPrewarmFn).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('on non-tvOS platforms', () => {
+    beforeEach(() => {
+      mockWebPlatform();
+      mockNativeModuleUnavailable();
+    });
+
+    it('is a no-op and does not throw', () => {
+      const { prewarmSearchView } = require('../index');
+      expect(() => prewarmSearchView()).not.toThrow();
+      expect(globalThis.__mockPrewarmFn).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('on tvOS without native module', () => {
+    beforeEach(() => {
+      mockTvOSPlatform();
+      mockNativeModuleUnavailable();
+    });
+
+    it('is a no-op and does not throw', () => {
+      const { prewarmSearchView } = require('../index');
+      expect(() => prewarmSearchView()).not.toThrow();
+      expect(globalThis.__mockPrewarmFn).not.toHaveBeenCalled();
+    });
+  });
+
+  it('is exported as a function', () => {
+    mockWebPlatform();
+    mockNativeModuleUnavailable();
+    const { prewarmSearchView } = require('../index');
+    expect(typeof prewarmSearchView).toBe('function');
+  });
+});

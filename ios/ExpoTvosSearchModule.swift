@@ -28,6 +28,12 @@ public class ExpoTvosSearchModule: Module {
     public func definition() -> ModuleDefinition {
         Name("ExpoTvosSearch")
 
+        Function("prewarm") {
+            DispatchQueue.main.async {
+                ExpoTvosSearchView.prewarmViewHierarchy()
+            }
+        }
+
         View(ExpoTvosSearchView.self) {
             Events("onSearch", "onSelectItem", "onError", "onValidationWarning", "onSearchFieldFocused", "onSearchFieldBlurred")
 
