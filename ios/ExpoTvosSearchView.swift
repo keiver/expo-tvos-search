@@ -903,7 +903,6 @@ class ExpoTvosSearchView: ExpoView {
 
             // Validate and sanitize imageUrl if present
             var validatedImageUrl: String? = nil
-            var httpWarningNeeded = false
             if let imageUrl = dict["imageUrl"] as? String, !imageUrl.isEmpty {
                 // Accept HTTP/HTTPS URLs and data: URIs, reject other schemes for security
                 if let url = URL(string: imageUrl),
