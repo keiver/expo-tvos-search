@@ -108,6 +108,11 @@ struct MarqueeText: View {
             .onChange(of: needsScroll) { _ in
                 updateAnimationState()
             }
+            .onChange(of: isScrolling) { newValue in
+                if newValue {
+                    offset = -calculator.scrollDistance(textWidth: textWidth)
+                }
+            }
             .onDisappear {
                 // Cancel animation task when view disappears to prevent memory leaks
                 animationTask?.cancel()
@@ -155,8 +160,6 @@ struct MarqueeText: View {
         isScrolling = false
         offset = 0
 
-        let distance = calculator.scrollDistance(textWidth: textWidth)
-
         animationTask = Task {
             do {
                 try await Task.sleep(nanoseconds: UInt64(startDelay * 1_000_000_000))
@@ -168,10 +171,10 @@ struct MarqueeText: View {
 
             await MainActor.run {
                 guard !Task.isCancelled, self.animate else { return }
-                // Set isScrolling BEFORE offset so the .animation() modifier
-                // picks up the repeating animation for this offset change.
+                // Only set isScrolling here; the .onChange(of: isScrolling)
+                // handler applies the offset in a separate render cycle,
+                // ensuring .animation() picks up the repeating animation.
                 isScrolling = true
-                offset = -distance
             }
         }
     }
