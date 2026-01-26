@@ -15,7 +15,6 @@ struct MarqueeText: View {
     @State private var textWidth: CGFloat = 0
     @State private var containerWidth: CGFloat = 0
     @State private var offset: CGFloat = 0
-    @State private var animationTask: Task<Void, Never>?
 
     private let calculator = MarqueeAnimationCalculator()
 
@@ -39,6 +38,10 @@ struct MarqueeText: View {
         calculator.shouldScroll(textWidth: textWidth, containerWidth: containerWidth)
     }
 
+    private var shouldAnimate: Bool {
+        animate && needsScroll
+    }
+
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: Alignment(horizontal: .leading, vertical: .center)) {
@@ -57,11 +60,11 @@ struct MarqueeText: View {
                 // Visible text content
                 Group {
                     if needsScroll {
-                        // Duplicated text for seamless scroll loop
-                        Text(text + "     " + text)
-                            .font(font)
-                            .fixedSize()
-                            .offset(x: offset)
+                        HStack(spacing: calculator.spacing) {
+                            Text(text).font(font).fixedSize()
+                            Text(text).font(font).fixedSize()
+                        }
+                        .offset(x: offset)
                     } else {
                         Text(text)
                             .font(font)
@@ -80,17 +83,29 @@ struct MarqueeText: View {
             }
             .onAppear {
                 containerWidth = geometry.size.width
-                updateAnimationState()
             }
-            .onChange(of: animate) { _ in
-                updateAnimationState()
-            }
-            .onChange(of: needsScroll) { _ in
-                updateAnimationState()
+            .task(id: shouldAnimate) {
+                if shouldAnimate {
+                    do {
+                        try await Task.sleep(nanoseconds: UInt64(startDelay * 1_000_000_000))
+                    } catch {
+                        return
+                    }
+                    guard !Task.isCancelled else { return }
+                    let distance = calculator.scrollDistance(textWidth: textWidth)
+                    let duration = calculator.animationDuration(for: distance)
+                    withAnimation(.linear(duration: duration).repeatForever(autoreverses: false)) {
+                        offset = -distance
+                    }
+                } else {
+                    if offset != 0 {
+                        withAnimation(.easeOut(duration: 0.2)) {
+                            offset = 0
+                        }
+                    }
+                }
             }
             .onDisappear {
-                animationTask?.cancel()
-                animationTask = nil
                 offset = 0
             }
         }
@@ -116,48 +131,6 @@ struct MarqueeText: View {
         }
     }
 
-    /// Updates animation state based on current `animate` and `needsScroll` values.
-    private func updateAnimationState() {
-        if animate && needsScroll {
-            startScrolling()
-        } else {
-            stopScrolling()
-        }
-    }
-
-    private func startScrolling() {
-        guard animate else { return }
-
-        animationTask?.cancel()
-        offset = 0
-
-        animationTask = Task {
-            do {
-                try await Task.sleep(nanoseconds: UInt64(startDelay * 1_000_000_000))
-            } catch {
-                return
-            }
-            guard !Task.isCancelled else { return }
-            await MainActor.run {
-                guard !Task.isCancelled else { return }
-                let distance = calculator.scrollDistance(textWidth: textWidth)
-                let duration = calculator.animationDuration(for: distance)
-                withAnimation(.linear(duration: duration).repeatForever(autoreverses: false)) {
-                    offset = -distance
-                }
-            }
-        }
-    }
-
-    private func stopScrolling() {
-        animationTask?.cancel()
-        animationTask = nil
-        if offset != 0 {
-            withAnimation(.easeOut(duration: 0.2)) {
-                offset = 0
-            }
-        }
-    }
 }
 
 /// PreferenceKey for measuring text width reactively
