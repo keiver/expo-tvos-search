@@ -44,6 +44,7 @@ The native view uses SwiftUI with a `UIHostingController` bridge. The `SearchVie
 | `ios/ExpoTvosSearchView.swift` | SwiftUI views (`TvosSearchContentView`, `SearchResultCard`), `SearchViewModel` |
 | `ios/MarqueeText.swift` | Marquee scrolling text component |
 | `ios/MarqueeAnimationCalculator.swift` | Animation calculations for marquee |
+| `ios/HexColorParser.swift` | DoS-protected hex color string → RGBA parsing |
 
 ### Native Module Loading
 
@@ -106,6 +107,52 @@ The view automatically manages React Native gesture handlers when the search fie
 
 - **This is a library, not an app.** When reviewing code, doing security audits, or suggesting changes, always keep this in mind. The threat model is different: inputs come from developers integrating the lib, not from untrusted end users. A developer passing bad data into their own search results is a bug in their app, not a vulnerability in this lib. Don't apply app-level threat modeling to library code.
 - **Know the audience.** Consumers are tvOS/Expo developers building media apps (Jellyfin clients, streaming apps). Recommendations should be practical for that context, not generic.
+- **Marquee State Machine Race (January 2026):** Three `onChange` handlers + manual `Task` management = non-deterministic animation on tvOS card focus. Fix: Replace with `.task(id: shouldAnimate)` — SwiftUI handles cancellation and restart automatically.
+- **Marquee Text Disappearing (January 2026):** Visual gap in `Text(text + " " + text)` didn't match `calculator.spacing` used for scroll distance. Fix: `HStack(spacing: calculator.spacing)` — visual gap and scroll math must use the same source of truth.
+
+See `memories/CLAUDE-lessons-learned.md` for full debugging narratives, root cause analysis, and the template for documenting new lessons.
+
+## Quality Patterns
+
+Code worth studying when making architectural decisions:
+
+- **MarqueeAnimationCalculator** (`ios/MarqueeAnimationCalculator.swift`): Extracted pure logic from a SwiftUI view into a testable struct. Model for how to make SwiftUI code unit-testable.
+- **HexColorParser** (`ios/HexColorParser.swift`): DoS-protected parsing with `maxInputLength`, `Scanner`-based hex conversion, RGBA struct output. Security-minded even in library context.
+- **Prop validation layer** (`ios/ExpoTvosSearchModule.swift`): Systematic clamping/truncation with non-fatal warning events. Defensive without being paranoid.
+- **`.task(id:)` pattern** (`ios/MarqueeText.swift`): Single-control-point for cancellable async animation. Replaced a three-handler state machine that had race conditions.
+
+## Memory Bank
+
+Detailed memory files live in `memories/`. They are loaded based on context keywords.
+
+### Memory Bank Usage
+
+**I automatically load relevant memory files based on context:**
+
+**Architecture & Implementation:**
+- "architecture" / "data flow" / "SwiftUI" / "bridge" / "module" → `memories/CLAUDE-architecture.md`
+- "pattern" / "validation" / "how do I" / "prop addition" → `memories/CLAUDE-patterns.md`
+- "lessons" / "bug" / "debugging" / "marquee" → `memories/CLAUDE-lessons-learned.md`
+
+**Testing & Development:**
+- "testing" / "tests" / "coverage" / "jest" / "mocking" → `memories/CLAUDE-testing.md`
+- "setup" / "build" / "release" / "CI" / "npm" → `memories/CLAUDE-development.md`
+
+**Category-Based Loading:**
+- "implementation files" → Load: architecture, patterns, lessons-learned
+- "all memory files" / "complete documentation" → Load all 5 memory bank files
+
+**You DON'T need to tell me to read these files.**
+
+### Lessons Learned Auto-Append
+
+After resolving a significant bug/issue, I will **automatically append** a new lesson to `memories/CLAUDE-lessons-learned.md`:
+- Uses the template format in that file
+- Captures: problem, root cause, solution, what went wrong, what worked
+- No need to ask permission — just document it
+
+**Most Recent:**
+- **Marquee State Machine Race (January 2026):** Three onChange handlers + manual Task = non-deterministic animation. Fix: `.task(id: shouldAnimate)`.
 
 ## Release Process
 
