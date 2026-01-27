@@ -61,6 +61,14 @@ public class ExpoTvosSearchModule: Module {
                 view.placeholder = Self.truncateString(placeholder, propName: "placeholder", view: view)
             }
 
+            Prop("searchText") { (view: ExpoTvosSearchView, text: String?) in
+                if let text = text {
+                    view.searchTextProp = Self.truncateString(text, propName: "searchText", view: view)
+                } else {
+                    view.searchTextProp = nil
+                }
+            }
+
             Prop("isLoading") { (view: ExpoTvosSearchView, isLoading: Bool) in
                 view.isLoading = isLoading
             }

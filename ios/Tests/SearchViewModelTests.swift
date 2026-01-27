@@ -35,7 +35,7 @@ final class SearchViewModelTests: XCTestCase {
     }
 
     func testInitialState_defaultPlaceholder() {
-        XCTAssertEqual(viewModel.placeholder, "Search movies and videos...")
+        XCTAssertEqual(viewModel.placeholder, "Search...")
     }
 
     func testInitialState_showTitleFalse() {

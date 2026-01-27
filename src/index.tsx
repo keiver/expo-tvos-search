@@ -55,7 +55,7 @@ export interface SearchViewErrorEvent {
 export interface ValidationWarningEvent {
   nativeEvent: {
     /** Type of validation warning */
-    type: "field_truncated" | "value_clamped" | "url_invalid" | "url_insecure" | "validation_failed";
+    type: "field_truncated" | "value_clamped" | "value_truncated" | "results_truncated" | "url_invalid" | "url_insecure" | "validation_failed";
     /** Human-readable warning message */
     message: string;
     /** Optional additional context */
@@ -94,7 +94,7 @@ export interface SearchResult {
  * <TvosSearchView
  *   results={searchResults}
  *   columns={5}
- *   placeholder="Search movies..."
+ *   placeholder="Search..."
  *   isLoading={loading}
  *   topInset={140}
  *   onSearch={(e) => handleSearch(e.nativeEvent.query)}
@@ -124,9 +124,21 @@ export interface TvosSearchViewProps {
 
   /**
    * Placeholder text shown in the search field when empty.
-   * @default "Search movies and videos..."
+   * @default "Search..."
    */
   placeholder?: string;
+
+  /**
+   * Programmatically set the search field text.
+   * Works like React Native TextInput's `value` + `onChangeText` pattern.
+   * Useful for restoring search state, deep links, or "search for similar" flows.
+   *
+   * **Warning:** Avoid setting `searchText` inside your `onSearch` handler with
+   * transforms (e.g., trimming, lowercasing). The native guard only prevents
+   * same-value loops — transformed values will trigger a new `onSearch` event,
+   * creating an infinite update cycle.
+   */
+  searchText?: string;
 
   /**
    * Whether to show a loading indicator.
@@ -187,7 +199,7 @@ export interface TvosSearchViewProps {
 
   /**
    * Text displayed when the search field is empty and no results are shown.
-   * @default "Search for movies and videos"
+   * @default "Search your library"
    */
   emptyStateText?: string;
 
@@ -275,6 +287,9 @@ export interface TvosSearchViewProps {
   /**
    * Callback fired when the search text changes.
    * Debounce this handler to avoid excessive API calls.
+   *
+   * **Note:** If using the `searchText` prop, do not set it to a transformed
+   * value inside this handler — see `searchText` docs for loop prevention.
    */
   onSearch: (event: SearchEvent) => void;
 

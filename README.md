@@ -287,7 +287,8 @@ import { TVEventControl } from 'react-native';
 |------|------|---------|-------------|
 | `results` | `SearchResult[]` | `[]` | Array of search results |
 | `columns` | `number` | `5` | Number of columns in the grid |
-| `placeholder` | `string` | `"Search movies and videos..."` | Search field placeholder |
+| `placeholder` | `string` | `"Search..."` | Search field placeholder |
+| `searchText` | `string` | — | Programmatically set search field text (restore state, deep links) |
 | `isLoading` | `boolean` | `false` | Shows loading indicator |
 
 ### Card Dimensions & Spacing
@@ -329,7 +330,7 @@ import { TVEventControl } from 'react-native';
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `emptyStateText` | `string` | `"Search for movies and videos"` | Text shown when search field is empty |
+| `emptyStateText` | `string` | `"Search your library"` | Text shown when search field is empty |
 | `searchingText` | `string` | `"Searching..."` | Text shown during search |
 | `noResultsText` | `string` | `"No results found"` | Text shown when no results found |
 | `noResultsHintText` | `string` | `"Try a different search term"` | Hint text below no results message |

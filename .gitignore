@@ -39,11 +39,4 @@ yarn-error.*
 # test coverage
 coverage/
 
-# build output
-build/
 
-app-example
-
-# generated native folders
-/ios
-/android

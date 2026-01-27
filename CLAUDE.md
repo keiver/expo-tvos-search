@@ -41,10 +41,14 @@ The native view uses SwiftUI with a `UIHostingController` bridge. The `SearchVie
 |------|---------|
 | `src/index.tsx` | TypeScript exports, `TvosSearchView` component, `isNativeSearchAvailable()` |
 | `ios/ExpoTvosSearchModule.swift` | Expo module definition, prop registration with validation |
-| `ios/ExpoTvosSearchView.swift` | SwiftUI views (`TvosSearchContentView`, `SearchResultCard`), `SearchViewModel` |
+| `ios/ExpoTvosSearchView.swift` | `SearchViewModel`, `ExpoTvosSearchView` (UIKit bridge), `Color(hex:)` extension |
+| `ios/SearchResultItem.swift` | `SearchResultItem` data model (`Identifiable`, `Equatable`) |
+| `ios/SearchResultCard.swift` | `SearchResultCard` view, `SelectiveRoundedRectangle` shape |
+| `ios/TvosSearchContentView.swift` | `TvosSearchContentView` — main search UI with grid, states, `.searchable` |
 | `ios/MarqueeText.swift` | Marquee scrolling text component |
 | `ios/MarqueeAnimationCalculator.swift` | Animation calculations for marquee |
 | `ios/HexColorParser.swift` | DoS-protected hex color string → RGBA parsing |
+| `ios/CachedAsyncImage.swift` | NSCache-backed image caching for search result cards |
 
 ### Native Module Loading
 

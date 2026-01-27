@@ -104,7 +104,7 @@ describe('TvosSearchViewProps defaults', () => {
     // The actual defaults are applied in Swift (ExpoTvosSearchView.swift)
     const expectedDefaults = {
       columns: 5,
-      placeholder: 'Search movies and videos...', // Matches Swift default
+      placeholder: 'Search...', // Matches Swift default
       isLoading: false,
       showTitle: false,
       showSubtitle: false,
@@ -549,6 +549,7 @@ describe('TvosSearchView with native module available', () => {
       results: [{ id: 'test', title: 'Test', subtitle: 'Sub', imageUrl: 'http://example.com/img.jpg' }],
       columns: 5,
       placeholder: 'Custom placeholder',
+      searchText: 'initial query',
       isLoading: false,
       showTitle: true,
       showSubtitle: true,
@@ -590,6 +591,32 @@ describe('TvosSearchView with native module available', () => {
       onSearch: jest.fn(),
       onSelectItem: jest.fn(),
       // Note: onSearchFieldFocused and onSearchFieldBlurred are not provided
+    });
+
+    expect(result).not.toBeNull();
+  });
+
+  it('accepts searchText prop', () => {
+    const { TvosSearchView } = require('../index');
+
+    const result = TvosSearchView({
+      results: [],
+      onSearch: jest.fn(),
+      onSelectItem: jest.fn(),
+      searchText: 'test query',
+    });
+
+    expect(result).not.toBeNull();
+  });
+
+  it('accepts undefined searchText prop', () => {
+    const { TvosSearchView } = require('../index');
+
+    const result = TvosSearchView({
+      results: [],
+      onSearch: jest.fn(),
+      onSelectItem: jest.fn(),
+      searchText: undefined,
     });
 
     expect(result).not.toBeNull();
