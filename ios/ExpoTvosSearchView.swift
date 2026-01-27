@@ -289,11 +289,15 @@ class ExpoTvosSearchView: ExpoView {
                 )
             }
 
-            // Signal SwiftUI to restore focus to the last focused card.
-            // Incrementing the generation counter triggers .onChange in TvosSearchContentView
-            // which sets @FocusState to the saved card ID.
+            // Two-step focus restoration:
+            // Step 1: Increment generation → SwiftUI .onChange fires → sets @FocusState to saved card ID
             DispatchQueue.main.async { [weak self] in
                 self?.viewModel.focusRestoreGeneration += 1
+            }
+            // Step 2: After SwiftUI processes the @FocusState change, poke UIKit to act on it
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+                self?.hostingController?.setNeedsFocusUpdate()
+                self?.hostingController?.updateFocusIfNeeded()
             }
         } else {
             // Clean up VC hierarchy when leaving window
