@@ -28,6 +28,18 @@ public class ExpoTvosSearchModule: Module {
     public func definition() -> ModuleDefinition {
         Name("ExpoTvosSearch")
 
+        Function("restoreTVFocus") {
+            DispatchQueue.main.async {
+                guard let windowScene = UIApplication.shared.connectedScenes
+                    .compactMap({ $0 as? UIWindowScene })
+                    .first,
+                    let rootVC = windowScene.windows.first(where: { $0.isKeyWindow })?.rootViewController
+                else { return }
+                rootVC.setNeedsFocusUpdate()
+                rootVC.updateFocusIfNeeded()
+            }
+        }
+
         View(ExpoTvosSearchView.self) {
             Events("onSearch", "onSelectItem", "onError", "onValidationWarning", "onSearchFieldFocused", "onSearchFieldBlurred")
 

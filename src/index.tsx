@@ -364,6 +364,35 @@ export interface TvosSearchViewProps {
 }
 
 /**
+ * Native module for imperative calls (e.g., restoreTVFocus).
+ * Loaded once at module initialization on tvOS only.
+ */
+let NativeModule: { restoreTVFocus(): void } | null = null;
+
+if (Platform.OS === "ios" && Platform.isTV) {
+  try {
+    const { requireNativeModule } = require("expo-modules-core");
+    NativeModule = requireNativeModule("ExpoTvosSearch");
+  } catch {
+    // Module unavailable — restoreTVFocus will no-op
+  }
+}
+
+/**
+ * Triggers UIKit focus restoration on the key window's root view controller.
+ *
+ * Calls `setNeedsFocusUpdate()` + `updateFocusIfNeeded()` on the root VC,
+ * which propagates down through ALL child VCs (including SwiftUI hosting
+ * controllers). This fixes focus becoming orphaned after fullScreenModal
+ * dismissal on tvOS, where `didMoveToWindow()` doesn't fire.
+ *
+ * No-op on non-tvOS platforms or when the native module is unavailable.
+ */
+export function restoreTVFocus(): void {
+  NativeModule?.restoreTVFocus();
+}
+
+/**
  * Native view component loaded at module initialization.
  * Returns null on non-tvOS platforms or when the native module is unavailable.
  */
