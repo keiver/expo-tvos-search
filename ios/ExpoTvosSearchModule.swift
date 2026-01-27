@@ -28,20 +28,31 @@ public class ExpoTvosSearchModule: Module {
     public func definition() -> ModuleDefinition {
         Name("ExpoTvosSearch")
 
-        Function("restoreTVFocus") {
-            DispatchQueue.main.async {
-                guard let windowScene = UIApplication.shared.connectedScenes
-                    .compactMap({ $0 as? UIWindowScene })
-                    .first,
-                    let keyWindow = windowScene.windows.first(where: { $0.isKeyWindow })
-                else { return }
+        // No-op stub. Previous implementations (setNeedsLayout, temp focusable view)
+        // did not fix vertical traversal after modal dismiss. Keeping the JS call
+        // site intact so we can slot in a real fix once we have debug data.
+        Function("restoreTVFocus") {}
 
-                // Force a full layout pass on the root view to rebuild
-                // the focus engine's spatial map for vertical traversal.
-                // react-native-screens modal dismiss breaks the spatial map;
-                // setNeedsFocusUpdate() only changes preferred focus, not the map.
-                keyWindow.rootViewController?.view.setNeedsLayout()
-                keyWindow.rootViewController?.view.layoutIfNeeded()
+        // Registers NotificationCenter observers for UIFocusSystem.didUpdateNotification
+        // and UIFocusSystem.movementDidFailNotification (tvOS 12+). Logs every focus
+        // update and every failed movement attempt with direction, source, and target.
+        Function("enableFocusDebugging") {
+            DispatchQueue.main.async {
+                FocusDebugHelper.enable()
+            }
+        }
+
+        Function("disableFocusDebugging") {
+            DispatchQueue.main.async {
+                FocusDebugHelper.disable()
+            }
+        }
+
+        // Dumps the currently focused item, its superview chain, scroll view
+        // state, and root VC hierarchy to the Xcode console via NSLog.
+        Function("logFocusState") {
+            DispatchQueue.main.async {
+                FocusDebugHelper.logCurrentState()
             }
         }
 
@@ -183,6 +194,182 @@ public class ExpoTvosSearchModule: Module {
             Prop("overlayTitleSize") { (view: ExpoTvosSearchView, size: Double) in
                 view.overlayTitleSize = CGFloat(max(8, min(72, size)))  // Clamp to reasonable font size range
             }
+        }
+    }
+}
+
+// MARK: - Focus Debug Helper
+
+/// Observes UIFocusSystem notifications and logs focus state for debugging
+/// the tvOS vertical traversal bug after modal dismiss.
+///
+/// Usage from JS:
+///   enableFocusDebugging()  — start logging
+///   logFocusState()         — dump current state on demand
+///   disableFocusDebugging() — stop logging
+///
+/// Also add -UIFocusLoggingEnabled to Xcode scheme launch arguments
+/// for Apple's built-in focus logging (WWDC 2017 Session 224).
+private enum FocusDebugHelper {
+    private static var observers: [NSObjectProtocol] = []
+
+    static func enable() {
+        guard observers.isEmpty else {
+            NSLog("[FocusDebug] Already enabled")
+            return
+        }
+
+        let didUpdate = NotificationCenter.default.addObserver(
+            forName: UIFocusSystem.didUpdateNotification,
+            object: nil,
+            queue: .main
+        ) { notification in
+            guard let context = notification.userInfo?[UIFocusSystem.focusUpdateContextUserInfoKey] as? UIFocusUpdateContext else { return }
+            let prev = describeItem(context.previouslyFocusedItem)
+            let next = describeItem(context.nextFocusedItem)
+            let heading = describeHeading(context.focusHeading)
+            NSLog("[FocusDebug] UPDATE: %@ -> %@ (heading: %@)", prev, next, heading)
+        }
+
+        let didFail = NotificationCenter.default.addObserver(
+            forName: UIFocusSystem.movementDidFailNotification,
+            object: nil,
+            queue: .main
+        ) { notification in
+            guard let context = notification.userInfo?[UIFocusSystem.focusUpdateContextUserInfoKey] as? UIFocusUpdateContext else {
+                NSLog("[FocusDebug] FAILED: no context in notification")
+                return
+            }
+            let focused = describeItem(context.previouslyFocusedItem)
+            let heading = describeHeading(context.focusHeading)
+            NSLog("[FocusDebug] FAILED MOVEMENT from %@ heading %@", focused, heading)
+            if let next = context.nextFocusedItem {
+                NSLog("[FocusDebug]   nextFocusedItem: %@ (blocked by shouldUpdateFocusInContext?)", describeItem(next))
+            } else {
+                NSLog("[FocusDebug]   nextFocusedItem: NIL (focus engine found no target in that direction)")
+            }
+            // Log the focused view's scroll view ancestor state if any
+            if let view = context.previouslyFocusedView {
+                logScrollViewAncestors(of: view)
+            }
+        }
+
+        observers = [didUpdate, didFail]
+        NSLog("[FocusDebug] Enabled. Tip: also add -UIFocusLoggingEnabled to Xcode scheme launch args.")
+    }
+
+    static func disable() {
+        for observer in observers {
+            NotificationCenter.default.removeObserver(observer)
+        }
+        observers = []
+        NSLog("[FocusDebug] Disabled")
+    }
+
+    static func logCurrentState() {
+        guard let windowScene = UIApplication.shared.connectedScenes
+            .compactMap({ $0 as? UIWindowScene })
+            .first,
+            let keyWindow = windowScene.windows.first(where: { $0.isKeyWindow })
+        else {
+            NSLog("[FocusDebug] No key window")
+            return
+        }
+
+        NSLog("[FocusDebug] === FOCUS STATE DUMP ===")
+
+        // Log focused item via UIFocusSystem
+        if let focusSystem = UIFocusSystem.focusSystem(for: keyWindow) {
+            if let item = focusSystem.focusedItem {
+                NSLog("[FocusDebug] Focused item: %@", describeItem(item))
+                if let view = item as? UIView {
+                    logSuperviewChain(of: view)
+                    logScrollViewAncestors(of: view)
+                }
+            } else {
+                NSLog("[FocusDebug] No focused item")
+            }
+        } else {
+            NSLog("[FocusDebug] No focus system for key window")
+        }
+
+        // Log root VC hierarchy
+        if let rootVC = keyWindow.rootViewController {
+            NSLog("[FocusDebug] --- VC Hierarchy ---")
+            logVCHierarchy(rootVC, depth: 0)
+        }
+
+        NSLog("[FocusDebug] === END STATE DUMP ===")
+    }
+
+    // MARK: - Formatting helpers
+
+    private static func describeItem(_ item: UIFocusItem?) -> String {
+        guard let item = item else { return "nil" }
+        if let view = item as? UIView {
+            return describeView(view)
+        }
+        return String(describing: type(of: item))
+    }
+
+    private static func describeView(_ view: UIView) -> String {
+        let cls = String(describing: type(of: view))
+        let frame = view.frame
+        let tag = view.tag
+        let focused = view.isFocused ? " [FOCUSED]" : ""
+        let hidden = view.isHidden ? " [HIDDEN]" : ""
+        let alpha = view.alpha < 1.0 ? String(format: " alpha=%.1f", view.alpha) : ""
+        return String(format: "%@(tag=%d frame=(%.0f,%.0f,%.0f,%.0f)%@%@%@)",
+                       cls, tag, frame.origin.x, frame.origin.y, frame.size.width, frame.size.height,
+                       focused, hidden, alpha)
+    }
+
+    private static func describeHeading(_ heading: UIFocusHeading) -> String {
+        var parts: [String] = []
+        if heading.contains(.up) { parts.append("UP") }
+        if heading.contains(.down) { parts.append("DOWN") }
+        if heading.contains(.left) { parts.append("LEFT") }
+        if heading.contains(.right) { parts.append("RIGHT") }
+        if heading.contains(.next) { parts.append("NEXT") }
+        if heading.contains(.previous) { parts.append("PREVIOUS") }
+        return parts.isEmpty ? "NONE" : parts.joined(separator: "|")
+    }
+
+    private static func logSuperviewChain(of view: UIView) {
+        var parent = view.superview
+        var depth = 1
+        while let p = parent, depth <= 15 {
+            NSLog("[FocusDebug]   parent[%d]: %@", depth, describeView(p))
+            parent = p.superview
+            depth += 1
+        }
+    }
+
+    private static func logScrollViewAncestors(of view: UIView) {
+        var current: UIView? = view.superview
+        while let v = current {
+            if let scrollView = v as? UIScrollView {
+                let offset = scrollView.contentOffset
+                let size = scrollView.contentSize
+                let frame = scrollView.frame
+                let scrollEnabled = scrollView.isScrollEnabled
+                NSLog("[FocusDebug]   scroll ancestor: %@ contentOffset=(%.0f,%.0f) contentSize=(%.0f,%.0f) frame=(%.0f,%.0f,%.0f,%.0f) scrollEnabled=%@",
+                      String(describing: type(of: scrollView)),
+                      offset.x, offset.y, size.width, size.height,
+                      frame.origin.x, frame.origin.y, frame.size.width, frame.size.height,
+                      scrollEnabled ? "YES" : "NO")
+            }
+            current = v.superview
+        }
+    }
+
+    private static func logVCHierarchy(_ vc: UIViewController, depth: Int) {
+        let indent = String(repeating: "  ", count: depth)
+        let cls = String(describing: type(of: vc))
+        let presented = vc.presentedViewController != nil ? " (presenting modal)" : ""
+        NSLog("[FocusDebug] %@%@%@", indent, cls, presented)
+        for child in vc.children {
+            logVCHierarchy(child, depth: depth + 1)
         }
     }
 }

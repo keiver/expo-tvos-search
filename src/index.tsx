@@ -364,10 +364,15 @@ export interface TvosSearchViewProps {
 }
 
 /**
- * Native module for imperative calls (e.g., restoreTVFocus).
+ * Native module for imperative calls.
  * Loaded once at module initialization on tvOS only.
  */
-let NativeModule: { restoreTVFocus(): void } | null = null;
+let NativeModule: {
+  restoreTVFocus(): void;
+  enableFocusDebugging(): void;
+  disableFocusDebugging(): void;
+  logFocusState(): void;
+} | null = null;
 
 if (Platform.OS === "ios" && Platform.isTV) {
   try {
@@ -379,18 +384,66 @@ if (Platform.OS === "ios" && Platform.isTV) {
 }
 
 /**
- * Forces a layout pass on the key window's root view to rebuild
- * the tvOS focus engine's spatial map after modal dismissal.
+ * Stub for tvOS focus restoration after modal dismiss.
  *
  * react-native-screens modal dismiss breaks vertical focus traversal
- * (up/down navigation) across the entire app. This calls
- * `setNeedsLayout()` + `layoutIfNeeded()` on the root view, which
- * forces geometry recalculation and rebuilds the focus spatial map.
+ * (up/down navigation) across the entire app. The root cause is under
+ * investigation — react-native-screens has no tvOS focus code and the
+ * exact failure mechanism is not yet identified.
+ *
+ * Currently a no-op. Use enableFocusDebugging() and logFocusState()
+ * to gather debug data for a targeted fix.
  *
  * No-op on non-tvOS platforms or when the native module is unavailable.
  */
 export function restoreTVFocus(): void {
   NativeModule?.restoreTVFocus();
+}
+
+/**
+ * Starts logging all tvOS focus updates and failed focus movements
+ * to the Xcode console via NSLog with [FocusDebug] prefix.
+ *
+ * Registers observers for UIFocusSystem.didUpdateNotification and
+ * UIFocusSystem.movementDidFailNotification (tvOS 12+). Each log
+ * entry includes the source/target view class, tag, frame, and
+ * movement direction (UP/DOWN/LEFT/RIGHT).
+ *
+ * For failed movements, also logs whether nextFocusedItem was nil
+ * (focus engine found no target) or non-nil (blocked by
+ * shouldUpdateFocusInContext returning NO), plus scroll view
+ * ancestor state (contentOffset, contentSize, frame).
+ *
+ * Call disableFocusDebugging() to stop logging.
+ *
+ * No-op on non-tvOS platforms or when the native module is unavailable.
+ */
+export function enableFocusDebugging(): void {
+  NativeModule?.enableFocusDebugging();
+}
+
+/**
+ * Stops focus debug logging started by enableFocusDebugging().
+ *
+ * No-op on non-tvOS platforms or when the native module is unavailable.
+ */
+export function disableFocusDebugging(): void {
+  NativeModule?.disableFocusDebugging();
+}
+
+/**
+ * Dumps current focus state to the Xcode console via NSLog.
+ *
+ * Logs: currently focused item (class, tag, frame), its full
+ * superview chain, scroll view ancestors with their contentOffset
+ * and contentSize, and the root view controller hierarchy.
+ *
+ * Call this after modal dismiss to inspect the focus state.
+ *
+ * No-op on non-tvOS platforms or when the native module is unavailable.
+ */
+export function logFocusState(): void {
+  NativeModule?.logFocusState();
 }
 
 /**
