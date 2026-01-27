@@ -4,6 +4,8 @@ import SwiftUI
 
 struct TvosSearchContentView: View {
     @ObservedObject var viewModel: SearchViewModel
+    @Environment(\.resetFocus) var resetFocus
+    @Namespace var searchNamespace
 
     private var gridColumns: [GridItem] {
         Array(repeating: GridItem(.flexible(), spacing: viewModel.cardMargin), count: viewModel.columns)
@@ -36,7 +38,14 @@ struct TvosSearchContentView: View {
                 viewModel.onSearch?(newValue)
             }
         }
-        .id(viewModel.focusRefreshToken)
+        .focusScope(searchNamespace)
+        .onChange(of: viewModel.shouldResetFocus) { newValue in
+            if newValue {
+                NSLog("[FocusRestore] resetFocus(in: searchNamespace) triggered")
+                resetFocus(in: searchNamespace)
+                viewModel.shouldResetFocus = false
+            }
+        }
         .padding(.top, viewModel.topInset)
         .ignoresSafeArea(.all, edges: .top)
     }

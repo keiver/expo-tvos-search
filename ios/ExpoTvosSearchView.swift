@@ -53,8 +53,8 @@ class SearchViewModel: ObservableObject {
     @Published var cardPadding: CGFloat = 16  // Padding inside cards
     @Published var overlayTitleSize: CGFloat = 20  // Font size for overlay title
 
-    // Focus restoration: changing this forces SwiftUI to destroy and recreate the view tree
-    @Published var focusRefreshToken: Int = 0
+    // Focus restoration: triggers SwiftUI's resetFocus within the focusScope
+    @Published var shouldResetFocus: Bool = false
 }
 
 class ExpoTvosSearchView: ExpoView {
@@ -331,26 +331,24 @@ class ExpoTvosSearchView: ExpoView {
 
     // MARK: - Focus Restoration
 
-    /// Forces SwiftUI to destroy and recreate its internal view tree by incrementing
-    /// the `.id()` token on the NavigationView. This causes UISearchContainerViewController
-    /// (and its stale focus proxy items) to be torn down and rebuilt with fresh focus
-    /// registrations. The UIHostingController stays in the VC hierarchy.
-    /// After a 300ms delay for SwiftUI to process, requests a UIKit focus update.
+    /// Triggers SwiftUI's resetFocus(in:) within the focusScope to re-evaluate
+    /// focus targets without destroying the view tree. Preserves scroll position
+    /// and avoids visual flash. Falls back to UIKit focus update after a delay.
     func refreshFocusEnvironment() {
-        guard hostingController?.parent != nil else { return }
+        guard let controller = hostingController, controller.parent != nil else { return }
 
-        NSLog("[FocusRestore] incrementing focusRefreshToken (was %d)", viewModel.focusRefreshToken)
-        viewModel.focusRefreshToken += 1
+        NSLog("[FocusRestore] triggering shouldResetFocus via viewModel")
+        viewModel.shouldResetFocus = true
 
-        // Wait for SwiftUI to process the identity change and re-register focus items
+        // Follow up with UIKit-level focus update after SwiftUI processes the reset
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
             guard let controller = self?.hostingController else {
-                NSLog("[FocusRestore] hostingController nil at focus update time")
+                NSLog("[FocusRestore] hostingController nil at UIKit focus update time")
                 return
             }
             controller.setNeedsFocusUpdate()
             controller.updateFocusIfNeeded()
-            NSLog("[FocusRestore] focus update requested after identity reset")
+            NSLog("[FocusRestore] UIKit focus update requested after resetFocus")
         }
     }
 

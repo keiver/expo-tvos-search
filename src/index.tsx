@@ -392,15 +392,11 @@ if (Platform.OS === "ios" && Platform.isTV) {
  * fail with `nextFocusedItem: NIL` while LEFT/RIGHT between tab buttons
  * still works.
  *
- * Fix: Increments a SwiftUI `.id()` token on the NavigationView, forcing
- * SwiftUI to destroy the entire subtree (including the stale
- * UISearchContainerViewController and its focus proxy items) and recreate
- * it with fresh focus registrations. The UIHostingController stays in the
- * VC hierarchy — only SwiftUI's internal tree is rebuilt. State is preserved
- * via the shared SearchViewModel ObservableObject. After a 300ms delay
- * (for SwiftUI to process the identity change), UIKit focus update is
- * requested. Diagnostic NSLog with `[FocusRestore]` prefix — check Xcode
- * console.
+ * Fix: Walks the key window's view hierarchy to find ExpoTvosSearchView
+ * instances and forces layout + focus updates on the entire VC hierarchy
+ * (hosting controller's children including UISearchContainerViewController,
+ * plus parent chain up to root). Diagnostic NSLog with `[FocusRestore]`
+ * prefix logs every VC visited — check Xcode console.
  *
  * Call this ~200ms after returning to the tab layout (e.g., in a
  * useFocusEffect callback) to allow UIKit's transition to settle.
