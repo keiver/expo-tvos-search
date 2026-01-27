@@ -379,12 +379,13 @@ if (Platform.OS === "ios" && Platform.isTV) {
 }
 
 /**
- * Triggers UIKit focus restoration on the key window's root view controller.
+ * Triggers UIKit focus traversal restoration after fullScreenModal dismissal.
  *
- * Calls `setNeedsFocusUpdate()` + `updateFocusIfNeeded()` on the root VC,
- * which propagates down through ALL child VCs (including SwiftUI hosting
- * controllers). This fixes focus becoming orphaned after fullScreenModal
- * dismissal on tvOS, where `didMoveToWindow()` doesn't fire.
+ * Finds the `UITabBarController` in the VC hierarchy and calls
+ * `setNeedsFocusUpdate()` + `updateFocusIfNeeded()` on its `selectedViewController`.
+ * This scoped re-evaluation preserves the currently focused element while
+ * refreshing the focus engine's traversal graph (up/down navigation paths),
+ * which becomes stale after fullScreenModal dismiss on tvOS.
  *
  * No-op on non-tvOS platforms or when the native module is unavailable.
  */

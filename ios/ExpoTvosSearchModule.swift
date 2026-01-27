@@ -35,8 +35,23 @@ public class ExpoTvosSearchModule: Module {
                     .first,
                     let rootVC = windowScene.windows.first(where: { $0.isKeyWindow })?.rootViewController
                 else { return }
-                rootVC.setNeedsFocusUpdate()
-                rootVC.updateFocusIfNeeded()
+
+                // Find the UITabBarController in the hierarchy
+                func findTabBarController(_ vc: UIViewController) -> UITabBarController? {
+                    if let tabVC = vc as? UITabBarController { return tabVC }
+                    for child in vc.children {
+                        if let found = findTabBarController(child) { return found }
+                    }
+                    return nil
+                }
+
+                // Target the selected tab's VC — scoped re-evaluation preserves
+                // existing focus and only refreshes traversal paths
+                if let tabVC = findTabBarController(rootVC),
+                   let selectedVC = tabVC.selectedViewController {
+                    selectedVC.setNeedsFocusUpdate()
+                    selectedVC.updateFocusIfNeeded()
+                }
             }
         }
 
