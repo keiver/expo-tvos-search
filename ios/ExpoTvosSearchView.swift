@@ -328,24 +328,73 @@ class ExpoTvosSearchView: ExpoView {
 
     // MARK: - Focus Restoration
 
-    /// Forces UIKit to re-discover SwiftUI focus items by cycling the
-    /// hosting controller through removeFromParent → addChild → didMove.
+    /// Destroys and recreates the UIHostingController with the same viewModel.
+    /// This forces UIKit to create fresh SwiftUI focus proxy registrations
+    /// (UIKitFocusableViewResponderItem), which become stale after a
+    /// fullScreenModal presented from UISearchContainerViewController is dismissed.
     ///
-    /// Called after fullScreenModal dismiss because UISearchContainerViewController
-    /// (SwiftUI's .searchable() internal VC) does not re-register its focus
-    /// proxy items (UIKitFocusableViewResponderItem) with UIKit's focus engine
-    /// after a modal presented from it is dismissed.
-    func refreshFocusEnvironment() {
-        guard hostingController?.parent != nil else { return }
+    /// Different from the failed refreshFocusEnvironment() which re-attached
+    /// the SAME controller — this creates a NEW controller with a new SwiftUI
+    /// view tree while preserving all state via the shared viewModel.
+    func rebuildHostingController() {
+        let parentVC = self.reactViewController()
+
+        // --- Diagnostic logging: VC hierarchy state BEFORE rebuild ---
+        NSLog("[FocusRestore] === rebuildHostingController START ===")
+        NSLog("[FocusRestore] reactViewController: %@", parentVC.map { String(describing: type(of: $0)) } ?? "NIL")
+        if let pvc = parentVC {
+            NSLog("[FocusRestore] parentVC.presentedViewController: %@",
+                  pvc.presentedViewController.map { String(describing: type(of: $0)) } ?? "NIL (good)")
+            NSLog("[FocusRestore] parentVC.presentingViewController: %@",
+                  pvc.presentingViewController.map { String(describing: type(of: $0)) } ?? "NIL")
+            // Walk up to find dangling presentations
+            var vc: UIViewController? = pvc
+            while let current = vc {
+                if let presented = current.presentedViewController {
+                    NSLog("[FocusRestore] ⚠️ DANGLING PRESENTATION: %@ is presenting %@",
+                          String(describing: type(of: current)), String(describing: type(of: presented)))
+                }
+                vc = current.parent
+            }
+        }
+        NSLog("[FocusRestore] old hostingController parent: %@",
+              hostingController?.parent.map { String(describing: type(of: $0)) } ?? "NIL")
+
+        // Tear down old controller
         detachHostingController()
+
+        // Create new controller with same viewModel (state preserved)
+        let contentView = TvosSearchContentView(viewModel: viewModel)
+        let controller = UIHostingController(rootView: contentView)
+        controller.view.backgroundColor = .clear
+        controller.restoresFocusAfterTransition = true
+        hostingController = controller
+
+        // Attach new controller to VC hierarchy
         attachHostingController()
+
+        // --- Diagnostic logging: state AFTER rebuild ---
+        NSLog("[FocusRestore] new hostingController parent: %@",
+              hostingController?.parent.map { String(describing: type(of: $0)) } ?? "NIL (ATTACH FAILED)")
+        NSLog("[FocusRestore] === rebuildHostingController END ===")
+
+        // Force focus engine to re-evaluate after the new view settles
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            guard let controller = self?.hostingController else {
+                NSLog("[FocusRestore] ⚠️ hostingController is nil at focus update time")
+                return
+            }
+            controller.setNeedsFocusUpdate()
+            controller.updateFocusIfNeeded()
+            NSLog("[FocusRestore] setNeedsFocusUpdate + updateFocusIfNeeded called on new HC")
+        }
     }
 
-    /// Walks the view hierarchy and calls refreshFocusEnvironment() on
+    /// Walks the view hierarchy and calls rebuildHostingController() on
     /// every ExpoTvosSearchView found. Typically only one exists.
     static func refreshAllInHierarchy(_ root: UIView) {
         if let searchView = root as? ExpoTvosSearchView {
-            searchView.refreshFocusEnvironment()
+            searchView.rebuildHostingController()
             return
         }
         for subview in root.subviews {

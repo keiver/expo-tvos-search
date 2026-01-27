@@ -393,9 +393,14 @@ if (Platform.OS === "ios" && Platform.isTV) {
  * still works.
  *
  * Fix: Walks the key window's view hierarchy to find ExpoTvosSearchView
- * instances and cycles their UIHostingController through the VC lifecycle
- * (removeFromParent → addChild → didMove), which forces UIKit to
- * re-register SwiftUI's focus proxy items with the focus engine.
+ * instances and destroys/recreates their UIHostingController with the same
+ * SearchViewModel (ObservableObject). The new UIHostingController creates a
+ * fresh SwiftUI view tree with new `.searchable()` internal VCs, which
+ * registers fresh focus proxy items with UIKit's focus engine. All state
+ * (search text, results, loading) is preserved via the shared viewModel.
+ *
+ * Includes diagnostic NSLog output with `[FocusRestore]` prefix — check
+ * Xcode console for VC hierarchy state before/after rebuild.
  *
  * Call this ~200ms after returning to the tab layout (e.g., in a
  * useFocusEffect callback) to allow UIKit's transition to settle.
