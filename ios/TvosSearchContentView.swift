@@ -4,6 +4,7 @@ import SwiftUI
 
 struct TvosSearchContentView: View {
     @ObservedObject var viewModel: SearchViewModel
+    @FocusState private var focusedCardId: String?
 
     private var gridColumns: [GridItem] {
         Array(repeating: GridItem(.flexible(), spacing: viewModel.cardMargin), count: viewModel.columns)
@@ -35,9 +36,16 @@ struct TvosSearchContentView: View {
             .onChange(of: viewModel.searchText) { newValue in
                 viewModel.onSearch?(newValue)
             }
+            .focusSection()
         }
         .padding(.top, viewModel.topInset)
         .ignoresSafeArea(.all, edges: .top)
+        .onChange(of: focusedCardId) { newValue in
+            viewModel.lastFocusedCardId = newValue
+        }
+        .onChange(of: viewModel.focusRestoreGeneration) { _ in
+            focusedCardId = viewModel.lastFocusedCardId
+        }
     }
 
     private var emptyStateView: some View {
@@ -99,6 +107,7 @@ struct TvosSearchContentView: View {
                 ForEach(viewModel.results) { item in
                     SearchResultCard(
                         item: item,
+                        focusedCardId: $focusedCardId,
                         showTitle: viewModel.showTitle,
                         showSubtitle: viewModel.showSubtitle,
                         showFocusBorder: viewModel.showFocusBorder,

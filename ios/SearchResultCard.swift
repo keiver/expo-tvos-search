@@ -53,7 +53,11 @@ struct SearchResultCard: View {
     let cardPadding: CGFloat
     let overlayTitleSize: CGFloat
     let onSelect: () -> Void
-    @FocusState private var isFocused: Bool
+    var focusedCardId: FocusState<String?>.Binding
+
+    private var isFocused: Bool {
+        focusedCardId.wrappedValue == item.id
+    }
 
     private let placeholderColor = Color(white: 0.2)
 
@@ -153,7 +157,7 @@ struct SearchResultCard: View {
             }
         }
         .buttonStyle(.card)
-        .focused($isFocused)
+        .focused(focusedCardId, equals: item.id)
     }
 
     private var placeholderIcon: some View {

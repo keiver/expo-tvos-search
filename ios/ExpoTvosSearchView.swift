@@ -53,6 +53,14 @@ class SearchViewModel: ObservableObject {
     @Published var cardPadding: CGFloat = 16  // Padding inside cards
     @Published var overlayTitleSize: CGFloat = 20  // Font size for overlay title
 
+    /// ID of last focused card. NOT @Published — just storage.
+    /// Survives HC detach/attach because ViewModel lives on UIKit side.
+    var lastFocusedCardId: String? = nil
+
+    /// Generation counter. Incremented by didMoveToWindow() after reattach.
+    /// Using Int (not Bool) so .onChange always fires even on repeated calls.
+    @Published var focusRestoreGeneration: Int = 0
+
 }
 
 class ExpoTvosSearchView: ExpoView {
@@ -281,20 +289,16 @@ class ExpoTvosSearchView: ExpoView {
                 )
             }
 
-            // Force the focus engine to re-evaluate focus targets.
-            // Dispatched async to avoid racing with UIKit's own transition handling.
+            // Signal SwiftUI to restore focus to the last focused card.
+            // Incrementing the generation counter triggers .onChange in TvosSearchContentView
+            // which sets @FocusState to the saved card ID.
             DispatchQueue.main.async { [weak self] in
-                guard let hostingController = self?.hostingController else { return }
-                hostingController.setNeedsFocusUpdate()
-                hostingController.updateFocusIfNeeded()
+                self?.viewModel.focusRestoreGeneration += 1
             }
+        } else {
+            // Clean up VC hierarchy when leaving window
+            detachHostingController()
         }
-        // Attempt 8: Do NOT detach the hosting controller when the window goes away.
-        // The detach/reattach cycle (willMove(toParent:nil) → removeFromParent →
-        // addChild → didMove(toParent:)) tears down SwiftUI's internal focus proxy
-        // items (UIKitFocusableViewResponderItem). By keeping the HC in the VC
-        // hierarchy during fullScreenModal presentation, SwiftUI's focus registrations
-        // are never disrupted. The deinit still performs full cleanup.
     }
 
     // MARK: - Hosting Controller VC Lifecycle
