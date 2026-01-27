@@ -249,10 +249,40 @@ class ExpoTvosSearchView: ExpoView {
         }
     }
 
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        guard window != nil else { return }
+
+        // Unconditionally reset gesture handler state when view re-enters window.
+        // This handles the case where a modal interrupted editing and the
+        // handleTextFieldDidEndEditing notification never fired.
+        if gestureHandlersDisabled {
+            gestureHandlersDisabled = false
+
+            #if !targetEnvironment(simulator)
+            enableParentGestureRecognizers()
+            #endif
+
+            NotificationCenter.default.post(
+                name: RCTTVEnableGestureHandlersCancelTouchesNotification,
+                object: nil
+            )
+        }
+
+        // Force the focus engine to re-evaluate focus targets within our SwiftUI hierarchy.
+        // Dispatched async to avoid racing with UIKit's own transition handling.
+        DispatchQueue.main.async { [weak self] in
+            guard let hostingController = self?.hostingController else { return }
+            hostingController.setNeedsFocusUpdate()
+            hostingController.updateFocusIfNeeded()
+        }
+    }
+
     private func setupView() {
         let contentView = TvosSearchContentView(viewModel: viewModel)
         let controller = UIHostingController(rootView: contentView)
         controller.view.backgroundColor = .clear
+        controller.restoresFocusAfterTransition = true
         hostingController = controller
 
         // Configure viewModel callbacks
