@@ -384,15 +384,21 @@ if (Platform.OS === "ios" && Platform.isTV) {
 }
 
 /**
- * Stub for tvOS focus restoration after modal dismiss.
+ * Restores tvOS vertical focus traversal after fullScreenModal dismiss.
  *
- * react-native-screens modal dismiss breaks vertical focus traversal
- * (up/down navigation) across the entire app. The root cause is under
- * investigation — react-native-screens has no tvOS focus code and the
- * exact failure mechanism is not yet identified.
+ * After a react-native-screens fullScreenModal is dismissed, UIKit's focus
+ * engine loses track of SwiftUI focus items (UIKitFocusableViewResponderItem)
+ * inside UISearchContainerViewController. This causes UP/DOWN navigation to
+ * fail with `nextFocusedItem: NIL` while LEFT/RIGHT between tab buttons
+ * still works.
  *
- * Currently a no-op. Use enableFocusDebugging() and logFocusState()
- * to gather debug data for a targeted fix.
+ * Fix: Walks the key window's view hierarchy to find ExpoTvosSearchView
+ * instances and cycles their UIHostingController through the VC lifecycle
+ * (removeFromParent → addChild → didMove), which forces UIKit to
+ * re-register SwiftUI's focus proxy items with the focus engine.
+ *
+ * Call this ~200ms after returning to the tab layout (e.g., in a
+ * useFocusEffect callback) to allow UIKit's transition to settle.
  *
  * No-op on non-tvOS platforms or when the native module is unavailable.
  */

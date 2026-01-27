@@ -28,10 +28,21 @@ public class ExpoTvosSearchModule: Module {
     public func definition() -> ModuleDefinition {
         Name("ExpoTvosSearch")
 
-        // No-op stub. Previous implementations (setNeedsLayout, temp focusable view)
-        // did not fix vertical traversal after modal dismiss. Keeping the JS call
-        // site intact so we can slot in a real fix once we have debug data.
-        Function("restoreTVFocus") {}
+        // Forces UIKit to re-discover SwiftUI focus items after fullScreenModal dismiss.
+        // Walks the key window's view hierarchy to find ExpoTvosSearchView instances
+        // and cycles their hosting controller through the VC lifecycle (detach → attach),
+        // which re-registers UIKitFocusableViewResponderItem focus proxies.
+        Function("restoreTVFocus") {
+            DispatchQueue.main.async {
+                guard let windowScene = UIApplication.shared.connectedScenes
+                    .compactMap({ $0 as? UIWindowScene })
+                    .first,
+                    let keyWindow = windowScene.windows.first(where: { $0.isKeyWindow })
+                else { return }
+
+                ExpoTvosSearchView.refreshAllInHierarchy(keyWindow)
+            }
+        }
 
         // Registers NotificationCenter observers for UIFocusSystem.didUpdateNotification
         // and UIFocusSystem.movementDidFailNotification (tvOS 12+). Logs every focus

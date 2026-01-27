@@ -326,6 +326,33 @@ class ExpoTvosSearchView: ExpoView {
         controller.removeFromParent()
     }
 
+    // MARK: - Focus Restoration
+
+    /// Forces UIKit to re-discover SwiftUI focus items by cycling the
+    /// hosting controller through removeFromParent → addChild → didMove.
+    ///
+    /// Called after fullScreenModal dismiss because UISearchContainerViewController
+    /// (SwiftUI's .searchable() internal VC) does not re-register its focus
+    /// proxy items (UIKitFocusableViewResponderItem) with UIKit's focus engine
+    /// after a modal presented from it is dismissed.
+    func refreshFocusEnvironment() {
+        guard hostingController?.parent != nil else { return }
+        detachHostingController()
+        attachHostingController()
+    }
+
+    /// Walks the view hierarchy and calls refreshFocusEnvironment() on
+    /// every ExpoTvosSearchView found. Typically only one exists.
+    static func refreshAllInHierarchy(_ root: UIView) {
+        if let searchView = root as? ExpoTvosSearchView {
+            searchView.refreshFocusEnvironment()
+            return
+        }
+        for subview in root.subviews {
+            refreshAllInHierarchy(subview)
+        }
+    }
+
     private func setupView() {
         let contentView = TvosSearchContentView(viewModel: viewModel)
         let controller = UIHostingController(rootView: contentView)
