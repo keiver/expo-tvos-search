@@ -95,6 +95,109 @@ describe('onSelectItem event structure', () => {
   });
 });
 
+describe('onSearchFieldFocused event structure', () => {
+  it('provides empty nativeEvent object', () => {
+    const mockHandler = jest.fn();
+    const event = { nativeEvent: {} };
+
+    mockHandler(event);
+
+    expect(mockHandler).toHaveBeenCalledWith({
+      nativeEvent: {},
+    });
+    expect(mockHandler.mock.calls[0][0].nativeEvent).toEqual({});
+  });
+
+  it('fires when search field gains focus', () => {
+    const onSearchFieldFocused = jest.fn();
+
+    // Native module fires focus event
+    onSearchFieldFocused({ nativeEvent: {} });
+
+    expect(onSearchFieldFocused).toHaveBeenCalledTimes(1);
+    expect(onSearchFieldFocused).toHaveBeenCalledWith({ nativeEvent: {} });
+  });
+});
+
+describe('onSearchFieldBlurred event structure', () => {
+  it('provides empty nativeEvent object', () => {
+    const mockHandler = jest.fn();
+    const event = { nativeEvent: {} };
+
+    mockHandler(event);
+
+    expect(mockHandler).toHaveBeenCalledWith({
+      nativeEvent: {},
+    });
+    expect(mockHandler.mock.calls[0][0].nativeEvent).toEqual({});
+  });
+
+  it('fires when search field loses focus', () => {
+    const onSearchFieldBlurred = jest.fn();
+
+    // Native module fires blur event
+    onSearchFieldBlurred({ nativeEvent: {} });
+
+    expect(onSearchFieldBlurred).toHaveBeenCalledTimes(1);
+    expect(onSearchFieldBlurred).toHaveBeenCalledWith({ nativeEvent: {} });
+  });
+});
+
+describe('search field focus integration', () => {
+  it('simulates focus/blur cycle for Apple TV keyboard input', () => {
+    const onSearchFieldFocused = jest.fn();
+    const onSearchFieldBlurred = jest.fn();
+    const onSearch = jest.fn();
+
+    // User focuses search field (keyboard appears)
+    onSearchFieldFocused({ nativeEvent: {} });
+    expect(onSearchFieldFocused).toHaveBeenCalledTimes(1);
+
+    // User types in search field
+    onSearch({ nativeEvent: { query: 'm' } });
+    onSearch({ nativeEvent: { query: 'ma' } });
+    onSearch({ nativeEvent: { query: 'mat' } });
+    expect(onSearch).toHaveBeenCalledTimes(3);
+
+    // User exits search field (keyboard dismissed)
+    onSearchFieldBlurred({ nativeEvent: {} });
+    expect(onSearchFieldBlurred).toHaveBeenCalledTimes(1);
+  });
+
+  it('handles multiple focus/blur cycles', () => {
+    const onSearchFieldFocused = jest.fn();
+    const onSearchFieldBlurred = jest.fn();
+
+    // First focus/blur cycle
+    onSearchFieldFocused({ nativeEvent: {} });
+    onSearchFieldBlurred({ nativeEvent: {} });
+
+    // Second focus/blur cycle
+    onSearchFieldFocused({ nativeEvent: {} });
+    onSearchFieldBlurred({ nativeEvent: {} });
+
+    // Third focus/blur cycle
+    onSearchFieldFocused({ nativeEvent: {} });
+    onSearchFieldBlurred({ nativeEvent: {} });
+
+    expect(onSearchFieldFocused).toHaveBeenCalledTimes(3);
+    expect(onSearchFieldBlurred).toHaveBeenCalledTimes(3);
+  });
+
+  it('does not require focus handlers to be provided', () => {
+    // These callbacks are optional - ensure no errors when undefined
+    const onSearch = jest.fn();
+    const onSelectItem = jest.fn();
+
+    // Simulate usage without focus callbacks
+    onSearch({ nativeEvent: { query: 'test' } });
+    onSelectItem({ nativeEvent: { id: 'item-1' } });
+
+    expect(onSearch).toHaveBeenCalledTimes(1);
+    expect(onSelectItem).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('event handler integration', () => {
   it('simulates full search flow', () => {
     const onSearch = jest.fn();
@@ -122,5 +225,30 @@ describe('event handler integration', () => {
 
     expect(onSearch).toHaveBeenCalledTimes(2);
     expect(onSearch.mock.calls[1][0].nativeEvent.query).toBe('');
+  });
+
+  it('simulates full Apple TV search flow with focus handling', () => {
+    const onSearchFieldFocused = jest.fn();
+    const onSearchFieldBlurred = jest.fn();
+    const onSearch = jest.fn();
+    const onSelectItem = jest.fn();
+
+    // User navigates to search and focuses the field
+    onSearchFieldFocused({ nativeEvent: {} });
+
+    // User types search query using Siri Remote keyboard
+    onSearch({ nativeEvent: { query: 'matrix' } });
+    onSearch({ nativeEvent: { query: 'matrix reloaded' } });
+
+    // User exits keyboard to browse results
+    onSearchFieldBlurred({ nativeEvent: {} });
+
+    // User selects a result
+    onSelectItem({ nativeEvent: { id: 'movie-456' } });
+
+    expect(onSearchFieldFocused).toHaveBeenCalledTimes(1);
+    expect(onSearchFieldBlurred).toHaveBeenCalledTimes(1);
+    expect(onSearch).toHaveBeenCalledTimes(2);
+    expect(onSelectItem).toHaveBeenCalledTimes(1);
   });
 });

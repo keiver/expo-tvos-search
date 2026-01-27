@@ -1,49 +1,12 @@
 import ExpoModulesCore
 import SwiftUI
 
+// React Native tvOS notification names for controlling gesture handler behavior
+// These match the constants in RCTTVRemoteHandler.h
+private let RCTTVDisableGestureHandlersCancelTouchesNotification = Notification.Name("RCTTVDisableGestureHandlersCancelTouchesNotification")
+private let RCTTVEnableGestureHandlersCancelTouchesNotification = Notification.Name("RCTTVEnableGestureHandlersCancelTouchesNotification")
+
 #if os(tvOS)
-
-/// Custom shape for cards with selectively rounded corners
-/// Provides backwards compatibility for tvOS versions before 16.0
-struct SelectiveRoundedRectangle: Shape {
-    var topLeadingRadius: CGFloat
-    var topTrailingRadius: CGFloat
-    var bottomLeadingRadius: CGFloat
-    var bottomTrailingRadius: CGFloat
-
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-
-        let tl = min(topLeadingRadius, min(rect.width, rect.height) / 2)
-        let tr = min(topTrailingRadius, min(rect.width, rect.height) / 2)
-        let bl = min(bottomLeadingRadius, min(rect.width, rect.height) / 2)
-        let br = min(bottomTrailingRadius, min(rect.width, rect.height) / 2)
-
-        path.move(to: CGPoint(x: rect.minX + tl, y: rect.minY))
-        path.addLine(to: CGPoint(x: rect.maxX - tr, y: rect.minY))
-        path.addArc(center: CGPoint(x: rect.maxX - tr, y: rect.minY + tr),
-                   radius: tr, startAngle: .degrees(-90), endAngle: .degrees(0), clockwise: false)
-        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY - br))
-        path.addArc(center: CGPoint(x: rect.maxX - br, y: rect.maxY - br),
-                   radius: br, startAngle: .degrees(0), endAngle: .degrees(90), clockwise: false)
-        path.addLine(to: CGPoint(x: rect.minX + bl, y: rect.maxY))
-        path.addArc(center: CGPoint(x: rect.minX + bl, y: rect.maxY - bl),
-                   radius: bl, startAngle: .degrees(90), endAngle: .degrees(180), clockwise: false)
-        path.addLine(to: CGPoint(x: rect.minX, y: rect.minY + tl))
-        path.addArc(center: CGPoint(x: rect.minX + tl, y: rect.minY + tl),
-                   radius: tl, startAngle: .degrees(180), endAngle: .degrees(270), clockwise: false)
-        path.closeSubpath()
-
-        return path
-    }
-}
-
-struct SearchResultItem: Identifiable, Equatable {
-    let id: String
-    let title: String
-    let subtitle: String?
-    let imageUrl: String?
-}
 
 /// ObservableObject that holds state for the search view.
 /// This allows updating properties without recreating the entire view hierarchy.
@@ -54,320 +17,76 @@ class SearchViewModel: ObservableObject {
 
     var onSearch: ((String) -> Void)?
     var onSelectItem: ((String) -> Void)?
-    var columns: Int = 5
-    var placeholder: String = "Search movies and videos..."
+    @Published var columns: Int = 5
+    @Published var placeholder: String = "Search..."
 
     // Card styling options (configurable from JS)
-    var showTitle: Bool = false
-    var showSubtitle: Bool = false
-    var showFocusBorder: Bool = false
-    var topInset: CGFloat = 0  // Extra top padding for tab bar
+    @Published var showTitle: Bool = false
+    @Published var showSubtitle: Bool = false
+    @Published var showFocusBorder: Bool = false
+    @Published var topInset: CGFloat = 0  // Extra top padding for tab bar
 
     // Title overlay options (configurable from JS)
-    var showTitleOverlay: Bool = true
-    var enableMarquee: Bool = true
-    var marqueeDelay: Double = 1.5
+    @Published var showTitleOverlay: Bool = true
+    @Published var enableMarquee: Bool = true
+    @Published var marqueeDelay: Double = 1.5
 
     // State text options (configurable from JS)
-    var emptyStateText: String = "Search for movies and videos"
-    var searchingText: String = "Searching..."
-    var noResultsText: String = "No results found"
-    var noResultsHintText: String = "Try a different search term"
+    @Published var emptyStateText: String = "Search your library"
+    @Published var searchingText: String = "Searching..."
+    @Published var noResultsText: String = "No results found"
+    @Published var noResultsHintText: String = "Try a different search term"
 
     // Color customization options (configurable from JS)
-    var textColor: Color? = nil
-    var accentColor: Color = Color(red: 1, green: 0.765, blue: 0.07) // #FFC312 (gold)
+    @Published var textColor: Color? = nil
+    @Published var accentColor: Color = Color(red: 1, green: 0.765, blue: 0.07) // #FFC312 (gold)
 
     // Card dimension options (configurable from JS)
-    var cardWidth: CGFloat = 280
-    var cardHeight: CGFloat = 420
+    @Published var cardWidth: CGFloat = 280
+    @Published var cardHeight: CGFloat = 420
 
     // Image display options (configurable from JS)
-    var imageContentMode: ContentMode = .fill
+    @Published var imageContentMode: ContentMode = .fill
 
     // Layout spacing options (configurable from JS)
-    var cardMargin: CGFloat = 40  // Spacing between cards
-    var cardPadding: CGFloat = 16  // Padding inside cards
-    var overlayTitleSize: CGFloat = 20  // Font size for overlay title
-}
-
-struct TvosSearchContentView: View {
-    @ObservedObject var viewModel: SearchViewModel
-
-    private var gridColumns: [GridItem] {
-        Array(repeating: GridItem(.flexible(), spacing: viewModel.cardMargin), count: viewModel.columns)
-    }
-
-    var body: some View {
-        NavigationView {
-            ZStack {
-                Group {
-                    if viewModel.results.isEmpty && viewModel.searchText.isEmpty {
-                        emptyStateView
-                    } else if viewModel.results.isEmpty && !viewModel.searchText.isEmpty {
-                        if viewModel.isLoading {
-                            searchingStateView
-                        } else {
-                            noResultsView
-                        }
-                    } else {
-                        resultsGridView
-                    }
-                }
-
-                // Loading overlay when loading with results
-                if viewModel.isLoading && !viewModel.results.isEmpty {
-                    loadingOverlay
-                }
-            }
-            .searchable(text: $viewModel.searchText, prompt: viewModel.placeholder)
-            .onChange(of: viewModel.searchText) { newValue in
-                viewModel.onSearch?(newValue)
-            }
-        }
-        .padding(.top, viewModel.topInset)
-        .ignoresSafeArea(.all, edges: .top)
-    }
-
-    private var emptyStateView: some View {
-        VStack(spacing: 20) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: 80))
-                .foregroundColor(viewModel.textColor ?? .secondary)
-            Text(viewModel.emptyStateText)
-                .font(.headline)
-                .foregroundColor(viewModel.textColor ?? .secondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    private var searchingStateView: some View {
-        VStack(spacing: 20) {
-            ProgressView()
-                .scaleEffect(1.5)
-            Text(viewModel.searchingText)
-                .font(.headline)
-                .foregroundColor(viewModel.textColor ?? .secondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    private var noResultsView: some View {
-        VStack(spacing: 20) {
-            Image(systemName: "film.stack")
-                .font(.system(size: 80))
-                .foregroundColor(viewModel.textColor ?? .secondary)
-            Text(viewModel.noResultsText)
-                .font(.headline)
-                .foregroundColor(viewModel.textColor ?? .secondary)
-            Text(viewModel.noResultsHintText)
-                .font(.subheadline)
-                .foregroundColor(viewModel.textColor ?? .secondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    private var loadingOverlay: some View {
-        VStack {
-            HStack {
-                Spacer()
-                ProgressView()
-                    .padding(16)
-                    .background(Color.black.opacity(0.6))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-            }
-            .padding(.trailing, 60)
-            .padding(.top, 20)
-            Spacer()
-        }
-    }
-
-    private var resultsGridView: some View {
-        ScrollView {
-            LazyVGrid(columns: gridColumns, spacing: viewModel.cardMargin) {
-                ForEach(viewModel.results) { item in
-                    SearchResultCard(
-                        item: item,
-                        showTitle: viewModel.showTitle,
-                        showSubtitle: viewModel.showSubtitle,
-                        showFocusBorder: viewModel.showFocusBorder,
-                        showTitleOverlay: viewModel.showTitleOverlay,
-                        enableMarquee: viewModel.enableMarquee,
-                        marqueeDelay: viewModel.marqueeDelay,
-                        textColor: viewModel.textColor,
-                        accentColor: viewModel.accentColor,
-                        cardWidth: viewModel.cardWidth,
-                        cardHeight: viewModel.cardHeight,
-                        imageContentMode: viewModel.imageContentMode,
-                        cardPadding: viewModel.cardPadding,
-                        overlayTitleSize: viewModel.overlayTitleSize,
-                        onSelect: { viewModel.onSelectItem?(item.id) }
-                    )
-                }
-            }
-            .padding(.horizontal, 60)
-            .padding(.vertical, 40)
-        }
-    }
-}
-
-struct SearchResultCard: View {
-    let item: SearchResultItem
-    let showTitle: Bool
-    let showSubtitle: Bool
-    let showFocusBorder: Bool
-    let showTitleOverlay: Bool
-    let enableMarquee: Bool
-    let marqueeDelay: Double
-    let textColor: Color?
-    let accentColor: Color
-    let cardWidth: CGFloat
-    let cardHeight: CGFloat
-    let imageContentMode: ContentMode
-    let cardPadding: CGFloat
-    let overlayTitleSize: CGFloat
-    let onSelect: () -> Void
-    @FocusState private var isFocused: Bool
-
-    private let placeholderColor = Color(white: 0.2)
-
-    // Title overlay constants
-    private var overlayHeight: CGFloat { cardHeight * 0.25 }  // 25% of card
-
-    var body: some View {
-        Button(action: onSelect) {
-            VStack(alignment: .leading, spacing: showTitle || showSubtitle ? 12 : 0) {
-                ZStack(alignment: .bottom) {
-                    // Card image content
-                    ZStack {
-                        placeholderColor
-
-                        if let imageUrl = item.imageUrl, let url = URL(string: imageUrl) {
-                            AsyncImage(url: url) { phase in
-                                switch phase {
-                                case .empty:
-                                    ProgressView()
-                                case .success(let image):
-                                    image
-                                        .resizable()
-                                        .aspectRatio(contentMode: imageContentMode)
-                                        .frame(width: cardWidth, height: cardHeight)
-                                case .failure:
-                                    placeholderIcon
-                                @unknown default:
-                                    EmptyView()
-                                }
-                            }
-                            .frame(width: cardWidth, height: cardHeight)
-                        } else {
-                            placeholderIcon
-                        }
-                    }
-                    .frame(width: cardWidth, height: cardHeight)
-                    .clipped()
-
-                    // Title overlay with native material blur
-                    if showTitleOverlay {
-                        ZStack {
-                            Rectangle()
-                                .fill(.ultraThinMaterial)
-                                .frame(width: cardWidth, height: overlayHeight)
-
-                            if enableMarquee {
-                                MarqueeText(
-                                    item.title,
-                                    font: .system(size: overlayTitleSize, weight: .semibold),
-                                    leftFade: 12,
-                                    rightFade: 12,
-                                    startDelay: marqueeDelay,
-                                    animate: isFocused
-                                )
-                                .foregroundColor(.white)
-                                .padding(.horizontal, cardPadding)
-                            } else {
-                                Text(item.title)
-                                    .font(.system(size: overlayTitleSize, weight: .semibold))
-                                    .foregroundColor(.white)
-                                    .lineLimit(2)
-                                    .multilineTextAlignment(.center)
-                                    .padding(.horizontal, cardPadding)
-                            }
-                        }
-                        .frame(width: cardWidth, height: overlayHeight)
-                    }
-                }
-                .frame(width: cardWidth, height: cardHeight)
-                .clipShape(
-                    SelectiveRoundedRectangle(
-                        topLeadingRadius: 12,
-                        topTrailingRadius: 12,
-                        bottomLeadingRadius: (showTitle || showSubtitle) ? 0 : 12,
-                        bottomTrailingRadius: (showTitle || showSubtitle) ? 0 : 12
-                    )
-                )
-                .overlay(
-                    SelectiveRoundedRectangle(
-                        topLeadingRadius: 12,
-                        topTrailingRadius: 12,
-                        bottomLeadingRadius: (showTitle || showSubtitle) ? 0 : 12,
-                        bottomTrailingRadius: (showTitle || showSubtitle) ? 0 : 12
-                    )
-                    .stroke(showFocusBorder && isFocused ? accentColor : Color.clear, lineWidth: 4)
-                )
-
-                if showTitle || showSubtitle {
-                    VStack(alignment: .leading, spacing: 4) {
-                        if showTitle {
-                            Text(item.title)
-                                .font(.callout)
-                                .fontWeight(.medium)
-                                .lineLimit(2)
-                                .multilineTextAlignment(.leading)
-                                .foregroundColor(.primary)
-                        }
-
-                        if showSubtitle, let subtitle = item.subtitle {
-                            Text(subtitle)
-                                .font(.caption)
-                                .foregroundColor(textColor ?? .secondary)
-                                .lineLimit(1)
-                        }
-                    }
-                    .padding(cardPadding)
-                    .frame(width: cardWidth, alignment: .leading)
-                }
-            }
-        }
-        .buttonStyle(.card)
-        .focused($isFocused)
-    }
-
-    private var placeholderIcon: some View {
-        ZStack {
-            Circle()
-                .fill(Color.white.opacity(0.1))
-                .frame(width: 120, height: 120)
-
-            Image(systemName: "photo")
-                .font(.system(size: 60, weight: .light))
-                .foregroundColor(.white.opacity(0.7))
-        }
-    }
+    @Published var cardMargin: CGFloat = 40  // Spacing between cards
+    @Published var cardPadding: CGFloat = 16  // Padding inside cards
+    @Published var overlayTitleSize: CGFloat = 20  // Font size for overlay title
 }
 
 class ExpoTvosSearchView: ExpoView {
     private var hostingController: UIHostingController<TvosSearchContentView>?
-    private let viewModel = SearchViewModel()
+    private var viewModel = SearchViewModel()
 
+    /// Maximum length for string fields (id, title, subtitle) to prevent memory issues.
+    private static let maxStringFieldLength = 500
+
+    /// Maximum number of results to process to prevent memory exhaustion.
+    private static let maxResultsCount = 500
+
+    // Track if we've disabled RN gesture handlers for keyboard input
+    private var gestureHandlersDisabled = false
+
+    // Store references to disabled gesture recognizers so we can re-enable them
+    private var disabledGestureRecognizers: [UIGestureRecognizer] = []
+
+    // Validation is handled by ExpoTvosSearchModule
     var columns: Int = 5 {
         didSet {
             viewModel.columns = columns
         }
     }
 
-    var placeholder: String = "Search movies and videos..." {
+    var placeholder: String = "Search..." {
         didSet {
             viewModel.placeholder = placeholder
+        }
+    }
+
+    var searchTextProp: String? = nil {
+        didSet {
+            guard let text = searchTextProp, text != viewModel.searchText else { return }
+            viewModel.searchText = text
         }
     }
 
@@ -419,7 +138,7 @@ class ExpoTvosSearchView: ExpoView {
         }
     }
 
-    var emptyStateText: String = "Search for movies and videos" {
+    var emptyStateText: String = "Search your library" {
         didSet {
             viewModel.emptyStateText = emptyStateText
         }
@@ -474,10 +193,8 @@ class ExpoTvosSearchView: ExpoView {
     var imageContentMode: String = "fill" {
         didSet {
             switch imageContentMode.lowercased() {
-            case "fit":
+            case "fit", "contain":
                 viewModel.imageContentMode = .fit
-            case "contain":
-                viewModel.imageContentMode = .fit  // SwiftUI uses .fit for contain
             default:
                 viewModel.imageContentMode = .fill
             }
@@ -506,6 +223,8 @@ class ExpoTvosSearchView: ExpoView {
     let onSelectItem = EventDispatcher()
     let onError = EventDispatcher()
     let onValidationWarning = EventDispatcher()
+    let onSearchFieldFocused = EventDispatcher()
+    let onSearchFieldBlurred = EventDispatcher()
 
     required init(appContext: AppContext? = nil) {
         super.init(appContext: appContext)
@@ -513,14 +232,29 @@ class ExpoTvosSearchView: ExpoView {
     }
 
     deinit {
-        // Clean up hosting controller and view model references to prevent memory leaks
-        hostingController?.view.removeFromSuperview()
-        hostingController = nil
-        viewModel.onSearch = nil
-        viewModel.onSelectItem = nil
+        // Remove notification observers explicitly (also auto-removed on dealloc, but explicit is safer)
+        NotificationCenter.default.removeObserver(self)
+
+        // Re-enable any disabled gesture recognizers (only needed on real hardware)
+        #if !targetEnvironment(simulator)
+        enableParentGestureRecognizers()
+        #endif
+
+        // Post notification to re-enable cancelsTouchesInView if needed
+        if gestureHandlersDisabled {
+            NotificationCenter.default.post(
+                name: RCTTVEnableGestureHandlersCancelTouchesNotification,
+                object: nil
+            )
+        }
     }
 
     private func setupView() {
+        let contentView = TvosSearchContentView(viewModel: viewModel)
+        let controller = UIHostingController(rootView: contentView)
+        controller.view.backgroundColor = .clear
+        hostingController = controller
+
         // Configure viewModel callbacks
         viewModel.onSearch = { [weak self] query in
             self?.onSearch(["query": query])
@@ -529,12 +263,8 @@ class ExpoTvosSearchView: ExpoView {
             self?.onSelectItem(["id": id])
         }
 
-        // Create hosting controller once
-        let contentView = TvosSearchContentView(viewModel: viewModel)
-        let controller = UIHostingController(rootView: contentView)
-        controller.view.backgroundColor = .clear
-        hostingController = controller
-
+        // Add hosting controller view with constraints
+        guard let controller = hostingController else { return }
         addSubview(controller.view)
         controller.view.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
@@ -543,15 +273,138 @@ class ExpoTvosSearchView: ExpoView {
             controller.view.leadingAnchor.constraint(equalTo: leadingAnchor),
             controller.view.trailingAnchor.constraint(equalTo: trailingAnchor)
         ])
+
+        // Observe text field editing to detect when search keyboard is active
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleTextFieldDidBeginEditing),
+            name: UITextField.textDidBeginEditingNotification,
+            object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleTextFieldDidEndEditing),
+            name: UITextField.textDidEndEditingNotification,
+            object: nil
+        )
+    }
+
+    @objc private func handleTextFieldDidBeginEditing(_ notification: Notification) {
+        guard let textField = notification.object as? UITextField,
+              let hostingView = hostingController?.view,
+              textField.isDescendant(of: hostingView) else {
+            return
+        }
+
+        // Skip if already disabled
+        guard !gestureHandlersDisabled else { return }
+        gestureHandlersDisabled = true
+
+        // Post notification to RN to stop cancelling touches
+        NotificationCenter.default.post(
+            name: RCTTVDisableGestureHandlersCancelTouchesNotification,
+            object: nil
+        )
+
+        // Only disable parent gesture recognizers on real hardware.
+        // On the Simulator, the RCT notification alone is sufficient and
+        // disabling gesture recognizers interferes with keyboard input
+        // (Mac keyboard events are delivered as UIPress events through the
+        // responder chain, which breaks when recognizers are disabled).
+        #if !targetEnvironment(simulator)
+        disableParentGestureRecognizers()
+        #endif
+
+        // Fire JS event
+        onSearchFieldFocused([:])
+    }
+
+    @objc private func handleTextFieldDidEndEditing(_ notification: Notification) {
+        guard let textField = notification.object as? UITextField,
+              let hostingView = hostingController?.view,
+              textField.isDescendant(of: hostingView) else {
+            return
+        }
+
+        // Skip if not disabled
+        guard gestureHandlersDisabled else { return }
+        gestureHandlersDisabled = false
+
+        // Re-enable gesture recognizers (only needed on real hardware)
+        #if !targetEnvironment(simulator)
+        enableParentGestureRecognizers()
+        #endif
+
+        // Post notification to RN
+        NotificationCenter.default.post(
+            name: RCTTVEnableGestureHandlersCancelTouchesNotification,
+            object: nil
+        )
+
+        // Fire JS event
+        onSearchFieldBlurred([:])
+    }
+
+    // MARK: - Validation Warning Helper
+
+    /// Emits a validation warning event with optional debug-only context
+    private func emitWarning(type: String, message: String, context: String? = nil, debugContext: String? = nil) {
+        #if DEBUG
+        let ctx = debugContext ?? context ?? "validation completed"
+        #else
+        let ctx = context ?? "validation completed"
+        #endif
+        onValidationWarning(["type": type, "message": message, "context": ctx])
+    }
+
+    // MARK: - Gesture Recognizer Management
+
+    /// Walks up the view hierarchy and disables tap/long-press gesture recognizers.
+    /// Swipe/pan recognizers are kept enabled for keyboard navigation.
+    private func disableParentGestureRecognizers() {
+        disabledGestureRecognizers.removeAll()
+
+        var currentView: UIView? = self.superview
+        while let view = currentView {
+            for recognizer in view.gestureRecognizers ?? [] {
+                // Only disable tap and long press recognizers
+                let isTapOrPress = recognizer is UITapGestureRecognizer ||
+                                   recognizer is UILongPressGestureRecognizer
+                if isTapOrPress && recognizer.isEnabled {
+                    recognizer.isEnabled = false
+                    disabledGestureRecognizers.append(recognizer)
+                }
+            }
+            currentView = view.superview
+        }
+    }
+
+    /// Re-enables all gesture recognizers that were previously disabled.
+    private func enableParentGestureRecognizers() {
+        for recognizer in disabledGestureRecognizers {
+            recognizer.isEnabled = true
+        }
+        disabledGestureRecognizers.removeAll()
     }
 
     func updateResults(_ results: [[String: Any]]) {
+        // Limit results to prevent memory exhaustion from malicious/buggy input
+        let limitedResults = results.prefix(Self.maxResultsCount)
+        let truncatedResultsCount = results.count - limitedResults.count
+
         var validResults: [SearchResultItem] = []
         var skippedCount = 0
         var urlValidationFailures = 0
+        var httpUrlCount = 0
         var truncatedFields = 0
 
-        for (index, dict) in results.enumerated() {
+        #if DEBUG
+        if truncatedResultsCount > 0 {
+            print("[expo-tvos-search] Truncated \(truncatedResultsCount) results (max \(Self.maxResultsCount) allowed)")
+        }
+        #endif
+
+        for (index, dict) in limitedResults.enumerated() {
             // Validate required fields
             guard let id = dict["id"] as? String, !id.isEmpty else {
                 skippedCount += 1
@@ -572,29 +425,32 @@ class ExpoTvosSearchView: ExpoView {
             // Validate and sanitize imageUrl if present
             var validatedImageUrl: String? = nil
             if let imageUrl = dict["imageUrl"] as? String, !imageUrl.isEmpty {
-                // Accept HTTP/HTTPS URLs only, reject other schemes for security
+                // Accept HTTP/HTTPS URLs and data: URIs, reject other schemes for security
                 if let url = URL(string: imageUrl),
                    let scheme = url.scheme?.lowercased(),
-                   scheme == "http" || scheme == "https" {
+                   scheme == "http" || scheme == "https" || scheme == "data" {
                     validatedImageUrl = imageUrl
+                    // Warn about insecure HTTP URLs (HTTPS recommended)
+                    if scheme == "http" {
+                        httpUrlCount += 1
+                        #if DEBUG
+                        print("[expo-tvos-search] Result '\(title)' (id: '\(id)'): using insecure HTTP URL. HTTPS is recommended for security.")
+                        #endif
+                    }
                 } else {
                     urlValidationFailures += 1
                     #if DEBUG
-                    print("[expo-tvos-search] Result '\(title)' (id: '\(id)'): invalid imageUrl '\(imageUrl)'. Only HTTP/HTTPS URLs are supported for security reasons.")
+                    print("[expo-tvos-search] Result '\(title)' (id: '\(id)'): invalid imageUrl '\(imageUrl)'. Only HTTP/HTTPS URLs and data: URIs are supported.")
                     #endif
                 }
             }
 
-            // Limit string lengths to prevent memory issues
-            let maxIdLength = 500
-            let maxTitleLength = 500
-            let maxSubtitleLength = 500
-
             // Track if any fields were truncated
-            let idTruncated = id.count > maxIdLength
-            let titleTruncated = title.count > maxTitleLength
+            let maxLen = Self.maxStringFieldLength
             let subtitle = dict["subtitle"] as? String
-            let subtitleTruncated = (subtitle?.count ?? 0) > maxSubtitleLength
+            let idTruncated = id.count > maxLen
+            let titleTruncated = title.count > maxLen
+            let subtitleTruncated = (subtitle?.count ?? 0) > maxLen
 
             if idTruncated || titleTruncated || subtitleTruncated {
                 truncatedFields += 1
@@ -608,9 +464,9 @@ class ExpoTvosSearchView: ExpoView {
             }
 
             validResults.append(SearchResultItem(
-                id: String(id.prefix(maxIdLength)),
-                title: String(title.prefix(maxTitleLength)),
-                subtitle: subtitle.map { String($0.prefix(maxSubtitleLength)) },
+                id: String(id.prefix(maxLen)),
+                title: String(title.prefix(maxLen)),
+                subtitle: subtitle.map { String($0.prefix(maxLen)) },
                 imageUrl: validatedImageUrl
             ))
         }
@@ -618,58 +474,47 @@ class ExpoTvosSearchView: ExpoView {
         // Log summary of validation issues and emit warnings
         #if DEBUG
         if skippedCount > 0 {
-            print("[expo-tvos-search] ⚠️ Skipped \(skippedCount) result(s) due to missing required fields (id or title)")
+            print("[expo-tvos-search] Skipped \(skippedCount) result(s) due to missing required fields (id or title)")
         }
         if urlValidationFailures > 0 {
-            print("[expo-tvos-search] ⚠️ \(urlValidationFailures) image URL(s) failed validation (non-HTTP/HTTPS or malformed)")
+            print("[expo-tvos-search] \(urlValidationFailures) image URL(s) failed validation (non-HTTP/HTTPS or malformed)")
+        }
+        if httpUrlCount > 0 {
+            print("[expo-tvos-search] \(httpUrlCount) image URL(s) use insecure HTTP. HTTPS is recommended.")
         }
         if truncatedFields > 0 {
-            print("[expo-tvos-search] ℹ️ Truncated \(truncatedFields) result(s) with fields exceeding maximum length (500 chars)")
+            print("[expo-tvos-search] Truncated \(truncatedFields) result(s) with fields exceeding maximum length (500 chars)")
         }
         if validResults.count > 0 {
-            print("[expo-tvos-search] ✓ Processed \(validResults.count) valid result(s)")
+            print("[expo-tvos-search] Processed \(validResults.count) valid result(s)")
         }
         #endif
 
         // Emit validation warnings for production monitoring
+        if truncatedResultsCount > 0 {
+            emitWarning(type: "results_truncated",
+                       message: "Truncated \(truncatedResultsCount) result(s) exceeding maximum of \(Self.maxResultsCount)",
+                       context: "Consider implementing pagination")
+        }
         if skippedCount > 0 {
-            #if DEBUG
-            let skipContext = "validResults=\(validResults.count), skipped=\(skippedCount)"
-            #else
-            let skipContext = "validation completed"
-            #endif
-
-            onValidationWarning([
-                "type": "validation_failed",
-                "message": "Skipped \(skippedCount) result(s) due to missing required fields",
-                "context": skipContext
-            ])
+            emitWarning(type: "validation_failed",
+                       message: "Skipped \(skippedCount) result(s) due to missing required fields",
+                       debugContext: "validResults=\(validResults.count), skipped=\(skippedCount)")
         }
         if urlValidationFailures > 0 {
-            #if DEBUG
-            let urlContext = "Non-HTTP/HTTPS or malformed URLs"
-            #else
-            let urlContext = "validation completed"
-            #endif
-
-            onValidationWarning([
-                "type": "url_invalid",
-                "message": "\(urlValidationFailures) image URL(s) failed validation",
-                "context": urlContext
-            ])
+            emitWarning(type: "url_invalid",
+                       message: "\(urlValidationFailures) image URL(s) failed validation",
+                       debugContext: "Non-HTTP/HTTPS or malformed URLs")
+        }
+        if httpUrlCount > 0 {
+            emitWarning(type: "url_insecure",
+                       message: "\(httpUrlCount) image URL(s) use insecure HTTP. HTTPS is recommended.",
+                       context: "Consider using HTTPS URLs")
         }
         if truncatedFields > 0 {
-            #if DEBUG
-            let truncContext = "Check id, title, or subtitle field lengths"
-            #else
-            let truncContext = "validation completed"
-            #endif
-
-            onValidationWarning([
-                "type": "field_truncated",
-                "message": "Truncated \(truncatedFields) result(s) with fields exceeding 500 characters",
-                "context": truncContext
-            ])
+            emitWarning(type: "field_truncated",
+                       message: "Truncated \(truncatedFields) result(s) with fields exceeding 500 characters",
+                       debugContext: "Check id, title, or subtitle field lengths")
         }
 
         // Ensure UI updates happen on main thread
@@ -682,34 +527,13 @@ class ExpoTvosSearchView: ExpoView {
 // MARK: - Color Extension for Hex String Parsing
 extension Color {
     /// Initialize a Color from a hex string (e.g., "#FFFFFF", "#FF5733", "FFC312")
-    /// Returns nil if the string cannot be parsed as a valid hex color
+    /// Returns nil if the string cannot be parsed as a valid hex color.
+    /// Parsing logic is in HexColorParser for testability.
     init?(hex: String) {
-        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
-        var int: UInt64 = 0
-
-        guard Scanner(string: hex).scanHexInt64(&int) else {
+        guard let rgba = HexColorParser.parse(hex) else {
             return nil
         }
-
-        let a, r, g, b: UInt64
-        switch hex.count {
-        case 3: // RGB (12-bit)
-            (a, r, g, b) = (255, (int >> 8) * 17, (int >> 4 & 0xF) * 17, (int & 0xF) * 17)
-        case 6: // RGB (24-bit)
-            (a, r, g, b) = (255, int >> 16, int >> 8 & 0xFF, int & 0xFF)
-        case 8: // ARGB (32-bit)
-            (a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
-        default:
-            return nil
-        }
-
-        self.init(
-            .sRGB,
-            red: Double(r) / 255,
-            green: Double(g) / 255,
-            blue: Double(b) / 255,
-            opacity: Double(a) / 255
-        )
+        self.init(.sRGB, red: rgba.red, green: rgba.green, blue: rgba.blue, opacity: rgba.alpha)
     }
 }
 
@@ -718,7 +542,8 @@ extension Color {
 // Fallback for non-tvOS platforms (iOS)
 class ExpoTvosSearchView: ExpoView {
     var columns: Int = 5
-    var placeholder: String = "Search movies and videos..."
+    var placeholder: String = "Search..."
+    var searchTextProp: String? = nil
     var isLoading: Bool = false
     var showTitle: Bool = false
     var showSubtitle: Bool = false
@@ -727,7 +552,7 @@ class ExpoTvosSearchView: ExpoView {
     var showTitleOverlay: Bool = true
     var enableMarquee: Bool = true
     var marqueeDelay: Double = 1.5
-    var emptyStateText: String = "Search for movies and videos"
+    var emptyStateText: String = "Search your library"
     var searchingText: String = "Searching..."
     var noResultsText: String = "No results found"
     var noResultsHintText: String = "Try a different search term"
@@ -740,10 +565,14 @@ class ExpoTvosSearchView: ExpoView {
     var cardPadding: CGFloat = 16
     var overlayTitleSize: CGFloat = 20
 
+    // Event dispatchers required by ExpoTvosSearchModule's Event() registration.
+    // Intentionally no-ops on non-tvOS — the fallback view never fires events.
     let onSearch = EventDispatcher()
     let onSelectItem = EventDispatcher()
     let onError = EventDispatcher()
     let onValidationWarning = EventDispatcher()
+    let onSearchFieldFocused = EventDispatcher()
+    let onSearchFieldBlurred = EventDispatcher()
 
     required init(appContext: AppContext? = nil) {
         super.init(appContext: appContext)

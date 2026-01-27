@@ -8,11 +8,28 @@ public class ExpoTvosSearchModule: Module {
     private static let maxMarqueeDelay: Double = 60.0
     private static let maxStringLength = 500
 
+    /// Truncates a string to maxStringLength and emits a validation warning if truncation occurred.
+    private static func truncateString(
+        _ value: String,
+        propName: String,
+        view: ExpoTvosSearchView
+    ) -> String {
+        let truncated = String(value.prefix(maxStringLength))
+        if truncated.count < value.count {
+            view.onValidationWarning([
+                "type": "value_truncated",
+                "message": "\(propName) truncated to \(maxStringLength) characters",
+                "context": "original length: \(value.count)"
+            ])
+        }
+        return truncated
+    }
+
     public func definition() -> ModuleDefinition {
         Name("ExpoTvosSearch")
 
         View(ExpoTvosSearchView.self) {
-            Events("onSearch", "onSelectItem", "onError", "onValidationWarning")
+            Events("onSearch", "onSelectItem", "onError", "onValidationWarning", "onSearchFieldFocused", "onSearchFieldBlurred")
 
             Prop("results") { (view: ExpoTvosSearchView, results: [[String: Any]]) in
                 // Limit results array size to prevent memory issues
@@ -41,8 +58,15 @@ public class ExpoTvosSearchModule: Module {
             }
 
             Prop("placeholder") { (view: ExpoTvosSearchView, placeholder: String) in
-                // Limit placeholder length to prevent layout issues
-                view.placeholder = String(placeholder.prefix(Self.maxStringLength))
+                view.placeholder = Self.truncateString(placeholder, propName: "placeholder", view: view)
+            }
+
+            Prop("searchText") { (view: ExpoTvosSearchView, text: String?) in
+                if let text = text {
+                    view.searchTextProp = Self.truncateString(text, propName: "searchText", view: view)
+                } else {
+                    view.searchTextProp = nil
+                }
             }
 
             Prop("isLoading") { (view: ExpoTvosSearchView, isLoading: Bool) in
@@ -96,19 +120,19 @@ public class ExpoTvosSearchModule: Module {
             }
 
             Prop("emptyStateText") { (view: ExpoTvosSearchView, text: String) in
-                view.emptyStateText = String(text.prefix(Self.maxStringLength))
+                view.emptyStateText = Self.truncateString(text, propName: "emptyStateText", view: view)
             }
 
             Prop("searchingText") { (view: ExpoTvosSearchView, text: String) in
-                view.searchingText = String(text.prefix(Self.maxStringLength))
+                view.searchingText = Self.truncateString(text, propName: "searchingText", view: view)
             }
 
             Prop("noResultsText") { (view: ExpoTvosSearchView, text: String) in
-                view.noResultsText = String(text.prefix(Self.maxStringLength))
+                view.noResultsText = Self.truncateString(text, propName: "noResultsText", view: view)
             }
 
             Prop("noResultsHintText") { (view: ExpoTvosSearchView, text: String) in
-                view.noResultsHintText = String(text.prefix(Self.maxStringLength))
+                view.noResultsHintText = Self.truncateString(text, propName: "noResultsHintText", view: view)
             }
 
             Prop("textColor") { (view: ExpoTvosSearchView, colorHex: String?) in

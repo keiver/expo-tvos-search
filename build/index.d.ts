@@ -44,12 +44,20 @@ export interface SearchViewErrorEvent {
 export interface ValidationWarningEvent {
     nativeEvent: {
         /** Type of validation warning */
-        type: "field_truncated" | "value_clamped" | "url_invalid" | "validation_failed";
+        type: "field_truncated" | "value_clamped" | "value_truncated" | "results_truncated" | "url_invalid" | "url_insecure" | "validation_failed";
         /** Human-readable warning message */
         message: string;
         /** Optional additional context */
         context?: string;
     };
+}
+/**
+ * Event payload for search field focus changes.
+ * Fired when the native search field gains or loses focus.
+ * Useful for managing RN gesture handlers via TVEventControl.
+ */
+export interface SearchFieldFocusEvent {
+    nativeEvent: Record<string, never>;
 }
 /**
  * Represents a single search result displayed in the grid.
@@ -61,7 +69,7 @@ export interface SearchResult {
     title: string;
     /** Optional secondary text displayed below the title */
     subtitle?: string;
-    /** Optional image URL for the result poster/thumbnail */
+    /** Optional image URL for the result poster/thumbnail. Supports HTTPS, HTTP, and data: URIs */
     imageUrl?: string;
 }
 /**
@@ -72,7 +80,7 @@ export interface SearchResult {
  * <TvosSearchView
  *   results={searchResults}
  *   columns={5}
- *   placeholder="Search movies..."
+ *   placeholder="Search..."
  *   isLoading={loading}
  *   topInset={140}
  *   onSearch={(e) => handleSearch(e.nativeEvent.query)}
@@ -100,9 +108,20 @@ export interface TvosSearchViewProps {
     columns?: number;
     /**
      * Placeholder text shown in the search field when empty.
-     * @default "Search movies and videos..."
+     * @default "Search..."
      */
     placeholder?: string;
+    /**
+     * Programmatically set the search field text.
+     * Works like React Native TextInput's `value` + `onChangeText` pattern.
+     * Useful for restoring search state, deep links, or "search for similar" flows.
+     *
+     * **Warning:** Avoid setting `searchText` inside your `onSearch` handler with
+     * transforms (e.g., trimming, lowercasing). The native guard only prevents
+     * same-value loops — transformed values will trigger a new `onSearch` event,
+     * creating an infinite update cycle.
+     */
+    searchText?: string;
     /**
      * Whether to show a loading indicator.
      * @default false
@@ -154,7 +173,7 @@ export interface TvosSearchViewProps {
     marqueeDelay?: number;
     /**
      * Text displayed when the search field is empty and no results are shown.
-     * @default "Search for movies and videos"
+     * @default "Search your library"
      */
     emptyStateText?: string;
     /**
@@ -230,6 +249,9 @@ export interface TvosSearchViewProps {
     /**
      * Callback fired when the search text changes.
      * Debounce this handler to avoid excessive API calls.
+     *
+     * **Note:** If using the `searchText` prop, do not set it to a transformed
+     * value inside this handler — see `searchText` docs for loop prevention.
      */
     onSearch: (event: SearchEvent) => void;
     /**
@@ -261,6 +283,36 @@ export interface TvosSearchViewProps {
      * ```
      */
     onValidationWarning?: (event: ValidationWarningEvent) => void;
+    /**
+     * Optional callback fired when the native search field gains focus.
+     * Use this to disable RN gesture handlers via TVEventControl if the
+     * automatic gesture handling doesn't work on your device.
+     *
+     * @example
+     * ```tsx
+     * import { TVEventControl } from 'react-native';
+     *
+     * onSearchFieldFocused={() => {
+     *   TVEventControl.disableGestureHandlersCancelTouches();
+     * }}
+     * ```
+     */
+    onSearchFieldFocused?: (event: SearchFieldFocusEvent) => void;
+    /**
+     * Optional callback fired when the native search field loses focus.
+     * Use this to re-enable RN gesture handlers via TVEventControl if you
+     * disabled them in onSearchFieldFocused.
+     *
+     * @example
+     * ```tsx
+     * import { TVEventControl } from 'react-native';
+     *
+     * onSearchFieldBlurred={() => {
+     *   TVEventControl.enableGestureHandlersCancelTouches();
+     * }}
+     * ```
+     */
+    onSearchFieldBlurred?: (event: SearchFieldFocusEvent) => void;
     /**
      * Optional style for the view container.
      */

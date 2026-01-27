@@ -34,7 +34,14 @@
       "Bash(npx @react-native-community/cli@latest init:*)",
       "Bash(npm run prebuild:*)",
       "Bash(swiftc:*)",
-      "Bash(node -e:*)"
+      "Bash(node -e:*)",
+      "Bash(git rebase:*)",
+      "Bash(gh pr view:*)",
+      "Bash(swift -typecheck:*)",
+      "Bash(git show:*)",
+      "Bash(tree:*)",
+      "WebFetch(domain:registry.npmjs.org)",
+      "Bash(npm ls:*)"
     ]
   }
 }
