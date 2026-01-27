@@ -379,13 +379,13 @@ if (Platform.OS === "ios" && Platform.isTV) {
 }
 
 /**
- * Triggers UIKit focus traversal restoration after fullScreenModal dismissal.
+ * Forces a layout pass on the key window's root view to rebuild
+ * the tvOS focus engine's spatial map after modal dismissal.
  *
- * Finds the `UITabBarController` in the VC hierarchy and calls
- * `setNeedsFocusUpdate()` + `updateFocusIfNeeded()` on its `selectedViewController`.
- * This scoped re-evaluation preserves the currently focused element while
- * refreshing the focus engine's traversal graph (up/down navigation paths),
- * which becomes stale after fullScreenModal dismiss on tvOS.
+ * react-native-screens modal dismiss breaks vertical focus traversal
+ * (up/down navigation) across the entire app. This calls
+ * `setNeedsLayout()` + `layoutIfNeeded()` on the root view, which
+ * forces geometry recalculation and rebuilds the focus spatial map.
  *
  * No-op on non-tvOS platforms or when the native module is unavailable.
  */

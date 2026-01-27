@@ -33,25 +33,15 @@ public class ExpoTvosSearchModule: Module {
                 guard let windowScene = UIApplication.shared.connectedScenes
                     .compactMap({ $0 as? UIWindowScene })
                     .first,
-                    let rootVC = windowScene.windows.first(where: { $0.isKeyWindow })?.rootViewController
+                    let keyWindow = windowScene.windows.first(where: { $0.isKeyWindow })
                 else { return }
 
-                // Find the UITabBarController in the hierarchy
-                func findTabBarController(_ vc: UIViewController) -> UITabBarController? {
-                    if let tabVC = vc as? UITabBarController { return tabVC }
-                    for child in vc.children {
-                        if let found = findTabBarController(child) { return found }
-                    }
-                    return nil
-                }
-
-                // Target the selected tab's VC — scoped re-evaluation preserves
-                // existing focus and only refreshes traversal paths
-                if let tabVC = findTabBarController(rootVC),
-                   let selectedVC = tabVC.selectedViewController {
-                    selectedVC.setNeedsFocusUpdate()
-                    selectedVC.updateFocusIfNeeded()
-                }
+                // Force a full layout pass on the root view to rebuild
+                // the focus engine's spatial map for vertical traversal.
+                // react-native-screens modal dismiss breaks the spatial map;
+                // setNeedsFocusUpdate() only changes preferred focus, not the map.
+                keyWindow.rootViewController?.view.setNeedsLayout()
+                keyWindow.rootViewController?.view.layoutIfNeeded()
             }
         }
 
