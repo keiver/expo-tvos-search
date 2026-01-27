@@ -13,10 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Works with `TVEventControl.disableGestureHandlersCancelTouches()` for JS-side handling
   - Native Swift implementation automatically disables tap/press gesture recognizers when search field is focused
   - Keeps swipe/pan recognizers enabled for keyboard navigation
-- TypeScript type `SearchFieldFocusEvent` for the new focus events
-- **Data URI support for images**: `imageUrl` now accepts `data:` URIs (e.g., `data:image/png;base64,...`) in addition to HTTP/HTTPS URLs
-  - Enables inline base64-encoded images without external requests
-  - Useful for cached thumbnails or placeholder images
+  - TypeScript type `SearchFieldFocusEvent` for the new focus events
+  - **Data URI support for images**: `imageUrl` now accepts `data:` URIs (e.g., `data:image/png;base64,...`) in addition to HTTP/HTTPS URLs
+    - Enables inline base64-encoded images without external requests
+    - Useful for cached thumbnails or placeholder images
 
 ### Fixed
 - Siri Remote click events not reaching native SwiftUI search field on real Apple TV hardware
