@@ -289,15 +289,37 @@ class ExpoTvosSearchView: ExpoView {
                 )
             }
 
-            // Two-step focus restoration:
-            // Step 1: Increment generation → SwiftUI .onChange fires → sets @FocusState to saved card ID
-            DispatchQueue.main.async { [weak self] in
-                self?.viewModel.focusRestoreGeneration += 1
+            // LAYER 1: Force synchronous layout cascade on HC + all child VCs.
+            // This re-registers SwiftUI focus proxy items that were lost during detach.
+            if let controller = hostingController {
+                NSLog("[FocusRestore] didMoveToWindow: forcing layout cascade")
+                func forceLayoutInHierarchy(_ vc: UIViewController, depth: Int = 0) {
+                    let vcType = String(describing: type(of: vc))
+                    NSLog("[FocusRestore]   %@%@ frame=%@",
+                          String(repeating: "  ", count: depth), vcType,
+                          NSCoder.string(for: vc.view.frame))
+                    vc.view.setNeedsLayout()
+                    vc.view.layoutIfNeeded()
+                    for child in vc.children {
+                        forceLayoutInHierarchy(child, depth: depth + 1)
+                    }
+                }
+                forceLayoutInHierarchy(controller)
             }
-            // Step 2: After SwiftUI processes the @FocusState change, poke UIKit to act on it
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
-                self?.hostingController?.setNeedsFocusUpdate()
-                self?.hostingController?.updateFocusIfNeeded()
+
+            // LAYER 2: Tell SwiftUI which card to re-focus via @FocusState
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                NSLog("[FocusRestore] Layer 2: generation=%d, lastFocusedCardId=%@",
+                      self.viewModel.focusRestoreGeneration + 1,
+                      self.viewModel.lastFocusedCardId ?? "nil")
+                self.viewModel.focusRestoreGeneration += 1
+            }
+
+            // LAYER 3: Walk entire VC hierarchy (children + parents) forcing focus updates
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
+                NSLog("[FocusRestore] Layer 3: refreshFocusEnvironment")
+                self?.refreshFocusEnvironment()
             }
         } else {
             // Clean up VC hierarchy when leaving window
