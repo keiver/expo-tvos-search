@@ -36,6 +36,7 @@ struct TvosSearchContentView: View {
                 viewModel.onSearch?(newValue)
             }
         }
+        .id(viewModel.focusRefreshToken)
         .padding(.top, viewModel.topInset)
         .ignoresSafeArea(.all, edges: .top)
     }

@@ -52,6 +52,9 @@ class SearchViewModel: ObservableObject {
     @Published var cardMargin: CGFloat = 40  // Spacing between cards
     @Published var cardPadding: CGFloat = 16  // Padding inside cards
     @Published var overlayTitleSize: CGFloat = 20  // Font size for overlay title
+
+    // Focus restoration: changing this forces SwiftUI to destroy and recreate the view tree
+    @Published var focusRefreshToken: Int = 0
 }
 
 class ExpoTvosSearchView: ExpoView {
@@ -328,43 +331,27 @@ class ExpoTvosSearchView: ExpoView {
 
     // MARK: - Focus Restoration
 
-    /// Walks the entire VC hierarchy (hosting controller's children + parents)
-    /// forcing layout + focus updates on every VC. Targets UISearchContainerViewController
-    /// (SwiftUI's .searchable() internal VC) which doesn't re-register its focus
-    /// proxy items after fullScreenModal dismiss.
+    /// Forces SwiftUI to destroy and recreate its internal view tree by incrementing
+    /// the `.id()` token on the NavigationView. This causes UISearchContainerViewController
+    /// (and its stale focus proxy items) to be torn down and rebuilt with fresh focus
+    /// registrations. The UIHostingController stays in the VC hierarchy.
+    /// After a 300ms delay for SwiftUI to process, requests a UIKit focus update.
     func refreshFocusEnvironment() {
-        guard let controller = hostingController, controller.parent != nil else { return }
+        guard hostingController?.parent != nil else { return }
 
-        NSLog("[FocusRestore] === refreshFocusEnvironment START ===")
+        NSLog("[FocusRestore] incrementing focusRefreshToken (was %d)", viewModel.focusRefreshToken)
+        viewModel.focusRefreshToken += 1
 
-        // Walk all child VCs, force layout + focus update on each.
-        func updateFocusInHierarchy(_ vc: UIViewController, depth: Int = 0) {
-            let vcType = String(describing: type(of: vc))
-            NSLog("[FocusRestore] %@%@ (children: %d)",
-                  String(repeating: "  ", count: depth), vcType, vc.children.count)
-
-            vc.view.setNeedsLayout()
-            vc.view.layoutIfNeeded()
-            vc.setNeedsFocusUpdate()
-            vc.updateFocusIfNeeded()
-
-            for child in vc.children {
-                updateFocusInHierarchy(child, depth: depth + 1)
+        // Wait for SwiftUI to process the identity change and re-register focus items
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+            guard let controller = self?.hostingController else {
+                NSLog("[FocusRestore] hostingController nil at focus update time")
+                return
             }
+            controller.setNeedsFocusUpdate()
+            controller.updateFocusIfNeeded()
+            NSLog("[FocusRestore] focus update requested after identity reset")
         }
-
-        updateFocusInHierarchy(controller)
-
-        // Walk UP to root, forcing focus update on each parent.
-        var parent = controller.parent
-        while let p = parent {
-            NSLog("[FocusRestore] parent: %@", String(describing: type(of: p)))
-            p.setNeedsFocusUpdate()
-            p.updateFocusIfNeeded()
-            parent = p.parent
-        }
-
-        NSLog("[FocusRestore] === refreshFocusEnvironment END ===")
     }
 
     /// Walks the view hierarchy and calls refreshFocusEnvironment() on
