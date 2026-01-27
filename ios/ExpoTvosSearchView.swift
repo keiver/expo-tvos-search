@@ -235,6 +235,11 @@ class ExpoTvosSearchView: ExpoView {
         // Remove notification observers explicitly (also auto-removed on dealloc, but explicit is safer)
         NotificationCenter.default.removeObserver(self)
 
+        // Properly tear down VC hierarchy
+        hostingController?.willMove(toParent: nil)
+        hostingController?.view.removeFromSuperview()
+        hostingController?.removeFromParent()
+
         // Re-enable any disabled gesture recognizers (only needed on real hardware)
         #if !targetEnvironment(simulator)
         enableParentGestureRecognizers()
@@ -251,31 +256,74 @@ class ExpoTvosSearchView: ExpoView {
 
     override func didMoveToWindow() {
         super.didMoveToWindow()
-        guard window != nil else { return }
 
-        // Unconditionally reset gesture handler state when view re-enters window.
-        // This handles the case where a modal interrupted editing and the
-        // handleTextFieldDidEndEditing notification never fired.
-        if gestureHandlersDisabled {
-            gestureHandlersDisabled = false
+        if window != nil {
+            // Integrate the hosting controller into the UIKit VC hierarchy.
+            // This is critical for tvOS focus engine: without addChild/didMove,
+            // the focus engine cannot traverse to SwiftUI's .searchable() targets
+            // after a fullScreenModal is dismissed.
+            attachHostingController()
 
-            #if !targetEnvironment(simulator)
-            enableParentGestureRecognizers()
-            #endif
+            // Reset gesture handler state when view re-enters window.
+            // Handles the case where a modal interrupted editing and the
+            // handleTextFieldDidEndEditing notification never fired.
+            if gestureHandlersDisabled {
+                gestureHandlersDisabled = false
 
-            NotificationCenter.default.post(
-                name: RCTTVEnableGestureHandlersCancelTouchesNotification,
-                object: nil
-            )
+                #if !targetEnvironment(simulator)
+                enableParentGestureRecognizers()
+                #endif
+
+                NotificationCenter.default.post(
+                    name: RCTTVEnableGestureHandlersCancelTouchesNotification,
+                    object: nil
+                )
+            }
+
+            // Force the focus engine to re-evaluate focus targets.
+            // Dispatched async to avoid racing with UIKit's own transition handling.
+            DispatchQueue.main.async { [weak self] in
+                guard let hostingController = self?.hostingController else { return }
+                hostingController.setNeedsFocusUpdate()
+                hostingController.updateFocusIfNeeded()
+            }
+        } else {
+            // Clean up VC hierarchy when leaving window
+            detachHostingController()
         }
+    }
 
-        // Force the focus engine to re-evaluate focus targets within our SwiftUI hierarchy.
-        // Dispatched async to avoid racing with UIKit's own transition handling.
-        DispatchQueue.main.async { [weak self] in
-            guard let hostingController = self?.hostingController else { return }
-            hostingController.setNeedsFocusUpdate()
-            hostingController.updateFocusIfNeeded()
-        }
+    // MARK: - Hosting Controller VC Lifecycle
+
+    /// Adds the hosting controller as a child of the nearest parent view controller.
+    /// Follows the UIKit child VC contract: addChild → addSubview → didMove(toParent:).
+    /// This ensures the tvOS focus engine can traverse to SwiftUI focus targets.
+    private func attachHostingController() {
+        guard let controller = hostingController,
+              controller.parent == nil,
+              let parentVC = self.reactViewController() else { return }
+
+        parentVC.addChild(controller)
+        addSubview(controller.view)
+        controller.view.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            controller.view.topAnchor.constraint(equalTo: topAnchor),
+            controller.view.bottomAnchor.constraint(equalTo: bottomAnchor),
+            controller.view.leadingAnchor.constraint(equalTo: leadingAnchor),
+            controller.view.trailingAnchor.constraint(equalTo: trailingAnchor)
+        ])
+        controller.didMove(toParent: parentVC)
+    }
+
+    /// Removes the hosting controller from the VC hierarchy.
+    /// Follows the UIKit child VC contract: willMove(toParent: nil) → removeFromSuperview → removeFromParent.
+    private func detachHostingController() {
+        guard let controller = hostingController,
+              controller.parent != nil else { return }
+
+        controller.willMove(toParent: nil)
+        controller.view.removeFromSuperview()
+        controller.removeFromParent()
     }
 
     private func setupView() {
@@ -292,17 +340,6 @@ class ExpoTvosSearchView: ExpoView {
         viewModel.onSelectItem = { [weak self] id in
             self?.onSelectItem(["id": id])
         }
-
-        // Add hosting controller view with constraints
-        guard let controller = hostingController else { return }
-        addSubview(controller.view)
-        controller.view.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            controller.view.topAnchor.constraint(equalTo: topAnchor),
-            controller.view.bottomAnchor.constraint(equalTo: bottomAnchor),
-            controller.view.leadingAnchor.constraint(equalTo: leadingAnchor),
-            controller.view.trailingAnchor.constraint(equalTo: trailingAnchor)
-        ])
 
         // Observe text field editing to detect when search keyboard is active
         NotificationCenter.default.addObserver(
