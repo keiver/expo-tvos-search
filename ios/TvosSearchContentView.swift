@@ -45,7 +45,9 @@ struct TvosSearchContentView: View {
         .ignoresSafeArea(.all, edges: .top)
         .onChange(of: focusedCardId) { newValue in
             NSLog("[FocusRestore] SwiftUI: focusedCardId changed to %@", newValue ?? "nil")
-            viewModel.lastFocusedCardId = newValue
+            if let cardId = newValue {
+                viewModel.lastFocusedCardId = cardId
+            }
         }
         .onChange(of: viewModel.focusRestoreGeneration) { _ in
             NSLog("[FocusRestore] SwiftUI: setting focusedCardId=%@",

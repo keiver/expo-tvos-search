@@ -316,11 +316,9 @@ class ExpoTvosSearchView: ExpoView {
                 self.viewModel.focusRestoreGeneration += 1
             }
 
-            // LAYER 3: Walk entire VC hierarchy (children + parents) forcing focus updates
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
-                NSLog("[FocusRestore] Layer 3: refreshFocusEnvironment")
-                self?.refreshFocusEnvironment()
-            }
+            // Layer 3 (refreshFocusEnvironment) intentionally removed here.
+            // It calls updateFocusIfNeeded() on parent VCs which steals focus
+            // back to the tab bar, causing the app to freeze.
         } else {
             // Clean up VC hierarchy when leaving window
             detachHostingController()
