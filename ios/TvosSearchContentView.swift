@@ -107,7 +107,6 @@ struct TvosSearchContentView: View {
                 ForEach(viewModel.results) { item in
                     SearchResultCard(
                         item: item,
-                        focusedCardId: $focusedCardId,
                         showTitle: viewModel.showTitle,
                         showSubtitle: viewModel.showSubtitle,
                         showFocusBorder: viewModel.showFocusBorder,
@@ -121,7 +120,8 @@ struct TvosSearchContentView: View {
                         imageContentMode: viewModel.imageContentMode,
                         cardPadding: viewModel.cardPadding,
                         overlayTitleSize: viewModel.overlayTitleSize,
-                        onSelect: { viewModel.onSelectItem?(item.id) }
+                        onSelect: { viewModel.onSelectItem?(item.id) },
+                        focusedCardId: $focusedCardId
                     )
                 }
             }
