@@ -53,8 +53,6 @@ class SearchViewModel: ObservableObject {
     @Published var cardPadding: CGFloat = 16  // Padding inside cards
     @Published var overlayTitleSize: CGFloat = 20  // Font size for overlay title
 
-    // Focus restoration: triggers SwiftUI's resetFocus within the focusScope
-    @Published var shouldResetFocus: Bool = false
 }
 
 class ExpoTvosSearchView: ExpoView {
@@ -290,10 +288,13 @@ class ExpoTvosSearchView: ExpoView {
                 hostingController.setNeedsFocusUpdate()
                 hostingController.updateFocusIfNeeded()
             }
-        } else {
-            // Clean up VC hierarchy when leaving window
-            detachHostingController()
         }
+        // Attempt 8: Do NOT detach the hosting controller when the window goes away.
+        // The detach/reattach cycle (willMove(toParent:nil) → removeFromParent →
+        // addChild → didMove(toParent:)) tears down SwiftUI's internal focus proxy
+        // items (UIKitFocusableViewResponderItem). By keeping the HC in the VC
+        // hierarchy during fullScreenModal presentation, SwiftUI's focus registrations
+        // are never disrupted. The deinit still performs full cleanup.
     }
 
     // MARK: - Hosting Controller VC Lifecycle
@@ -331,25 +332,43 @@ class ExpoTvosSearchView: ExpoView {
 
     // MARK: - Focus Restoration
 
-    /// Triggers SwiftUI's resetFocus(in:) within the focusScope to re-evaluate
-    /// focus targets without destroying the view tree. Preserves scroll position
-    /// and avoids visual flash. Falls back to UIKit focus update after a delay.
+    /// Walks the entire VC hierarchy (hosting controller's children + parents)
+    /// forcing layout + focus updates on every VC. Targets UISearchContainerViewController
+    /// (SwiftUI's .searchable() internal VC) which doesn't re-register its focus
+    /// proxy items after fullScreenModal dismiss.
     func refreshFocusEnvironment() {
         guard let controller = hostingController, controller.parent != nil else { return }
 
-        NSLog("[FocusRestore] triggering shouldResetFocus via viewModel")
-        viewModel.shouldResetFocus = true
+        NSLog("[FocusRestore] === refreshFocusEnvironment START ===")
 
-        // Follow up with UIKit-level focus update after SwiftUI processes the reset
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
-            guard let controller = self?.hostingController else {
-                NSLog("[FocusRestore] hostingController nil at UIKit focus update time")
-                return
+        // Walk all child VCs, force layout + focus update on each.
+        func updateFocusInHierarchy(_ vc: UIViewController, depth: Int = 0) {
+            let vcType = String(describing: type(of: vc))
+            NSLog("[FocusRestore] %@%@ (children: %d)",
+                  String(repeating: "  ", count: depth), vcType, vc.children.count)
+
+            vc.view.setNeedsLayout()
+            vc.view.layoutIfNeeded()
+            vc.setNeedsFocusUpdate()
+            vc.updateFocusIfNeeded()
+
+            for child in vc.children {
+                updateFocusInHierarchy(child, depth: depth + 1)
             }
-            controller.setNeedsFocusUpdate()
-            controller.updateFocusIfNeeded()
-            NSLog("[FocusRestore] UIKit focus update requested after resetFocus")
         }
+
+        updateFocusInHierarchy(controller)
+
+        // Walk UP to root, forcing focus update on each parent.
+        var parent = controller.parent
+        while let p = parent {
+            NSLog("[FocusRestore] parent: %@", String(describing: type(of: p)))
+            p.setNeedsFocusUpdate()
+            p.updateFocusIfNeeded()
+            parent = p.parent
+        }
+
+        NSLog("[FocusRestore] === refreshFocusEnvironment END ===")
     }
 
     /// Walks the view hierarchy and calls refreshFocusEnvironment() on
