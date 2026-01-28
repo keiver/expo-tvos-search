@@ -320,8 +320,9 @@ class ExpoTvosSearchView: ExpoView {
             // It calls updateFocusIfNeeded() on parent VCs which steals focus
             // back to the tab bar, causing the app to freeze.
         } else {
-            // Clean up VC hierarchy when leaving window
-            detachHostingController()
+            // Do NOT detach: keeps HC in VC hierarchy during modal transitions,
+            // preventing destruction of focus proxy for .searchable() search field.
+            // UIKit manages VC parent-child lifecycle safely. Final cleanup in deinit.
         }
     }
 
