@@ -319,6 +319,64 @@ export interface TvosSearchViewProps {
     style?: ViewStyle;
 }
 /**
+ * Restores tvOS vertical focus traversal after fullScreenModal dismiss.
+ *
+ * After a react-native-screens fullScreenModal is dismissed, UIKit's focus
+ * engine loses track of SwiftUI focus items (UIKitFocusableViewResponderItem)
+ * inside UISearchContainerViewController. This causes UP/DOWN navigation to
+ * fail with `nextFocusedItem: NIL` while LEFT/RIGHT between tab buttons
+ * still works.
+ *
+ * Fix: Walks the key window's view hierarchy to find ExpoTvosSearchView
+ * instances and forces layout + focus updates on the entire VC hierarchy
+ * (hosting controller's children including UISearchContainerViewController,
+ * plus parent chain up to root). Diagnostic NSLog with `[FocusRestore]`
+ * prefix logs every VC visited — check Xcode console.
+ *
+ * Call this ~200ms after returning to the tab layout (e.g., in a
+ * useFocusEffect callback) to allow UIKit's transition to settle.
+ *
+ * No-op on non-tvOS platforms or when the native module is unavailable.
+ */
+export declare function restoreTVFocus(): void;
+/**
+ * Starts logging all tvOS focus updates and failed focus movements
+ * to the Xcode console via NSLog with [FocusDebug] prefix.
+ *
+ * Registers observers for UIFocusSystem.didUpdateNotification and
+ * UIFocusSystem.movementDidFailNotification (tvOS 12+). Each log
+ * entry includes the source/target view class, tag, frame, and
+ * movement direction (UP/DOWN/LEFT/RIGHT).
+ *
+ * For failed movements, also logs whether nextFocusedItem was nil
+ * (focus engine found no target) or non-nil (blocked by
+ * shouldUpdateFocusInContext returning NO), plus scroll view
+ * ancestor state (contentOffset, contentSize, frame).
+ *
+ * Call disableFocusDebugging() to stop logging.
+ *
+ * No-op on non-tvOS platforms or when the native module is unavailable.
+ */
+export declare function enableFocusDebugging(): void;
+/**
+ * Stops focus debug logging started by enableFocusDebugging().
+ *
+ * No-op on non-tvOS platforms or when the native module is unavailable.
+ */
+export declare function disableFocusDebugging(): void;
+/**
+ * Dumps current focus state to the Xcode console via NSLog.
+ *
+ * Logs: currently focused item (class, tag, frame), its full
+ * superview chain, scroll view ancestors with their contentOffset
+ * and contentSize, and the root view controller hierarchy.
+ *
+ * Call this after modal dismiss to inspect the focus state.
+ *
+ * No-op on non-tvOS platforms or when the native module is unavailable.
+ */
+export declare function logFocusState(): void;
+/**
  * Native tvOS search view component using SwiftUI's `.searchable` modifier.
  *
  * This component provides a native search experience on tvOS with proper focus
