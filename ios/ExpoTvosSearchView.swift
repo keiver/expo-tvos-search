@@ -232,6 +232,9 @@ class ExpoTvosSearchView: ExpoView {
     }
 
     deinit {
+        // Properly detach the hosting controller from the VC hierarchy
+        detachHostingController()
+
         // Remove notification observers explicitly (also auto-removed on dealloc, but explicit is safer)
         NotificationCenter.default.removeObserver(self)
 
@@ -254,13 +257,62 @@ class ExpoTvosSearchView: ExpoView {
 
         if window != nil {
             // View re-entered window (e.g. tab switched back)
+            attachHostingController()
             resetGestureHandlerState()
-            // Ask tvOS focus engine to re-evaluate
-            setNeedsFocusUpdate()
-            updateFocusIfNeeded()
+
+            // Force layout cascade to re-register .searchable() focus proxies
+            if let controller = hostingController {
+                forceLayoutInHierarchy(controller)
+            }
         } else {
             // View left window (e.g. tab switched away)
+            // Do NOT detach — keeps .searchable() focus proxy alive across transitions
             resetGestureHandlerState()
+        }
+    }
+
+    /// Attaches the hosting controller as a proper UIKit child of the nearest
+    /// parent view controller. This is required because `.searchable()` creates
+    /// a `UISearchContainerViewController` that depends on VC containment.
+    /// Without `addChild()` / `didMove(toParent:)`, the search keyboard row
+    /// vanishes when returning to a previously-visited tab.
+    private func attachHostingController() {
+        guard let controller = hostingController,
+              controller.parent == nil,
+              let parentVC = self.reactViewController() else { return }
+
+        parentVC.addChild(controller)
+        addSubview(controller.view)
+        controller.view.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            controller.view.topAnchor.constraint(equalTo: topAnchor),
+            controller.view.bottomAnchor.constraint(equalTo: bottomAnchor),
+            controller.view.leadingAnchor.constraint(equalTo: leadingAnchor),
+            controller.view.trailingAnchor.constraint(equalTo: trailingAnchor)
+        ])
+        controller.didMove(toParent: parentVC)
+    }
+
+    /// Detaches the hosting controller from its parent VC. Only used during
+    /// deinit — intentionally NOT called on tab switches so the `.searchable()`
+    /// focus proxy survives transitions.
+    private func detachHostingController() {
+        guard let controller = hostingController,
+              controller.parent != nil else { return }
+
+        controller.willMove(toParent: nil)
+        controller.view.removeFromSuperview()
+        controller.removeFromParent()
+    }
+
+    /// Recursively forces layout on a VC and all its children. This nudges the
+    /// `.searchable()` modifier to re-register its focus proxies after a tab
+    /// transition removes and re-adds the view from the window.
+    private func forceLayoutInHierarchy(_ vc: UIViewController) {
+        vc.view.setNeedsLayout()
+        vc.view.layoutIfNeeded()
+        for child in vc.children {
+            forceLayoutInHierarchy(child)
         }
     }
 
@@ -268,6 +320,7 @@ class ExpoTvosSearchView: ExpoView {
         let contentView = TvosSearchContentView(viewModel: viewModel)
         let controller = UIHostingController(rootView: contentView)
         controller.view.backgroundColor = .clear
+        controller.restoresFocusAfterTransition = true
         hostingController = controller
 
         // Configure viewModel callbacks
@@ -278,16 +331,9 @@ class ExpoTvosSearchView: ExpoView {
             self?.onSelectItem(["id": id])
         }
 
-        // Add hosting controller view with constraints
-        guard let controller = hostingController else { return }
-        addSubview(controller.view)
-        controller.view.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            controller.view.topAnchor.constraint(equalTo: topAnchor),
-            controller.view.bottomAnchor.constraint(equalTo: bottomAnchor),
-            controller.view.leadingAnchor.constraint(equalTo: leadingAnchor),
-            controller.view.trailingAnchor.constraint(equalTo: trailingAnchor)
-        ])
+        // View attachment is deferred to didMoveToWindow() where the parent VC
+        // is available. This ensures proper UIKit VC containment which the
+        // .searchable() modifier depends on to maintain its focus proxy.
 
         // Observe text field editing to detect when search keyboard is active
         NotificationCenter.default.addObserver(
