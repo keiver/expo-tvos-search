@@ -46,9 +46,9 @@
     "react-native-tvos"
   ],
   "peerDependencies": {
-    "expo": ">=51.0.0",
-    "expo-modules-core": ">=1.0.0",
-    "react": ">=18.0.0",
+    "expo": "*",
+    "expo-modules-core": "*",
+    "react": "*",
     "react-native": "*"
   },
   "peerDependenciesMeta": {
