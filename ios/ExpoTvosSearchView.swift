@@ -249,6 +249,21 @@ class ExpoTvosSearchView: ExpoView {
         }
     }
 
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+
+        if window != nil {
+            // View re-entered window (e.g. tab switched back)
+            resetGestureHandlerState()
+            // Ask tvOS focus engine to re-evaluate
+            setNeedsFocusUpdate()
+            updateFocusIfNeeded()
+        } else {
+            // View left window (e.g. tab switched away)
+            resetGestureHandlerState()
+        }
+    }
+
     private func setupView() {
         let contentView = TvosSearchContentView(viewModel: viewModel)
         let controller = UIHostingController(rootView: contentView)
@@ -385,6 +400,23 @@ class ExpoTvosSearchView: ExpoView {
             recognizer.isEnabled = true
         }
         disabledGestureRecognizers.removeAll()
+    }
+
+    /// Resets gesture handler state to enabled if currently disabled.
+    /// Called from didMoveToWindow() to handle tab switches where
+    /// handleTextFieldDidEndEditing may never fire.
+    private func resetGestureHandlerState() {
+        guard gestureHandlersDisabled else { return }
+        gestureHandlersDisabled = false
+
+        #if !targetEnvironment(simulator)
+        enableParentGestureRecognizers()
+        #endif
+
+        NotificationCenter.default.post(
+            name: RCTTVEnableGestureHandlersCancelTouchesNotification,
+            object: nil
+        )
     }
 
     func updateResults(_ results: [[String: Any]]) {
