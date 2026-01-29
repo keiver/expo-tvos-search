@@ -281,19 +281,15 @@ class ExpoTvosSearchView: ExpoView {
               controller.parent == nil,
               let parentVC = self.reactViewController() else { return }
 
-        // View is normally already added in setupView(). Defensive fallback:
-        if controller.view.superview == nil {
-            addSubview(controller.view)
-            controller.view.translatesAutoresizingMaskIntoConstraints = false
-            NSLayoutConstraint.activate([
-                controller.view.topAnchor.constraint(equalTo: topAnchor),
-                controller.view.bottomAnchor.constraint(equalTo: bottomAnchor),
-                controller.view.leadingAnchor.constraint(equalTo: leadingAnchor),
-                controller.view.trailingAnchor.constraint(equalTo: trailingAnchor)
-            ])
-        }
-
         parentVC.addChild(controller)
+        addSubview(controller.view)
+        controller.view.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            controller.view.topAnchor.constraint(equalTo: topAnchor),
+            controller.view.bottomAnchor.constraint(equalTo: bottomAnchor),
+            controller.view.leadingAnchor.constraint(equalTo: leadingAnchor),
+            controller.view.trailingAnchor.constraint(equalTo: trailingAnchor)
+        ])
         controller.didMove(toParent: parentVC)
     }
 
@@ -335,16 +331,9 @@ class ExpoTvosSearchView: ExpoView {
             self?.onSelectItem(["id": id])
         }
 
-        // Add view immediately for instant display. VC parenting is deferred
-        // to didMoveToWindow() where the parent VC is available.
-        addSubview(controller.view)
-        controller.view.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            controller.view.topAnchor.constraint(equalTo: topAnchor),
-            controller.view.bottomAnchor.constraint(equalTo: bottomAnchor),
-            controller.view.leadingAnchor.constraint(equalTo: leadingAnchor),
-            controller.view.trailingAnchor.constraint(equalTo: trailingAnchor)
-        ])
+        // View attachment is deferred to didMoveToWindow() where the parent VC
+        // is available. This ensures proper UIKit VC containment which the
+        // .searchable() modifier depends on to maintain its focus proxy.
 
         // Observe text field editing to detect when search keyboard is active
         NotificationCenter.default.addObserver(
