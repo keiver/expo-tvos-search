@@ -320,10 +320,14 @@ class ExpoTvosSearchView: ExpoView {
     /// Removes the loading overlay after one run-loop cycle, giving `.searchable()`
     /// time to render its letter row before the overlay disappears.
     private func removeLoadingOverlay() {
-        guard loadingOverlay != nil else { return }
-        DispatchQueue.main.async { [weak self] in
-            self?.loadingOverlay?.removeFromSuperview()
-            self?.loadingOverlay = nil
+        guard let overlay = loadingOverlay else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
+            UIView.animate(withDuration: 0.2, animations: {
+                overlay.alpha = 0
+            }, completion: { _ in
+                overlay.removeFromSuperview()
+                self?.loadingOverlay = nil
+            })
         }
     }
 
@@ -376,7 +380,7 @@ class ExpoTvosSearchView: ExpoView {
         // so this overlay keeps the view covered until attachHostingController() completes.
         if showInitialLoading {
             let overlay = UIView()
-            overlay.backgroundColor = .clear
+            overlay.backgroundColor = .black
             overlay.translatesAutoresizingMaskIntoConstraints = false
 
             let spinner = UIActivityIndicatorView(style: .large)
