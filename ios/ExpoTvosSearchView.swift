@@ -57,6 +57,8 @@ class SearchViewModel: ObservableObject {
 class ExpoTvosSearchView: ExpoView {
     private var hostingController: UIHostingController<TvosSearchContentView>?
     private var viewModel = SearchViewModel()
+    private var loadingOverlay: UIView?
+    var showInitialLoading: Bool = true
 
     /// Maximum length for string fields (id, title, subtitle) to prevent memory issues.
     private static let maxStringFieldLength = 500
@@ -282,7 +284,14 @@ class ExpoTvosSearchView: ExpoView {
               let parentVC = self.reactViewController() else { return }
 
         parentVC.addChild(controller)
-        addSubview(controller.view)
+
+        // Insert below overlay so content renders hidden, then overlay reveals it
+        if let overlay = loadingOverlay {
+            insertSubview(controller.view, belowSubview: overlay)
+        } else {
+            addSubview(controller.view)
+        }
+
         controller.view.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
             controller.view.topAnchor.constraint(equalTo: topAnchor),
@@ -291,6 +300,9 @@ class ExpoTvosSearchView: ExpoView {
             controller.view.trailingAnchor.constraint(equalTo: trailingAnchor)
         ])
         controller.didMove(toParent: parentVC)
+
+        // Remove overlay after next layout pass (.searchable() needs one cycle to render the letter row)
+        removeLoadingOverlay()
     }
 
     /// Detaches the hosting controller from its parent VC. Only used during
@@ -303,6 +315,16 @@ class ExpoTvosSearchView: ExpoView {
         controller.willMove(toParent: nil)
         controller.view.removeFromSuperview()
         controller.removeFromParent()
+    }
+
+    /// Removes the loading overlay after one run-loop cycle, giving `.searchable()`
+    /// time to render its letter row before the overlay disappears.
+    private func removeLoadingOverlay() {
+        guard loadingOverlay != nil else { return }
+        DispatchQueue.main.async { [weak self] in
+            self?.loadingOverlay?.removeFromSuperview()
+            self?.loadingOverlay = nil
+        }
     }
 
     /// Recursively forces layout on a VC and all its children. This nudges the
@@ -348,6 +370,34 @@ class ExpoTvosSearchView: ExpoView {
             name: UITextField.textDidEndEditingNotification,
             object: nil
         )
+
+        // Show loading overlay to hide the letter-row initialization delay.
+        // .searchable() can't render until didMoveToWindow() fires (VC containment required),
+        // so this overlay keeps the view covered until attachHostingController() completes.
+        if showInitialLoading {
+            let overlay = UIView()
+            overlay.backgroundColor = .clear
+            overlay.translatesAutoresizingMaskIntoConstraints = false
+
+            let spinner = UIActivityIndicatorView(style: .large)
+            spinner.color = .white
+            spinner.startAnimating()
+            spinner.translatesAutoresizingMaskIntoConstraints = false
+
+            overlay.addSubview(spinner)
+            addSubview(overlay)
+
+            NSLayoutConstraint.activate([
+                overlay.topAnchor.constraint(equalTo: topAnchor),
+                overlay.bottomAnchor.constraint(equalTo: bottomAnchor),
+                overlay.leadingAnchor.constraint(equalTo: leadingAnchor),
+                overlay.trailingAnchor.constraint(equalTo: trailingAnchor),
+                spinner.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
+                spinner.centerYAnchor.constraint(equalTo: overlay.centerYAnchor)
+            ])
+
+            loadingOverlay = overlay
+        }
     }
 
     @objc private func handleTextFieldDidBeginEditing(_ notification: Notification) {
@@ -623,6 +673,7 @@ class ExpoTvosSearchView: ExpoView {
     var placeholder: String = "Search..."
     var searchTextProp: String? = nil
     var isLoading: Bool = false
+    var showInitialLoading: Bool = true
     var showTitle: Bool = false
     var showSubtitle: Bool = false
     var showFocusBorder: Bool = false

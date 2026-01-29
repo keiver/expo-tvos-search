@@ -73,6 +73,10 @@ public class ExpoTvosSearchModule: Module {
                 view.isLoading = isLoading
             }
 
+            Prop("showInitialLoading") { (view: ExpoTvosSearchView, show: Bool) in
+                view.showInitialLoading = show
+            }
+
             Prop("showTitle") { (view: ExpoTvosSearchView, showTitle: Bool) in
                 view.showTitle = showTitle
             }

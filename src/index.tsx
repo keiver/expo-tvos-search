@@ -147,6 +147,15 @@ export interface TvosSearchViewProps {
   isLoading?: boolean;
 
   /**
+   * Show a native loading indicator while the search UI initializes.
+   * The tvOS `.searchable()` keyboard row requires view controller containment
+   * which is only available after the view enters the window. This overlay
+   * hides the initialization delay so all UI appears at once.
+   * @default true
+   */
+  showInitialLoading?: boolean;
+
+  /**
    * Show title text below each result card.
    * @default false
    */
