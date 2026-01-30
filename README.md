@@ -55,88 +55,43 @@ Then add the plugin in `app.json` / `app.config.js`:
 
 ## Usage
 
-This example from the demo's [Portrait tab](https://github.com/keiver/expo-tvos-search-demo/blob/main/app/(tabs)/portrait.tsx) shows a complete implementation:
+Basic usage with inline search results:
 
 ```tsx
-import { useState } from 'react';
-import { Alert } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
-import {
-  TvosSearchView,
-  isNativeSearchAvailable,
-  type SearchResult,
-} from 'expo-tvos-search';
+import { TvosSearchView, type SearchResult } from 'expo-tvos-search';
 
-const PLANETS: SearchResult[] = [
+const results: SearchResult[] = [
   {
     id: 'earth',
-    title: 'Earth - The Blue Marble of Life',
-    subtitle: 'Our home planet, the only known world to harbor life',
-    imageUrl: require('./assets/planets/earth.webp'),
+    title: 'Earth',
+    subtitle: 'The Blue Marble',
+    imageUrl: 'https://example.com/earth.jpg',
   },
-  // ... all planets
+  {
+    id: 'mars',
+    title: 'Mars',
+    subtitle: 'The Red Planet',
+    imageUrl: 'https://example.com/mars.jpg',
+  },
 ];
 
 export default function SearchScreen() {
-  const [results, setResults] = useState<SearchResult[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const insets = useSafeAreaInsets();
-
-  const handleSearch = (event: { nativeEvent: { query: string } }) => {
-    const { query } = event.nativeEvent;
-
-    if (!query.trim()) {
-      setResults([]);
-      return;
-    }
-
-    setIsLoading(true);
-
-    // Debounce dummy search (300ms)
-    setTimeout(() => {
-      const filtered = PLANETS.filter(
-        planet =>
-          planet.title.toLowerCase().includes(query.toLowerCase()) ||
-          planet.subtitle?.toLowerCase().includes(query.toLowerCase())
-      );
-      setResults(filtered);
-      setIsLoading(false);
-    }, 300);
-  };
-
-  const handleSelect = (event: { nativeEvent: { id: string } }) => {
-    const planet = PLANETS.find(p => p.id === event.nativeEvent.id);
-    if (planet) {
-      Alert.alert(planet.title, planet.subtitle);
-    }
-  };
-
-  if (!isNativeSearchAvailable()) {
-    return null; // Or show web fallback
-  }
-
   return (
-    <LinearGradient
-      colors={['#0f172a', '#1e293b', '#0f172a']}
+    <TvosSearchView
+      results={results}
+      columns={4}
+      placeholder="Search planets..."
+      isLoading={false}
+      topInset={80}
+      onSearch={(e) => console.log('Search:', e.nativeEvent.query)}
+      onSelectItem={(e) => console.log('Selected:', e.nativeEvent.id)}
+      textColor="#E5E5E5"
+      accentColor="#E50914"
+      cardWidth={280}
+      cardHeight={420}
+      overlayTitleSize={18}
       style={{ flex: 1 }}
-    >
-      <TvosSearchView
-        results={results}
-        columns={4}
-        placeholder="Search planets..."
-        isLoading={isLoading}
-        topInset={insets.top + 80}
-        onSearch={handleSearch}
-        onSelectItem={handleSelect}
-        textColor="#E5E5E5"
-        accentColor="#E50914"
-        cardWidth={280}
-        cardHeight={420}
-        overlayTitleSize={18}
-        style={{ flex: 1 }}
-      />
-    </LinearGradient>
+    />
   );
 }
 ```
