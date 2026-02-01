@@ -148,11 +148,27 @@ public class ExpoTvosSearchModule: Module {
             }
 
             Prop("cardWidth") { (view: ExpoTvosSearchView, width: Double) in
-                view.cardWidth = CGFloat(max(50, min(1000, width)))  // Clamp to reasonable range
+                let clampedValue = min(max(50, width), 1000)
+                if clampedValue != width {
+                    view.onValidationWarning([
+                        "type": "value_clamped",
+                        "message": "cardWidth value \(width) was clamped to range [50, 1000]",
+                        "context": "cardWidth=\(clampedValue)"
+                    ])
+                }
+                view.cardWidth = CGFloat(clampedValue)
             }
 
             Prop("cardHeight") { (view: ExpoTvosSearchView, height: Double) in
-                view.cardHeight = CGFloat(max(50, min(1000, height)))  // Clamp to reasonable range
+                let clampedValue = min(max(50, height), 1000)
+                if clampedValue != height {
+                    view.onValidationWarning([
+                        "type": "value_clamped",
+                        "message": "cardHeight value \(height) was clamped to range [50, 1000]",
+                        "context": "cardHeight=\(clampedValue)"
+                    ])
+                }
+                view.cardHeight = CGFloat(clampedValue)
             }
 
             Prop("imageContentMode") { (view: ExpoTvosSearchView, mode: String) in
@@ -160,15 +176,39 @@ public class ExpoTvosSearchModule: Module {
             }
 
             Prop("cardMargin") { (view: ExpoTvosSearchView, margin: Double) in
-                view.cardMargin = CGFloat(max(0, min(200, margin)))  // Clamp to reasonable range
+                let clampedValue = min(max(0, margin), 200)
+                if clampedValue != margin {
+                    view.onValidationWarning([
+                        "type": "value_clamped",
+                        "message": "cardMargin value \(margin) was clamped to range [0, 200]",
+                        "context": "cardMargin=\(clampedValue)"
+                    ])
+                }
+                view.cardMargin = CGFloat(clampedValue)
             }
 
             Prop("cardPadding") { (view: ExpoTvosSearchView, padding: Double) in
-                view.cardPadding = CGFloat(max(0, min(100, padding)))  // Clamp to reasonable range
+                let clampedValue = min(max(0, padding), 100)
+                if clampedValue != padding {
+                    view.onValidationWarning([
+                        "type": "value_clamped",
+                        "message": "cardPadding value \(padding) was clamped to range [0, 100]",
+                        "context": "cardPadding=\(clampedValue)"
+                    ])
+                }
+                view.cardPadding = CGFloat(clampedValue)
             }
 
             Prop("overlayTitleSize") { (view: ExpoTvosSearchView, size: Double) in
-                view.overlayTitleSize = CGFloat(max(8, min(72, size)))  // Clamp to reasonable font size range
+                let clampedValue = min(max(8, size), 72)
+                if clampedValue != size {
+                    view.onValidationWarning([
+                        "type": "value_clamped",
+                        "message": "overlayTitleSize value \(size) was clamped to range [8, 72]",
+                        "context": "overlayTitleSize=\(clampedValue)"
+                    ])
+                }
+                view.overlayTitleSize = CGFloat(clampedValue)
             }
         }
     }
