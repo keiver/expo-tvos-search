@@ -36,6 +36,7 @@ struct TvosSearchContentView: View {
                 viewModel.onSearch?(newValue)
             }
         }
+        .tint(viewModel.accentColor)
         .padding(.top, viewModel.topInset)
         .ignoresSafeArea(.all, edges: .top)
     }
