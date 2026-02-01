@@ -116,6 +116,15 @@ The view automatically manages React Native gesture handlers when the search fie
 
 See `memories/CLAUDE-lessons-learned.md` for full debugging narratives, root cause analysis, and the template for documenting new lessons.
 
+## Known Production Edge Cases
+
+Reviewed 2026-02-01. These are edge cases, not blockers — the lib is production-ready:
+
+- **Image cache cost overflow**: `CachedAsyncImage.swift:22` — `bytesPerRow * height` can overflow `Int` on corrupt image metadata. Produces incorrect NSCache cost values.
+- **NotificationCenter scope**: `ExpoTvosSearchView.swift:300-311` — text field observers use `object: nil`, matching all UITextFields. The `isDescendant(of:)` guard handles this, but there's a theoretical race window during dealloc.
+- **Data URI validation order**: `ExpoTvosSearchView.swift:441-449` — data URI size check happens after `URL(string:)` parsing, so memory spikes before the 1MB limit kicks in.
+- **URLSession defaults**: `CachedAsyncImage.swift:65` — image downloads use `URLSession.shared` with no timeout or size limits.
+
 ## Quality Patterns
 
 Code worth studying when making architectural decisions:
@@ -187,6 +196,10 @@ Releases are automated via GitHub Actions (`.github/workflows/release.yml`). No 
 - `NPM_TOKEN` secret must be configured in GitHub repository settings
 - PR must be merged (not just closed) for release to trigger
 - Only one version label should be applied per PR
+
+### Known Gap
+
+The release workflow bumps `package.json` but does **not** bump `ios/ExpoTvosSearch.podspec`. The podspec version must be updated manually or the workflow should be extended to handle it.
 
 ### Pre-release Checklist
 

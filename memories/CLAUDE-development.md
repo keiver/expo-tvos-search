@@ -53,7 +53,7 @@
 
 **Published files:** `build/`, `src/`, `ios/`, `expo-module.config.json`, `README.md`, `CHANGELOG.md`, `LICENSE`
 
-**Peer dependencies:** Expo >=51.0.0, expo-modules-core >=1.0.0, React >=18.0.0, react-native (optional)
+**Peer dependencies:** expo `*`, expo-modules-core `*`, react `*`, react-native `*` (optional)
 
 ---
 

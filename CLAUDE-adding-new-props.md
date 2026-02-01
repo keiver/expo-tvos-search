@@ -104,7 +104,7 @@ Prop("overlayTitleSize") { (view: ExpoTvosSearchView, size: Double) in
 ---
 
 ### ✅ Step 5: Pass Prop to Child Components (if applicable)
-**File**: `ios/ExpoTvosSearchView.swift`
+**File**: `ios/SearchResultCard.swift` (or the relevant child component file)
 
 If the prop is used in child SwiftUI views (like `SearchResultCard`):
 
@@ -234,7 +234,7 @@ Rebuilds TypeScript declarations and ensures no compilation errors.
 | 2. Swift ViewModel | `ios/ExpoTvosSearchView.swift` | ~15-56 (SearchViewModel) |
 | 3. Swift View Property | `ios/ExpoTvosSearchView.swift` | ~328-469 (ExpoTvosSearchView) |
 | 4. Module Registration | `ios/ExpoTvosSearchModule.swift` | ~14-134 (Prop declarations) |
-| 5. Child Components | `ios/ExpoTvosSearchView.swift` | ~178+ (SearchResultCard) |
+| 5. Child Components | `ios/SearchResultCard.swift` | SearchResultCard struct |
 | 6. Unit Tests | `src/__tests__/index.test.tsx` | End of file |
 
 ---
@@ -341,5 +341,5 @@ See Git history for commit implementing `overlayTitleSize` as a reference exampl
 
 ---
 
-**Last Updated**: 2026-01-21
-**Library Version**: 1.2.3+
+**Last Updated**: 2026-02-01
+**Library Version**: 1.5.1+
