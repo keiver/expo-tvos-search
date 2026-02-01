@@ -61,8 +61,8 @@ class ExpoTvosSearchView: ExpoView {
     /// Maximum length for string fields (id, title, subtitle) to prevent memory issues.
     private static let maxStringFieldLength = 500
 
-    /// Maximum number of results to process to prevent memory exhaustion.
-    private static let maxResultsCount = 500
+    /// Maximum length for data: URIs to prevent memory exhaustion (~750KB decoded).
+    private static let maxDataUrlLength = 1_000_000
 
     // Track if we've disabled RN gesture handlers for keyboard input
     private var gestureHandlersDisabled = false
@@ -410,23 +410,13 @@ class ExpoTvosSearchView: ExpoView {
     }
 
     func updateResults(_ results: [[String: Any]]) {
-        // Limit results to prevent memory exhaustion from malicious/buggy input
-        let limitedResults = results.prefix(Self.maxResultsCount)
-        let truncatedResultsCount = results.count - limitedResults.count
-
         var validResults: [SearchResultItem] = []
         var skippedCount = 0
         var urlValidationFailures = 0
         var httpUrlCount = 0
         var truncatedFields = 0
 
-        #if DEBUG
-        if truncatedResultsCount > 0 {
-            print("[expo-tvos-search] Truncated \(truncatedResultsCount) results (max \(Self.maxResultsCount) allowed)")
-        }
-        #endif
-
-        for (index, dict) in limitedResults.enumerated() {
+        for (index, dict) in results.enumerated() {
             // Validate required fields
             guard let id = dict["id"] as? String, !id.isEmpty else {
                 skippedCount += 1
@@ -451,7 +441,15 @@ class ExpoTvosSearchView: ExpoView {
                 if let url = URL(string: imageUrl),
                    let scheme = url.scheme?.lowercased(),
                    scheme == "http" || scheme == "https" || scheme == "data" {
-                    validatedImageUrl = imageUrl
+                    // Reject oversized data URIs to prevent memory exhaustion
+                    if scheme == "data" && imageUrl.count > Self.maxDataUrlLength {
+                        urlValidationFailures += 1
+                        #if DEBUG
+                        print("[expo-tvos-search] Result '\(title)' (id: '\(id)'): data URL too large (\(imageUrl.count) chars, max \(Self.maxDataUrlLength)). Skipped.")
+                        #endif
+                    } else {
+                        validatedImageUrl = imageUrl
+                    }
                     // Warn about insecure HTTP URLs (HTTPS recommended)
                     if scheme == "http" {
                         httpUrlCount += 1
@@ -513,11 +511,6 @@ class ExpoTvosSearchView: ExpoView {
         #endif
 
         // Emit validation warnings for production monitoring
-        if truncatedResultsCount > 0 {
-            emitWarning(type: "results_truncated",
-                       message: "Truncated \(truncatedResultsCount) result(s) exceeding maximum of \(Self.maxResultsCount)",
-                       context: "Consider implementing pagination")
-        }
         if skippedCount > 0 {
             emitWarning(type: "validation_failed",
                        message: "Skipped \(skippedCount) result(s) due to missing required fields",

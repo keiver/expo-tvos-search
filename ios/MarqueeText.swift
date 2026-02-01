@@ -87,7 +87,7 @@ struct MarqueeText: View {
             .task(id: shouldAnimate) {
                 if shouldAnimate {
                     do {
-                        try await Task.sleep(nanoseconds: UInt64(startDelay * 1_000_000_000))
+                        try await Task.sleep(nanoseconds: UInt64(min(startDelay, 60.0) * 1_000_000_000))
                     } catch {
                         return
                     }
