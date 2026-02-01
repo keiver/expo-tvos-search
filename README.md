@@ -49,7 +49,7 @@ A native Apple TV search component built with SwiftUI's `.searchable` modifier. 
 - [License](#license)
 
 <p align="center">
-  <img src="https://keiver.dev/screenshots/tomotv/03.webp" alt="expo-tvos-search native tvOS search with grid results on Apple TV" style="border-radius: 16px; max-width: 100%;"/>
+  <img src="screenshots/demo-05.webp" alt="Native tvOS search with portrait card grid showing planet results with gold accent and marquee titles" width="100%"/>
 </p>
 
 ## Installation
@@ -296,21 +296,23 @@ We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guid
 - Commit message conventions
 - Pull request process
 
-<p align="center">
-  <img src="screenshots/default.png" alt="expo-tvos-search default state showing empty search field on Apple TV" style="border-radius: 16px; max-width: 100%;"/>
-</p>
-
-<p align="center">
-  <img src="screenshots/results.png" alt="expo-tvos-search showing grid of search results with poster images on Apple TV" style="border-radius: 16px; max-width: 100%;"/>
-</p>
-
-<p align="center">
-  <img src="screenshots/no-results.png" alt="expo-tvos-search showing no results found message on Apple TV" style="border-radius: 16px; max-width: 100%;"/>
-</p>
-
-<p align="center">
-  <img src="screenshots/results-jungle-book.png" alt="expo-tvos-search showing result for Jungle Book movie" style="border-radius: 16px; max-width: 100%;"/>
-</p>
+<table>
+  <tr>
+    <td><img src="screenshots/default.webp" alt="Default empty search state with tvOS keyboard and tab bar" width="100%"/></td>
+    <td><img src="screenshots/demo-01.webp" alt="Square card grid layout with planet images and no title overlay" width="100%"/></td>
+    <td><img src="screenshots/demo-02.webp" alt="Four-column grid with title overlays and hardware keyboard active indicator" width="100%"/></td>
+  </tr>
+  <tr>
+    <td><img src="screenshots/demo-03.webp" alt="Five-column compact grid with short overlay titles" width="100%"/></td>
+    <td><img src="screenshots/demo-04.webp" alt="Mini card grid with truncated overlay titles on planet cards" width="100%"/></td>
+    <td><img src="screenshots/demo-06.webp" alt="Demo app home screen with feature badges and configuration menu" width="100%"/></td>
+  </tr>
+  <tr>
+    <td><img src="screenshots/no-results.webp" alt="No results found state after searching for a term with no matches" width="100%"/></td>
+    <td><img src="screenshots/results-jungle-book.webp" alt="Single search result for Jungle Book with poster card and title overlay" width="100%"/></td>
+    <td><img src="screenshots/results.webp" alt="Focused search result card for Caminandes with accent color border" width="100%"/></td>
+  </tr>
+</table>
 
 
 ## License

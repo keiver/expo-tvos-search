@@ -254,6 +254,7 @@ class ExpoTvosSearchView: ExpoView {
         let contentView = TvosSearchContentView(viewModel: viewModel)
         let controller = UIHostingController(rootView: contentView)
         controller.view.backgroundColor = .clear
+        controller.overrideUserInterfaceStyle = .dark
         hostingController = controller
 
         // Set initial UISearchBar tint to match accent color
