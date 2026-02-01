@@ -206,6 +206,17 @@ export interface TvosSearchViewProps {
      */
     accentColor?: string;
     /**
+     * Override the system color scheme for the search view.
+     * - `'dark'`: Force dark appearance (white text, dark UI elements)
+     * - `'light'`: Force light appearance (black text, light UI elements)
+     * - `'system'`: Follow the system appearance (default)
+     *
+     * Useful when your app has a fixed dark background and the system is in
+     * light mode, which would make search bar text illegible.
+     * @default "system"
+     */
+    colorScheme?: 'light' | 'dark' | 'system';
+    /**
      * Width of each result card in points.
      * Allows customization for portrait, landscape, or square layouts.
      * Values outside 50-1000 range are clamped.

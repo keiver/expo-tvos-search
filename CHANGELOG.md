@@ -13,8 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Maps to `UIHostingController.overrideUserInterfaceStyle` on the native side
   - Default `"system"` preserves existing behavior (no breaking change)
 
-### Removed
-- `UISearchBar.appearance().tintColor` lines that were incorrectly setting cursor color instead of text color
+### Changed
+- Search bar interactive controls (cursor, highlights) now tint to match `accentColor`
 
 ## [1.3.2] - 2026-01-25
 
