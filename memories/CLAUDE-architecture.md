@@ -2,7 +2,7 @@
 
 > **Category:** Architecture
 > **Keywords:** architecture, data flow, SwiftUI, bridge, module, ViewModel, UIHostingController
-> **Last Updated:** 2026-01-26
+> **Last Updated:** 2026-02-01
 
 ## Quick Reference
 
@@ -68,7 +68,7 @@
 The bridge between React Native's `UIView` hierarchy and SwiftUI is in `ExpoTvosSearchView.setupView()`:
 
 ```swift
-// ios/ExpoTvosSearchView.swift:548-571
+// ios/ExpoTvosSearchView.swift:271-297
 let contentView = TvosSearchContentView(viewModel: viewModel)
 let controller = UIHostingController(rootView: contentView)
 controller.view.backgroundColor = .clear
@@ -89,7 +89,7 @@ Key points:
 
 ## SearchViewModel Pattern
 
-`SearchViewModel` (`ios/ExpoTvosSearchView.swift:55-97`) is the single source of truth for all view state:
+`SearchViewModel` (`ios/ExpoTvosSearchView.swift:13-55`) is the single source of truth for all view state:
 
 - **`@Published` properties** (`results`, `isLoading`, `searchText`): Trigger SwiftUI view updates when changed
 - **Non-published properties** (`columns`, `placeholder`, styling options): Set once per prop update, don't need observation overhead
@@ -101,7 +101,7 @@ The `ExpoTvosSearchView` properties use `didSet` to sync values to the view mode
 
 ## PreferenceKey Pattern (MarqueeText)
 
-`MarqueeText` (`ios/MarqueeText.swift:7-133`) uses SwiftUI's `PreferenceKey` system for reactive text width measurement:
+`MarqueeText` (`ios/MarqueeText.swift`) uses SwiftUI's `PreferenceKey` system for reactive text width measurement:
 
 ```swift
 // Hidden text measures actual width
@@ -123,7 +123,7 @@ This avoids manual frame calculations — SwiftUI's layout system measures the t
 
 ## SelectiveRoundedRectangle
 
-Custom `Shape` (`ios/ExpoTvosSearchView.swift:13-44`) for backward compatibility with tvOS 15.0+:
+Custom `Shape` (`ios/SearchResultCard.swift`) for backward compatibility with tvOS 15.0+:
 
 - Replaces `UnevenRoundedRectangle` (tvOS 16.0+ only)
 - Draws a rounded rectangle path with independently controllable corner radii
@@ -140,7 +140,7 @@ When the native search field gains focus, the view must disable React Native's g
 3. **Simulator guard**: Direct gesture recognizer management is skipped on simulator (`#if !targetEnvironment(simulator)`) because Mac keyboard events use the responder chain differently
 4. **Cleanup**: `deinit` re-enables everything to prevent leaked disabled state
 
-Relevant code: `ios/ExpoTvosSearchView.swift:588-684`
+Relevant code: `ios/ExpoTvosSearchView.swift:314-410`
 
 ---
 
@@ -156,22 +156,20 @@ Relevant code: `ios/ExpoTvosSearchView.swift:588-684`
 
 ---
 
-## Key Files with Line Ranges
+## Key Files with Line Counts
 
 | File | Lines | Purpose |
 |------|-------|---------|
-| `src/index.tsx` | 1-491 | TypeScript exports, event types, `TvosSearchView`, `isNativeSearchAvailable()` |
-| `ios/ExpoTvosSearchModule.swift` | 1-163 | Expo module definition, all `Prop("name")` registrations with validation |
-| `ios/ExpoTvosSearchView.swift` | 1-893 | Full native implementation |
-| ↳ `SelectiveRoundedRectangle` | 13-44 | Custom backward-compatible rounded rect shape |
-| ↳ `SearchResultItem` | 46-51 | Identifiable data model |
-| ↳ `SearchViewModel` | 55-97 | ObservableObject state holder |
-| ↳ `TvosSearchContentView` | 99-217 | Main SwiftUI view with search, grid, state views |
-| ↳ `SearchResultCard` | 219-359 | Individual result card with focus, overlay, marquee |
-| ↳ `ExpoTvosSearchView` | 361-821 | UIView bridge, props, gesture management, result validation |
-| `ios/MarqueeText.swift` | 1-145 | Scrolling text with `.task(id:)` animation, fade mask |
-| `ios/MarqueeAnimationCalculator.swift` | 1-41 | Pure logic: shouldScroll, scrollDistance, animationDuration |
-| `ios/HexColorParser.swift` | 1-55 | DoS-protected hex → RGBA parsing |
+| `src/index.tsx` | 532 | TypeScript exports, event types, `TvosSearchView`, `isNativeSearchAvailable()` |
+| `ios/ExpoTvosSearchModule.swift` | 215 | Expo module definition, all `Prop("name")` registrations with validation |
+| `ios/ExpoTvosSearchView.swift` | 616 | `SearchViewModel` (13-55), `ExpoTvosSearchView` UIKit bridge (57-540), `Color(hex:)` extension (542-553), non-tvOS fallback (555-616) |
+| `ios/SearchResultCard.swift` | 172 | `SelectiveRoundedRectangle` shape, `SearchResultCard` view with focus, overlay, marquee |
+| `ios/SearchResultItem.swift` | 8 | `SearchResultItem` data model (`Identifiable`, `Equatable`) |
+| `ios/TvosSearchContentView.swift` | 126 | Main SwiftUI view with NavigationView, `.searchable`, grid, state views |
+| `ios/MarqueeText.swift` | 145 | Scrolling text with `.task(id:)` animation, fade mask |
+| `ios/MarqueeAnimationCalculator.swift` | 41 | Pure logic: shouldScroll, scrollDistance, animationDuration |
+| `ios/HexColorParser.swift` | 55 | DoS-protected hex → RGBA parsing |
+| `ios/CachedAsyncImage.swift` | 78 | NSCache-backed image caching with `ImageCache` singleton |
 
 ---
 

@@ -2,7 +2,7 @@
 
 > **Category:** Testing
 > **Keywords:** testing, tests, coverage, jest, mocking, Swift tests, Xcode
-> **Last Updated:** 2026-01-26
+> **Last Updated:** 2026-02-01
 
 ## Quick Reference
 
@@ -126,7 +126,7 @@ describe('TvosSearchView on tvOS', () => {
 });
 ```
 
-**Critical:** `jest.resetModules()` must be called before each test because `NativeView` is set at **module initialization time** (`src/index.tsx:357-402`). Without reset, the first test's platform configuration would be cached for all subsequent tests.
+**Critical:** `jest.resetModules()` must be called before each test because `NativeView` is set at **module initialization time** (near the end of `src/index.tsx`). Without reset, the first test's platform configuration would be cached for all subsequent tests.
 
 ---
 

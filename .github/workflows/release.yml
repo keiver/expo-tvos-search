@@ -67,6 +67,12 @@ jobs:
           NEW_VERSION=$(node -p "require('./package.json').version")
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
+      - name: Update podspec version
+        env:
+          NEW_VERSION: ${{ steps.bump_version.outputs.new_version }}
+        run: |
+          sed -i "s/s.version.*=.*/s.version        = '$NEW_VERSION'/" ios/ExpoTvosSearch.podspec
+
       - name: Update CHANGELOG
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
@@ -86,7 +92,7 @@ jobs:
         env:
           NEW_VERSION: ${{ steps.bump_version.outputs.new_version }}
         run: |
-          git add package.json package-lock.json CHANGELOG.md
+          git add package.json package-lock.json CHANGELOG.md ios/ExpoTvosSearch.podspec
           git commit -m "chore: release v$NEW_VERSION"
 
       - name: Create and push tag

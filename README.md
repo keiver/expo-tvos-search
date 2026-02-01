@@ -1,4 +1,4 @@
-# expo-tvos-search — Native tvOS Search Component for Expo
+# expo-tvos-search
 
 [![npm version](https://img.shields.io/npm/v/expo-tvos-search.svg)](https://www.npmjs.com/package/expo-tvos-search)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
