@@ -6,10 +6,6 @@
 
 A native Apple TV search component built with SwiftUI's `.searchable` modifier. Drop it into your Expo tvOS app and get the system search experience — keyboard, Siri Remote, focus handling — out of the box.
 
-<p align="center">
-  <img src="https://keiver.dev/screenshots/tomotv/03.webp" alt="expo-tvos-search native tvOS search with grid results on Apple TV" style="border-radius: 16px; max-width: 100%;"/>
-</p>
-
 ## Features
 
 - **Native SwiftUI** — uses `.searchable` for the real tvOS search experience, not a web imitation
@@ -51,6 +47,10 @@ A native Apple TV search component built with SwiftUI's `.searchable` modifier. 
 - [Testing](#testing)
 - [Contributing](#contributing)
 - [License](#license)
+
+<p align="center">
+  <img src="https://keiver.dev/screenshots/tomotv/03.webp" alt="expo-tvos-search native tvOS search with grid results on Apple TV" style="border-radius: 16px; max-width: 100%;"/>
+</p>
 
 ## Installation
 
@@ -95,131 +95,42 @@ Then add the plugin in `app.json` / `app.config.js`:
 ## Quick Start
 
 ```tsx
-import { TvosSearchView, isNativeSearchAvailable, type SearchResult } from 'expo-tvos-search';
-import { useState } from 'react';
+import { TvosSearchView, type SearchResult } from 'expo-tvos-search';
+
+const results: SearchResult[] = [
+  {
+    id: 'earth',
+    title: 'Earth',
+    subtitle: 'The Blue Marble',
+    imageUrl: 'https://example.com/earth.jpg',
+  },
+  {
+    id: 'mars',
+    title: 'Mars',
+    subtitle: 'The Red Planet',
+    imageUrl: 'https://example.com/mars.jpg',
+  },
+];
 
 export default function SearchScreen() {
-  const [results, setResults] = useState<SearchResult[]>([]);
-
-  if (!isNativeSearchAvailable()) return null;
-
   return (
     <TvosSearchView
       results={results}
-      onSearch={(e) => fetchResults(e.nativeEvent.query).then(setResults)}
+      columns={4}
+      placeholder="Search planets..."
+      isLoading={false}
+      topInset={80}
+      onSearch={(e) => console.log('Search:', e.nativeEvent.query)}
       onSelectItem={(e) => console.log('Selected:', e.nativeEvent.id)}
+      textColor="#E5E5E5"
+      accentColor="#E50914"
+      cardWidth={280}
+      cardHeight={420}
+      overlayTitleSize={18}
       style={{ flex: 1 }}
     />
   );
 }
-```
-
-## Usage Examples
-
-### Portrait Cards
-
-```tsx
-<TvosSearchView
-  columns={4}
-  cardWidth={280}
-  cardHeight={420}
-  overlayTitleSize={18}
-  // ... other props
-/>
-```
-
-### Landscape Cards
-
-```tsx
-<TvosSearchView
-  columns={3}
-  cardWidth={500}
-  cardHeight={280}
-  // ... other props
-/>
-```
-
-### Mini Grid
-
-```tsx
-<TvosSearchView
-  columns={5}
-  cardWidth={240}
-  cardHeight={360}
-  cardMargin={60}
-  // ... other props
-/>
-```
-
-### External Titles
-
-Show title and subtitle below the card image instead of overlaid on it:
-
-```tsx
-<TvosSearchView
-  showTitle={true}
-  showSubtitle={true}
-  showTitleOverlay={false}
-  // ... other props
-/>
-```
-
-### Title Overlay Customization
-
-```tsx
-<TvosSearchView
-  overlayTitleSize={22}
-  enableMarquee={true}
-  marqueeDelay={1.5}
-  // ... other props
-/>
-```
-
-### Layout Spacing
-
-```tsx
-<TvosSearchView
-  cardMargin={60}
-  cardPadding={25}
-  // ... other props
-/>
-```
-
-### Image Display Mode
-
-```tsx
-<TvosSearchView
-  imageContentMode="fit"  // 'fill' (crop), 'fit'/'contain' (letterbox)
-  // ... other props
-/>
-```
-
-### Colors and Dimensions
-
-```tsx
-<TvosSearchView
-  textColor="#E5E5E5"
-  accentColor="#E50914"
-  cardWidth={420}
-  cardHeight={240}
-  // ... other props
-/>
-```
-
-### Error Handling
-
-```tsx
-<TvosSearchView
-  onError={(e) => {
-    const { category, message, context } = e.nativeEvent;
-    console.error(`[Search Error] ${category}: ${message}`, context);
-  }}
-  onValidationWarning={(e) => {
-    const { type, message, context } = e.nativeEvent;
-    console.warn(`[Validation] ${type}: ${message}`, context);
-  }}
-  // ... other props
-/>
 ```
 
 ### Apple TV Hardware Keyboard Support
@@ -244,17 +155,6 @@ import { TVEventControl } from 'react-native';
 />
 ```
 
-<p align="center">
-  <img src="screenshots/default.png" alt="expo-tvos-search default state showing empty search field on Apple TV" style="border-radius: 16px; max-width: 100%;"/>
-</p>
-
-<p align="center">
-  <img src="screenshots/results.png" alt="expo-tvos-search showing grid of search results with poster images on Apple TV" style="border-radius: 16px; max-width: 100%;"/>
-</p>
-
-<p align="center">
-  <img src="screenshots/no-results.png" alt="expo-tvos-search showing no results found message on Apple TV" style="border-radius: 16px; max-width: 100%;"/>
-</p>
 
 ## API Reference
 
@@ -342,43 +242,6 @@ interface SearchResult {
 }
 ```
 
-### Event Types
-
-```ts
-// Search text changed
-interface SearchEvent {
-  nativeEvent: { query: string };
-}
-
-// Result selected
-interface SelectItemEvent {
-  nativeEvent: { id: string };
-}
-
-// Error occurred
-interface SearchViewErrorEvent {
-  nativeEvent: {
-    category: 'module_unavailable' | 'validation_failed' | 'image_load_failed' | 'unknown';
-    message: string;
-    context?: string;
-  };
-}
-
-// Non-fatal validation warning
-interface ValidationWarningEvent {
-  nativeEvent: {
-    type: 'field_truncated' | 'value_clamped' | 'value_truncated' | 'results_truncated' | 'url_invalid' | 'url_insecure' | 'validation_failed';
-    message: string;
-    context?: string;
-  };
-}
-
-// Search field focus change
-interface SearchFieldFocusEvent {
-  nativeEvent: Record<string, never>;
-}
-```
-
 ### isNativeSearchAvailable()
 
 ```ts
@@ -419,7 +282,7 @@ npm run test:coverage   # Generate coverage report
 
 Tests cover:
 
-- `isNativeSearchAvailable()` behavior across platforms
+- Behavior across platforms
 - Component rendering when native module is unavailable
 - Event structure validation
 
@@ -432,6 +295,23 @@ We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guid
 - Testing requirements
 - Commit message conventions
 - Pull request process
+
+<p align="center">
+  <img src="screenshots/default.png" alt="expo-tvos-search default state showing empty search field on Apple TV" style="border-radius: 16px; max-width: 100%;"/>
+</p>
+
+<p align="center">
+  <img src="screenshots/results.png" alt="expo-tvos-search showing grid of search results with poster images on Apple TV" style="border-radius: 16px; max-width: 100%;"/>
+</p>
+
+<p align="center">
+  <img src="screenshots/no-results.png" alt="expo-tvos-search showing no results found message on Apple TV" style="border-radius: 16px; max-width: 100%;"/>
+</p>
+
+<p align="center">
+  <img src="screenshots/results-jungle-book.png" alt="expo-tvos-search showing result for Jungle Book movie" style="border-radius: 16px; max-width: 100%;"/>
+</p>
+
 
 ## License
 

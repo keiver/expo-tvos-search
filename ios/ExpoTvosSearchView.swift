@@ -175,6 +175,7 @@ class ExpoTvosSearchView: ExpoView {
     var accentColor: String = "#FFC312" {
         didSet {
             viewModel.accentColor = Color(hex: accentColor) ?? Color(red: 1, green: 0.765, blue: 0.07)
+            UISearchBar.appearance().tintColor = UIColor(viewModel.accentColor)
         }
     }
 
@@ -254,6 +255,9 @@ class ExpoTvosSearchView: ExpoView {
         let controller = UIHostingController(rootView: contentView)
         controller.view.backgroundColor = .clear
         hostingController = controller
+
+        // Set initial UISearchBar tint to match accent color
+        UISearchBar.appearance().tintColor = UIColor(viewModel.accentColor)
 
         // Configure viewModel callbacks
         viewModel.onSearch = { [weak self] query in
