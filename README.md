@@ -16,6 +16,7 @@ A native Apple TV search component built with SwiftUI's `.searchable` modifier. 
 - **Title overlay** — gradient overlay with blur effect on card images, toggleable
 - **External titles** — show title and subtitle below cards instead of (or alongside) the overlay
 - **Customizable colors** — text color, accent/focus color, all via hex strings
+- **Color scheme override** — force dark or light appearance regardless of system setting
 - **Controlled search text** — set search field text programmatically for deep links, state restore, or "search for similar" flows
 - **Error & validation callbacks** — structured error events and non-fatal validation warnings
 - **Focus callbacks** — `onSearchFieldFocused` / `onSearchFieldBlurred` for gesture handler coordination
@@ -34,6 +35,7 @@ A native Apple TV search component built with SwiftUI's `.searchable` modifier. 
   - [Title Overlay Customization](#title-overlay-customization)
   - [Layout Spacing](#layout-spacing)
   - [Image Display Mode](#image-display-mode)
+  - [Color Scheme Override](#color-scheme-override)
   - [Colors and Dimensions](#colors-and-dimensions)
   - [Error Handling](#error-handling)
   - [Apple TV Hardware Keyboard](#apple-tv-hardware-keyboard-support)
@@ -156,6 +158,21 @@ import { TVEventControl } from 'react-native';
 ```
 
 
+### Color Scheme Override
+
+Apps with a fixed dark background can get illegible search bar text when the system is in light mode. Use `colorScheme` to force a specific appearance:
+
+```tsx
+<TvosSearchView
+  colorScheme="dark"
+  // ... other props
+/>
+```
+
+- `"dark"` — white text, dark UI elements (good for dark-background apps)
+- `"light"` — black text, light UI elements
+- `"system"` — follows the device setting (default, no override)
+
 ## API Reference
 
 ### Props
@@ -196,6 +213,7 @@ import { TVEventControl } from 'react-native';
 |------|------|---------|-------------|
 | `textColor` | `string` | system default | Color for text and UI elements (hex, e.g. `"#FFFFFF"`) |
 | `accentColor` | `string` | `"#FFC312"` | Accent color for focused elements (hex, e.g. `"#E50914"`) |
+| `colorScheme` | `'light' \| 'dark' \| 'system'` | `"system"` | Override the system color scheme for the search view |
 | `overlayTitleSize` | `number` | `20` | Font size for title text in the blur overlay (clamped 8–72) |
 
 #### Animation

@@ -143,6 +143,10 @@ public class ExpoTvosSearchModule: Module {
                 view.accentColor = colorHex
             }
 
+            Prop("colorScheme") { (view: ExpoTvosSearchView, scheme: String) in
+                view.colorScheme = scheme
+            }
+
             Prop("cardWidth") { (view: ExpoTvosSearchView, width: Double) in
                 view.cardWidth = CGFloat(max(50, min(1000, width)))  // Clamp to reasonable range
             }

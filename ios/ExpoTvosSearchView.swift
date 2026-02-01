@@ -175,7 +175,12 @@ class ExpoTvosSearchView: ExpoView {
     var accentColor: String = "#FFC312" {
         didSet {
             viewModel.accentColor = Color(hex: accentColor) ?? Color(red: 1, green: 0.765, blue: 0.07)
-            UISearchBar.appearance().tintColor = UIColor(viewModel.accentColor)
+        }
+    }
+
+    var colorScheme: String = "system" {
+        didSet {
+            applyColorScheme()
         }
     }
 
@@ -250,15 +255,27 @@ class ExpoTvosSearchView: ExpoView {
         }
     }
 
+    private func applyColorScheme() {
+        let style: UIUserInterfaceStyle
+        switch colorScheme.lowercased() {
+        case "dark":
+            style = .dark
+        case "light":
+            style = .light
+        default:
+            style = .unspecified
+        }
+        hostingController?.overrideUserInterfaceStyle = style
+    }
+
     private func setupView() {
         let contentView = TvosSearchContentView(viewModel: viewModel)
         let controller = UIHostingController(rootView: contentView)
         controller.view.backgroundColor = .clear
-        controller.overrideUserInterfaceStyle = .dark
         hostingController = controller
 
-        // Set initial UISearchBar tint to match accent color
-        UISearchBar.appearance().tintColor = UIColor(viewModel.accentColor)
+        // Apply initial color scheme (default "system" → .unspecified)
+        applyColorScheme()
 
         // Configure viewModel callbacks
         viewModel.onSearch = { [weak self] query in
@@ -562,6 +579,7 @@ class ExpoTvosSearchView: ExpoView {
     var noResultsText: String = "No results found"
     var noResultsHintText: String = "Try a different search term"
     var textColor: String? = nil
+    var colorScheme: String = "system"
     var accentColor: String = "#FFC312"
     var cardWidth: CGFloat = 280
     var cardHeight: CGFloat = 420
