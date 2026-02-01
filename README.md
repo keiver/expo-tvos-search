@@ -1,4 +1,4 @@
-# expo-tvos-search — Native tvOS Search for Expo & React Native
+# expo-tvos-search — Native tvOS Search for React Native tvOS (Expo)
 
 [![npm version](https://img.shields.io/npm/v/expo-tvos-search.svg)](https://www.npmjs.com/package/expo-tvos-search)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
