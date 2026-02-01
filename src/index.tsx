@@ -238,9 +238,24 @@ export interface TvosSearchViewProps {
   accentColor?: string;
 
   /**
+   * Override the system color scheme for the search view.
+   * - `'dark'`: Force dark appearance (white text, dark UI elements)
+   * - `'light'`: Force light appearance (black text, light UI elements)
+   * - `'system'`: Follow the system appearance (default)
+   *
+   * Useful when your app has a fixed dark background and the system is in
+   * light mode, which would make search bar text illegible.
+   * @default "system"
+   */
+  colorScheme?: 'light' | 'dark' | 'system';
+
+  /**
    * Width of each result card in points.
    * Allows customization for portrait, landscape, or square layouts.
+   * Values outside 50-1000 range are clamped.
    * @default 280
+   * @minimum 50
+   * @maximum 1000
    * @example 420 for landscape cards
    */
   cardWidth?: number;
@@ -248,7 +263,10 @@ export interface TvosSearchViewProps {
   /**
    * Height of each result card in points.
    * Allows customization for portrait, landscape, or square layouts.
+   * Values outside 50-1000 range are clamped.
    * @default 420
+   * @minimum 50
+   * @maximum 1000
    * @example 240 for landscape cards (16:9 ratio with width=420)
    */
   cardHeight?: number;
@@ -264,14 +282,20 @@ export interface TvosSearchViewProps {
 
   /**
    * Spacing between cards in the grid layout (both horizontal and vertical).
+   * Values outside 0-200 range are clamped.
    * @default 40
+   * @minimum 0
+   * @maximum 200
    * @example 60 for spacious layouts, 20 for compact grids
    */
   cardMargin?: number;
 
   /**
    * Padding inside the card for overlay content (title, subtitle).
+   * Values outside 0-100 range are clamped.
    * @default 16
+   * @minimum 0
+   * @maximum 100
    * @example 20 for more breathing room, 12 for compact cards
    */
   cardPadding?: number;
@@ -279,7 +303,10 @@ export interface TvosSearchViewProps {
   /**
    * Font size for title in the blur overlay (when showTitleOverlay is true).
    * Allows customization of overlay text size for different card layouts.
+   * Values outside 8-72 range are clamped.
    * @default 20
+   * @minimum 8
+   * @maximum 72
    * @example 18 for smaller cards, 24 for larger cards
    */
   overlayTitleSize?: number;

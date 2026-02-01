@@ -178,6 +178,12 @@ class ExpoTvosSearchView: ExpoView {
         }
     }
 
+    var colorScheme: String = "system" {
+        didSet {
+            applyColorScheme()
+        }
+    }
+
     var cardWidth: CGFloat = 280 {
         didSet {
             viewModel.cardWidth = cardWidth
@@ -249,11 +255,27 @@ class ExpoTvosSearchView: ExpoView {
         }
     }
 
+    private func applyColorScheme() {
+        let style: UIUserInterfaceStyle
+        switch colorScheme.lowercased() {
+        case "dark":
+            style = .dark
+        case "light":
+            style = .light
+        default:
+            style = .unspecified
+        }
+        hostingController?.overrideUserInterfaceStyle = style
+    }
+
     private func setupView() {
         let contentView = TvosSearchContentView(viewModel: viewModel)
         let controller = UIHostingController(rootView: contentView)
         controller.view.backgroundColor = .clear
         hostingController = controller
+
+        // Apply initial color scheme (default "system" → .unspecified)
+        applyColorScheme()
 
         // Configure viewModel callbacks
         viewModel.onSearch = { [weak self] query in
@@ -557,6 +579,7 @@ class ExpoTvosSearchView: ExpoView {
     var noResultsText: String = "No results found"
     var noResultsHintText: String = "Try a different search term"
     var textColor: String? = nil
+    var colorScheme: String = "system"
     var accentColor: String = "#FFC312"
     var cardWidth: CGFloat = 280
     var cardHeight: CGFloat = 420
