@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.1] - 2026-02-01
+
+### Fixed
+- `cardWidth`, `cardHeight`, `cardMargin`, `cardPadding`, and `overlayTitleSize` now emit `onValidationWarning` when values are clamped, consistent with `columns`, `topInset`, and `marqueeDelay`
+- Data URIs exceeding 1 MB are now rejected with a validation warning to prevent memory exhaustion
+- Removed redundant results array truncation in the view layer (module already enforces the 500-item limit)
+- Added defensive overflow protection in marquee animation sleep
+
 ## [1.5.0] - 2026-02-01
 
 ### Added
