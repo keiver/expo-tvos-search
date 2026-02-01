@@ -260,9 +260,9 @@ Common scopes:
 
 Maintainers will add one of these labels to determine the next release version:
 
-- `release:patch` - Bug fixes, small changes (1.0.0 → 1.0.1)
-- `release:minor` - New features, backwards-compatible (1.0.0 → 1.1.0)
-- `release:major` - Breaking changes (1.0.0 → 2.0.0)
+- `version:patch` - Bug fixes, small changes (1.0.0 → 1.0.1)
+- `version:minor` - New features, backwards-compatible (1.0.0 → 1.1.0)
+- `version:major` - Breaking changes (1.0.0 → 2.0.0)
 
 ### Review Process
 

@@ -16,7 +16,7 @@ A native Apple TV search component built with SwiftUI's `.searchable` modifier. 
 - **Siri Remote support** — full keyboard navigation, swipe, tap, and long-press handling on real hardware
 - **Configurable grid** — portrait, landscape, square, or mini cards with adjustable columns, spacing, and padding
 - **Marquee titles** — long titles auto-scroll on focus with configurable delay
-- **Image caching** — async image loading with built-in caching via SwiftUI `AsyncImage`
+- **Image caching** — async image loading with NSCache-backed caching
 - **Title overlay** — gradient overlay with blur effect on card images, toggleable
 - **External titles** — show title and subtitle below cards instead of (or alongside) the overlay
 - **Customizable colors** — text color, accent/focus color, all via hex strings
@@ -274,10 +274,10 @@ import { TVEventControl } from 'react-native';
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `cardWidth` | `number` | `280` | Width of each result card in points |
-| `cardHeight` | `number` | `420` | Height of each result card in points |
-| `cardMargin` | `number` | `40` | Spacing between cards (horizontal and vertical) |
-| `cardPadding` | `number` | `16` | Padding inside the card for overlay content |
+| `cardWidth` | `number` | `280` | Width of each result card in points (clamped 50–1000) |
+| `cardHeight` | `number` | `420` | Height of each result card in points (clamped 50–1000) |
+| `cardMargin` | `number` | `40` | Spacing between cards (horizontal and vertical, clamped 0–200) |
+| `cardPadding` | `number` | `16` | Padding inside the card for overlay content (clamped 0–100) |
 | `topInset` | `number` | `0` | Top padding for tab bar clearance (clamped 0–500) |
 
 #### Display Options
@@ -296,7 +296,7 @@ import { TVEventControl } from 'react-native';
 |------|------|---------|-------------|
 | `textColor` | `string` | system default | Color for text and UI elements (hex, e.g. `"#FFFFFF"`) |
 | `accentColor` | `string` | `"#FFC312"` | Accent color for focused elements (hex, e.g. `"#E50914"`) |
-| `overlayTitleSize` | `number` | `20` | Font size for title text in the blur overlay |
+| `overlayTitleSize` | `number` | `20` | Font size for title text in the blur overlay (clamped 8–72) |
 
 #### Animation
 
