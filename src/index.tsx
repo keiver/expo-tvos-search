@@ -82,7 +82,7 @@ export interface SearchResult {
   title: string;
   /** Optional secondary text displayed below the title */
   subtitle?: string;
-  /** Optional image URL for the result poster/thumbnail. Supports HTTPS, HTTP, and data: URIs */
+  /** Optional image URL for the result poster/thumbnail. Supports HTTPS, HTTP, file://, and data: URIs */
   imageUrl?: string;
 }
 

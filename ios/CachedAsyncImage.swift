@@ -61,14 +61,51 @@ struct CachedAsyncImage: View {
                 return
             }
 
+            // Local file — load directly, no network needed
+            if url.isFileURL {
+                if let image = UIImage(contentsOfFile: url.path) {
+                    ImageCache.shared.setImage(image, for: url)
+                    uiImage = image
+                } else {
+                    #if DEBUG
+                    print("[expo-tvos-search] Failed to load local image at \(url.path)")
+                    #endif
+                }
+                isLoading = false
+                return
+            }
+
+            // Data URI — manually extract and decode base64, no network needed
+            // Uses Data(base64Encoded:) instead of Data(contentsOf:) for tvOS 16.x compatibility
+            if url.scheme?.lowercased() == "data" {
+                if let data = ImageUrlParser.decodeDataUri(url.absoluteString),
+                   let image = UIImage(data: data) {
+                    ImageCache.shared.setImage(image, for: url)
+                    uiImage = image
+                } else {
+                    #if DEBUG
+                    print("[expo-tvos-search] Failed to decode data URI")
+                    #endif
+                }
+                isLoading = false
+                return
+            }
+
+            // Remote URL — fetch via URLSession
             do {
                 let (data, _) = try await URLSession.shared.data(from: url)
                 if let image = UIImage(data: data) {
                     ImageCache.shared.setImage(image, for: url)
                     uiImage = image
+                } else {
+                    #if DEBUG
+                    print("[expo-tvos-search] UIImage(data:) returned nil for \(url) (\(data.count) bytes)")
+                    #endif
                 }
             } catch {
-                // Cancelled or network error — placeholder shows through
+                #if DEBUG
+                print("[expo-tvos-search] Image load failed for \(url): \(error.localizedDescription)")
+                #endif
             }
             isLoading = false
         }
