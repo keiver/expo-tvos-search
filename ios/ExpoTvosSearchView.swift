@@ -491,10 +491,10 @@ class ExpoTvosSearchView: ExpoView {
             // Validate and sanitize imageUrl if present
             var validatedImageUrl: String? = nil
             if let imageUrl = dict["imageUrl"] as? String, !imageUrl.isEmpty {
-                // Accept HTTP/HTTPS URLs and data: URIs, reject other schemes for security
+                // Accept HTTP/HTTPS URLs, file: URLs (bundled assets), and data: URIs
                 if let url = URL(string: imageUrl),
                    let scheme = url.scheme?.lowercased(),
-                   scheme == "http" || scheme == "https" || scheme == "data" {
+                   ImageUrlParser.allowedSchemes.contains(scheme) {
                     // Reject oversized data URIs to prevent memory exhaustion
                     if scheme == "data" && imageUrl.count > Self.maxDataUrlLength {
                         urlValidationFailures += 1
@@ -514,7 +514,7 @@ class ExpoTvosSearchView: ExpoView {
                 } else {
                     urlValidationFailures += 1
                     #if DEBUG
-                    print("[expo-tvos-search] Result '\(title)' (id: '\(id)'): invalid imageUrl '\(imageUrl)'. Only HTTP/HTTPS URLs and data: URIs are supported.")
+                    print("[expo-tvos-search] Result '\(title)' (id: '\(id)'): invalid imageUrl '\(imageUrl)'. Only HTTP/HTTPS URLs, file: URLs, and data: URIs are supported.")
                     #endif
                 }
             }

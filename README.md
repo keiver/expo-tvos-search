@@ -228,7 +228,7 @@ interface SearchResult {
   id: string;        // Unique identifier (used in onSelectItem)
   title: string;     // Primary display text
   subtitle?: string; // Optional secondary text
-  imageUrl?: string; // Optional poster/thumbnail URL (HTTPS, HTTP, or data: URI)
+  imageUrl?: string; // Optional poster/thumbnail URL (HTTPS, HTTP, file://, or data: URI)
 }
 ```
 
@@ -255,7 +255,7 @@ The native implementation applies the following constraints:
 
 - **Maximum results** — the array is capped at 500 items; extras are silently ignored
 - **Required fields** — results with empty `id` or `title` are filtered out
-- **Image URL schemes** — HTTP, HTTPS, and `data:` URIs are accepted; other schemes (e.g. `file://`) are rejected
+- **Image URL schemes** — HTTP, HTTPS, `file://`, and `data:` URIs are accepted; other schemes are rejected
 - **HTTPS recommended** — HTTP URLs may be blocked by App Transport Security unless explicitly allowed in Info.plist
 
 ## Demo App

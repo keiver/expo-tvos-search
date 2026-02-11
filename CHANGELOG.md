@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - 2026-02-11
+
+### Added
+- `file://` image support — `imageUrl` now accepts local file paths, loaded via `UIImage(contentsOfFile:)` without network requests
+- `ImageUrlParser` struct — extracted URL scheme whitelist and base64 decoding into a testable Foundation-only module
+- Unit tests for `ImageUrlParser` (30 cases covering scheme validation, base64 edge cases, data URI round-trips)
+
+### Fixed
+- Data URI images now decoded via manual base64 extraction instead of `Data(contentsOf:)`, fixing compatibility with tvOS 16.x
+- Debug logging added for failed image loads and network errors (previously swallowed silently)
+
+### Changed
+- URL scheme whitelist (`http`, `https`, `data`, `file`) is now a single source of truth in `ImageUrlParser.allowedSchemes`
+
 ## [1.6.0] - 2026-02-10
 
 ### Fixed
