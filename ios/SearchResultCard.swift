@@ -37,6 +37,15 @@ struct SelectiveRoundedRectangle: Shape {
     }
 }
 
+/// Suppresses the default system focus halo on tvOS 16.
+/// The card's own `.overlay(cardShape.stroke(...))` provides focus feedback.
+private struct NoHaloButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .opacity(configuration.isPressed ? 0.85 : 1.0)
+    }
+}
+
 struct SearchResultCard: View {
     let item: SearchResultItem
     let showTitle: Bool
@@ -56,6 +65,25 @@ struct SearchResultCard: View {
     @FocusState private var isFocused: Bool
 
     private let placeholderColor = Color(white: 0.2)
+
+    /// On tvOS < 17, .card button style isn't usable (gesture conflict with RN),
+    /// so always show a focus border since there's no other visual feedback.
+    private var shouldShowFocusBorder: Bool {
+        if #available(tvOS 17, *) {
+            return showFocusBorder
+        } else {
+            return true
+        }
+    }
+
+    /// White border on tvOS < 17 for visibility; accent color on tvOS 17+ when opt-in.
+    private var focusBorderColor: Color {
+        if #available(tvOS 17, *) {
+            return accentColor
+        } else {
+            return .white
+        }
+    }
 
     /// Computed shape for the card with selective rounded corners.
     /// Bottom corners are rounded only when no title/subtitle section is displayed.
@@ -127,7 +155,7 @@ struct SearchResultCard: View {
             .frame(width: cardWidth, height: cardHeight)
             .clipShape(cardShape)
             .overlay(
-                cardShape.stroke(showFocusBorder && isFocused ? accentColor : Color.clear, lineWidth: 4)
+                cardShape.stroke(shouldShowFocusBorder && isFocused ? focusBorderColor : Color.clear, lineWidth: 4)
             )
 
             if showTitle || showSubtitle {
@@ -169,7 +197,7 @@ struct SearchResultCard: View {
             Button(action: onSelect) {
                 cardContent
             }
-            .buttonStyle(.plain)
+            .buttonStyle(NoHaloButtonStyle())
             .focused($isFocused)
         }
     }
