@@ -22,34 +22,6 @@ A native Apple TV search component built with SwiftUI's `.searchable` modifier. 
 - **Focus callbacks** — `onSearchFieldFocused` / `onSearchFieldBlurred` for gesture handler coordination
 - **Platform-safe** — renders `null` on non-tvOS platforms; use `isNativeSearchAvailable()` to gate rendering
 
-## Table of Contents
-
-- [Installation](#installation)
-- [Prerequisites](#prerequisites-for-tvos-builds)
-- [Quick Start](#quick-start)
-- [Usage Examples](#usage-examples)
-  - [Portrait Cards](#portrait-cards)
-  - [Landscape Cards](#landscape-cards)
-  - [Mini Grid](#mini-grid)
-  - [External Titles](#external-titles)
-  - [Title Overlay Customization](#title-overlay-customization)
-  - [Layout Spacing](#layout-spacing)
-  - [Image Display Mode](#image-display-mode)
-  - [Color Scheme Override](#color-scheme-override)
-  - [Colors and Dimensions](#colors-and-dimensions)
-  - [Error Handling](#error-handling)
-  - [Apple TV Hardware Keyboard](#apple-tv-hardware-keyboard-support)
-- [API Reference](#api-reference)
-  - [Props](#props)
-  - [SearchResult](#searchresult)
-  - [Event Types](#event-types)
-  - [isNativeSearchAvailable()](#isnativesearchavailable)
-- [Result Validation](#result-validation)
-- [Demo App](#demo-app)
-- [Testing](#testing)
-- [Contributing](#contributing)
-- [License](#license)
-
 <p align="center">
   <img src="screenshots/demo-05.webp" alt="Native tvOS search with portrait card grid showing planet results with gold accent and marquee titles" width="100%"/>
 </p>
