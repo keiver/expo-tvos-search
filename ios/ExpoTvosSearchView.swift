@@ -117,6 +117,9 @@ class ExpoTvosSearchView: ExpoView {
     var topInset: CGFloat = 0 {
         didSet {
             viewModel.topInset = topInset
+            if #unavailable(tvOS 18) {
+                hostingController?.additionalSafeAreaInsets = UIEdgeInsets(top: topInset, left: 0, bottom: 0, right: 0)
+            }
         }
     }
 
@@ -276,6 +279,12 @@ class ExpoTvosSearchView: ExpoView {
         let contentView = TvosSearchContentView(viewModel: viewModel)
         let controller = UIHostingController(rootView: contentView)
         controller.view.backgroundColor = .clear
+        // On tvOS < 18, .searchable doesn't respect SwiftUI padding for keyboard
+        // positioning, so we set additionalSafeAreaInsets to inform UIKit directly.
+        // tvOS 18+ handles this correctly, and adding insets would double the offset.
+        if #unavailable(tvOS 18) {
+            controller.additionalSafeAreaInsets = UIEdgeInsets(top: viewModel.topInset, left: 0, bottom: 0, right: 0)
+        }
         hostingController = controller
 
         // Apply initial color scheme (default "system" → .unspecified)
