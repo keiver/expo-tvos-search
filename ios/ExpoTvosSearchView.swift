@@ -117,6 +117,9 @@ class ExpoTvosSearchView: ExpoView {
     var topInset: CGFloat = 0 {
         didSet {
             viewModel.topInset = topInset
+            if #unavailable(tvOS 18) {
+                hostingController?.additionalSafeAreaInsets = UIEdgeInsets(top: topInset, left: 0, bottom: 0, right: 0)
+            }
         }
     }
 
@@ -241,6 +244,10 @@ class ExpoTvosSearchView: ExpoView {
         // Remove notification observers explicitly (also auto-removed on dealloc, but explicit is safer)
         NotificationCenter.default.removeObserver(self)
 
+        // Clean up child view controller relationship
+        hostingController?.willMove(toParent: nil)
+        hostingController?.removeFromParent()
+
         // Re-enable any disabled gesture recognizers (only needed on real hardware)
         #if !targetEnvironment(simulator)
         enableParentGestureRecognizers()
@@ -272,6 +279,12 @@ class ExpoTvosSearchView: ExpoView {
         let contentView = TvosSearchContentView(viewModel: viewModel)
         let controller = UIHostingController(rootView: contentView)
         controller.view.backgroundColor = .clear
+        // On tvOS < 18, .searchable doesn't respect SwiftUI padding for keyboard
+        // positioning, so we set additionalSafeAreaInsets to inform UIKit directly.
+        // tvOS 18+ handles this correctly, and adding insets would double the offset.
+        if #unavailable(tvOS 18) {
+            controller.additionalSafeAreaInsets = UIEdgeInsets(top: viewModel.topInset, left: 0, bottom: 0, right: 0)
+        }
         hostingController = controller
 
         // Apply initial color scheme (default "system" → .unspecified)
@@ -296,6 +309,12 @@ class ExpoTvosSearchView: ExpoView {
             controller.view.trailingAnchor.constraint(equalTo: trailingAnchor)
         ])
 
+        // Ensure child VC containment if already in a window at setup time
+        if let parentVC = parentViewController() {
+            parentVC.addChild(controller)
+            controller.didMove(toParent: parentVC)
+        }
+
         // Observe text field editing to detect when search keyboard is active
         NotificationCenter.default.addObserver(
             self,
@@ -309,6 +328,41 @@ class ExpoTvosSearchView: ExpoView {
             name: UITextField.textDidEndEditingNotification,
             object: nil
         )
+    }
+
+    // MARK: - View Controller Containment
+
+    /// Manages UIHostingController child VC containment when the view moves
+    /// in/out of the window hierarchy. This ensures SwiftUI receives proper
+    /// lifecycle events (viewWillAppear/viewDidAppear) which are required for
+    /// .searchable to integrate with UIKit's focus system on tvOS.
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        guard let controller = hostingController else { return }
+
+        if window != nil {
+            // View added to window — establish child VC relationship
+            if controller.parent == nil, let parentVC = parentViewController() {
+                parentVC.addChild(controller)
+                controller.didMove(toParent: parentVC)
+            }
+        } else {
+            // View removed from window — tear down child VC relationship
+            controller.willMove(toParent: nil)
+            controller.removeFromParent()
+        }
+    }
+
+    /// Walks the responder chain to find the nearest parent UIViewController.
+    private func parentViewController() -> UIViewController? {
+        var responder: UIResponder? = self
+        while let next = responder?.next {
+            if let vc = next as? UIViewController {
+                return vc
+            }
+            responder = next
+        }
+        return nil
     }
 
     @objc private func handleTextFieldDidBeginEditing(_ notification: Notification) {

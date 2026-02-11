@@ -37,8 +37,7 @@ struct TvosSearchContentView: View {
             }
         }
         .tint(viewModel.accentColor)
-        .padding(.top, viewModel.topInset)
-        .ignoresSafeArea(.all, edges: .top)
+        .modifier(TopInsetModifier(topInset: viewModel.topInset))
     }
 
     private var emptyStateView: some View {
@@ -119,6 +118,24 @@ struct TvosSearchContentView: View {
             }
             .padding(.horizontal, 60)
             .padding(.vertical, 40)
+        }
+    }
+}
+
+/// Applies topInset using the correct strategy per tvOS version.
+/// - tvOS 18+: SwiftUI padding + ignoresSafeArea (system handles keyboard positioning)
+/// - tvOS < 18: No SwiftUI inset; additionalSafeAreaInsets on the hosting controller
+///   handles both content and keyboard positioning (set in ExpoTvosSearchView).
+struct TopInsetModifier: ViewModifier {
+    let topInset: CGFloat
+
+    func body(content: Content) -> some View {
+        if #available(tvOS 18, *) {
+            content
+                .padding(.top, topInset)
+                .ignoresSafeArea(.all, edges: .top)
+        } else {
+            content
         }
     }
 }
