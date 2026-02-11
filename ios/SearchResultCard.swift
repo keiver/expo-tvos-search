@@ -71,89 +71,107 @@ struct SearchResultCard: View {
     // Title overlay height
     private var overlayHeight: CGFloat { cardHeight * 0.25 }  // 25% of card
 
-    var body: some View {
-        Button(action: onSelect) {
-            VStack(alignment: .leading, spacing: showTitle || showSubtitle ? 12 : 0) {
-                ZStack(alignment: .bottom) {
-                    // Card image content
-                    ZStack {
-                        placeholderColor
+    /// Card visual content extracted to avoid duplication in version-gated body
+    @ViewBuilder
+    private var cardContent: some View {
+        VStack(alignment: .leading, spacing: showTitle || showSubtitle ? 12 : 0) {
+            ZStack(alignment: .bottom) {
+                // Card image content
+                ZStack {
+                    placeholderColor
 
-                        if let imageUrl = item.imageUrl, let url = URL(string: imageUrl) {
-                            CachedAsyncImage(
-                                url: url,
-                                contentMode: imageContentMode,
-                                width: cardWidth,
-                                height: cardHeight
-                            )
-                        } else {
-                            placeholderIcon
-                        }
-                    }
-                    .frame(width: cardWidth, height: cardHeight)
-                    .clipped()
-
-                    // Title overlay with native material blur
-                    if showTitleOverlay {
-                        ZStack {
-                            Rectangle()
-                                .fill(.ultraThinMaterial)
-                                .frame(width: cardWidth, height: overlayHeight)
-
-                            if enableMarquee {
-                                MarqueeText(
-                                    item.title,
-                                    font: .system(size: overlayTitleSize, weight: .semibold),
-                                    leftFade: 12,
-                                    rightFade: 12,
-                                    startDelay: marqueeDelay,
-                                    animate: isFocused
-                                )
-                                .foregroundColor(.white)
-                                .padding(.horizontal, cardPadding)
-                            } else {
-                                Text(item.title)
-                                    .font(.system(size: overlayTitleSize, weight: .semibold))
-                                    .foregroundColor(.white)
-                                    .lineLimit(2)
-                                    .multilineTextAlignment(.center)
-                                    .padding(.horizontal, cardPadding)
-                            }
-                        }
-                        .frame(width: cardWidth, height: overlayHeight)
+                    if let imageUrl = item.imageUrl, let url = URL(string: imageUrl) {
+                        CachedAsyncImage(
+                            url: url,
+                            contentMode: imageContentMode,
+                            width: cardWidth,
+                            height: cardHeight
+                        )
+                    } else {
+                        placeholderIcon
                     }
                 }
                 .frame(width: cardWidth, height: cardHeight)
-                .clipShape(cardShape)
-                .overlay(
-                    cardShape.stroke(showFocusBorder && isFocused ? accentColor : Color.clear, lineWidth: 4)
-                )
+                .clipped()
 
-                if showTitle || showSubtitle {
-                    VStack(alignment: .leading, spacing: 4) {
-                        if showTitle {
+                // Title overlay with native material blur
+                if showTitleOverlay {
+                    ZStack {
+                        Rectangle()
+                            .fill(.ultraThinMaterial)
+                            .frame(width: cardWidth, height: overlayHeight)
+
+                        if enableMarquee {
+                            MarqueeText(
+                                item.title,
+                                font: .system(size: overlayTitleSize, weight: .semibold),
+                                leftFade: 12,
+                                rightFade: 12,
+                                startDelay: marqueeDelay,
+                                animate: isFocused
+                            )
+                            .foregroundColor(.white)
+                            .padding(.horizontal, cardPadding)
+                        } else {
                             Text(item.title)
-                                .font(.callout)
-                                .fontWeight(.medium)
+                                .font(.system(size: overlayTitleSize, weight: .semibold))
+                                .foregroundColor(.white)
                                 .lineLimit(2)
-                                .multilineTextAlignment(.leading)
-                                .foregroundColor(.primary)
-                        }
-
-                        if showSubtitle, let subtitle = item.subtitle {
-                            Text(subtitle)
-                                .font(.caption)
-                                .foregroundColor(textColor ?? .secondary)
-                                .lineLimit(1)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, cardPadding)
                         }
                     }
-                    .padding(cardPadding)
-                    .frame(width: cardWidth, alignment: .leading)
+                    .frame(width: cardWidth, height: overlayHeight)
                 }
             }
+            .frame(width: cardWidth, height: cardHeight)
+            .clipShape(cardShape)
+            .overlay(
+                cardShape.stroke(showFocusBorder && isFocused ? accentColor : Color.clear, lineWidth: 4)
+            )
+
+            if showTitle || showSubtitle {
+                VStack(alignment: .leading, spacing: 4) {
+                    if showTitle {
+                        Text(item.title)
+                            .font(.callout)
+                            .fontWeight(.medium)
+                            .lineLimit(2)
+                            .multilineTextAlignment(.leading)
+                            .foregroundColor(.primary)
+                    }
+
+                    if showSubtitle, let subtitle = item.subtitle {
+                        Text(subtitle)
+                            .font(.caption)
+                            .foregroundColor(textColor ?? .secondary)
+                            .lineLimit(1)
+                    }
+                }
+                .padding(cardPadding)
+                .frame(width: cardWidth, alignment: .leading)
+            }
         }
-        .buttonStyle(.card)
-        .focused($isFocused)
+    }
+
+    var body: some View {
+        // tvOS 16 has a gesture recognizer conflict between .buttonStyle(.card)
+        // and React Native's RCTTVRemoteSelectHandler inside ScrollView + .searchable,
+        // causing Enter/Select to not fire the button action.
+        // Use .plain on older versions as a workaround.
+        if #available(tvOS 17, *) {
+            Button(action: onSelect) {
+                cardContent
+            }
+            .buttonStyle(.card)
+            .focused($isFocused)
+        } else {
+            Button(action: onSelect) {
+                cardContent
+            }
+            .buttonStyle(.plain)
+            .focused($isFocused)
+        }
     }
 
     private var placeholderIcon: some View {
