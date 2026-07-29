@@ -239,12 +239,14 @@ public class ExpoTvosSearchModule: Module {
                 view.cardBackgroundColor = colorHex
             }
 
+            // JS prop stays `borderWidth`/`borderColor`; the view stores it as cardBorder* to avoid
+            // clashing with RCTView's inherited properties of the same name.
             Prop("borderWidth") { (view: ExpoTvosSearchView, width: Double) in
-                view.borderWidth = CGFloat(Self.clamp(width, 0...20, propName: "borderWidth", view: view))
+                view.cardBorderWidth = CGFloat(Self.clamp(width, 0...20, propName: "borderWidth", view: view))
             }
 
             Prop("borderColor") { (view: ExpoTvosSearchView, colorHex: String?) in
-                view.borderColor = colorHex
+                view.cardBorderColor = colorHex
             }
 
             Prop("focusBorderWidth") { (view: ExpoTvosSearchView, width: Double) in

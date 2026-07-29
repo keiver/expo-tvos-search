@@ -266,15 +266,19 @@ class ExpoTvosSearchView: ExpoView {
         }
     }
 
-    var borderWidth: CGFloat = 0 {
+    // Named cardBorder*, not border*: ExpoView inherits from RCTView, which already declares
+    // `borderWidth: CGFloat` and `borderColor: UIColor?`. Same names here would shadow/clash with the
+    // superclass (borderColor's String? type can't override UIColor?). The JS prop names are still
+    // `borderWidth` / `borderColor` — see the Prop() mapping in ExpoTvosSearchModule.
+    var cardBorderWidth: CGFloat = 0 {
         didSet {
-            viewModel.borderWidth = borderWidth
+            viewModel.borderWidth = cardBorderWidth
         }
     }
 
-    var borderColor: String? = nil {
+    var cardBorderColor: String? = nil {
         didSet {
-            viewModel.borderColor = borderColor.flatMap { Color(hex: $0) }
+            viewModel.borderColor = cardBorderColor.flatMap { Color(hex: $0) }
         }
     }
 
@@ -776,8 +780,9 @@ class ExpoTvosSearchView: ExpoView {
     var overlayTitleSize: CGFloat = 20
     var cardCornerRadius: CGFloat = 12
     var cardBackgroundColor: String? = nil
-    var borderWidth: CGFloat = 0
-    var borderColor: String? = nil
+    // See the tvOS class above: border* would clash with RCTView's own properties.
+    var cardBorderWidth: CGFloat = 0
+    var cardBorderColor: String? = nil
     var focusBorderWidth: CGFloat = 4
     var focusStyle: String = "system"
     var focusScale: CGFloat = 1.0
