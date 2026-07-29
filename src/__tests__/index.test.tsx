@@ -114,6 +114,16 @@ describe('TvosSearchViewProps defaults', () => {
       enableMarquee: true,
       marqueeDelay: 1.5,
       overlayTitleSize: 20,
+      cardCornerRadius: 12,
+      borderWidth: 0,
+      focusBorderWidth: 4,
+      focusStyle: 'system',
+      focusScale: 1,
+      focusGlowOpacity: 0.55,
+      focusGlowRadius: 0,
+      overlayTitleWeight: 'semibold',
+      marqueeSpeed: 30,
+      marqueeMode: 'loop',
     };
 
     // Verify default documentation matches Swift implementation
@@ -122,6 +132,137 @@ describe('TvosSearchViewProps defaults', () => {
     expect(expectedDefaults.enableMarquee).toBe(true);
     expect(expectedDefaults.marqueeDelay).toBe(1.5);
     expect(expectedDefaults.overlayTitleSize).toBe(20);
+
+    // Card appearance props default to the pre-existing look, so adding them
+    // is not a visual breaking change for existing consumers.
+    expect(expectedDefaults.cardCornerRadius).toBe(12);
+    expect(expectedDefaults.borderWidth).toBe(0);
+    expect(expectedDefaults.focusBorderWidth).toBe(4);
+    expect(expectedDefaults.focusStyle).toBe('system');
+    expect(expectedDefaults.focusScale).toBe(1);
+    expect(expectedDefaults.focusGlowOpacity).toBe(0.55);
+    expect(expectedDefaults.focusGlowRadius).toBe(0);
+    expect(expectedDefaults.overlayTitleWeight).toBe('semibold');
+    expect(expectedDefaults.marqueeSpeed).toBe(30);
+    expect(expectedDefaults.marqueeMode).toBe('loop');
+  });
+});
+
+describe('TvosSearchViewProps card appearance', () => {
+  beforeEach(() => {
+    jest.resetModules();
+    mockTvOSPlatform();
+    mockNativeModuleAvailable();
+  });
+
+  it('accepts card shell props', () => {
+    const { TvosSearchView } = require('../index');
+
+    expect(() => {
+      TvosSearchView({
+        results: [],
+        onSearch: jest.fn(),
+        onSelectItem: jest.fn(),
+        cardCornerRadius: 32,
+        cardBackgroundColor: '#1C1C1E',
+        borderWidth: 2,
+        borderColor: '#26FFFFFF',
+        focusBorderWidth: 4,
+      });
+    }).not.toThrow();
+  });
+
+  it('accepts focus appearance props', () => {
+    const { TvosSearchView } = require('../index');
+
+    expect(() => {
+      TvosSearchView({
+        results: [],
+        onSearch: jest.fn(),
+        onSelectItem: jest.fn(),
+        focusStyle: 'custom',
+        focusScale: 1.05,
+        focusGlowColor: '#FFC312',
+        focusGlowOpacity: 0.55,
+        focusGlowRadius: 7,
+      });
+    }).not.toThrow();
+  });
+
+  it('accepts both focusStyle values', () => {
+    const { TvosSearchView } = require('../index');
+
+    (['system', 'custom'] as const).forEach((focusStyle) => {
+      expect(() => {
+        TvosSearchView({
+          results: [],
+          onSearch: jest.fn(),
+          onSelectItem: jest.fn(),
+          focusStyle,
+        });
+      }).not.toThrow();
+    });
+  });
+
+  it('accepts title overlay appearance props', () => {
+    const { TvosSearchView } = require('../index');
+
+    expect(() => {
+      TvosSearchView({
+        results: [],
+        onSearch: jest.fn(),
+        onSelectItem: jest.fn(),
+        overlayBackgroundColor: '#B3000000',
+        overlayTextColor: '#FFFFFF',
+        overlayBackgroundColorFocused: '#FFC312',
+        overlayTextColorFocused: '#2B1F05',
+        overlayTitleWeight: 'bold',
+        overlayHeight: 46,
+      });
+    }).not.toThrow();
+  });
+
+  it('accepts every overlayTitleWeight value', () => {
+    const { TvosSearchView } = require('../index');
+
+    (['regular', 'medium', 'semibold', 'bold', 'heavy'] as const).forEach((weight) => {
+      expect(() => {
+        TvosSearchView({
+          results: [],
+          onSearch: jest.fn(),
+          onSelectItem: jest.fn(),
+          overlayTitleWeight: weight,
+        });
+      }).not.toThrow();
+    });
+  });
+
+  it('accepts marquee speed and mode', () => {
+    const { TvosSearchView } = require('../index');
+
+    (['loop', 'bounce'] as const).forEach((marqueeMode) => {
+      expect(() => {
+        TvosSearchView({
+          results: [],
+          onSearch: jest.fn(),
+          onSelectItem: jest.fn(),
+          marqueeSpeed: 60,
+          marqueeMode,
+        });
+      }).not.toThrow();
+    });
+  });
+
+  it('works without any card appearance props (uses defaults)', () => {
+    const { TvosSearchView } = require('../index');
+
+    expect(() => {
+      TvosSearchView({
+        results: [],
+        onSearch: jest.fn(),
+        onSelectItem: jest.fn(),
+      });
+    }).not.toThrow();
   });
 });
 

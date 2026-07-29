@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+Card appearance props, so a native card can be styled to match a card design you already render in JS. Every prop below defaults to the existing appearance — no visual change unless you opt in.
+
+- Card shell: `cardCornerRadius`, `cardBackgroundColor`, `borderWidth`, `borderColor`
+- Focus appearance: `focusStyle` (`'system' | 'custom'`), `focusBorderWidth`, `focusScale`, `focusGlowColor`, `focusGlowOpacity`, `focusGlowRadius`
+- Title overlay: `overlayHeight`, `overlayTitleWeight`, `overlayBackgroundColor`, `overlayTextColor`, `overlayBackgroundColorFocused`, `overlayTextColorFocused`
+- Marquee: `marqueeSpeed`, `marqueeMode` (`'loop' | 'bounce'`)
+- `MarqueeAnimationCalculator.bounceDistance(textWidth:containerWidth:)` plus unit tests for bounce distance and non-default scroll speeds
+
+### Changed
+- Card borders are now drawn inside the card bounds via `.strokeBorder` instead of straddling the edge via `.stroke`. `SelectiveRoundedRectangle` conforms to `InsettableShape` to support this. A 4pt focus border no longer bleeds 2pt outside the card
+- Marquee text is centered when it fits its container, and left-aligned only while scrolling. Previously it was always left-aligned
+
 ## [1.7.0] - 2026-02-11
 
 ### Added

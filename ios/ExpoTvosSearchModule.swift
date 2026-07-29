@@ -25,6 +25,24 @@ public class ExpoTvosSearchModule: Module {
         return truncated
     }
 
+    /// Clamps a numeric value to a range and emits a validation warning if clamping occurred.
+    private static func clamp(
+        _ value: Double,
+        _ range: ClosedRange<Double>,
+        propName: String,
+        view: ExpoTvosSearchView
+    ) -> Double {
+        let clamped = min(max(range.lowerBound, value), range.upperBound)
+        if clamped != value {
+            view.onValidationWarning([
+                "type": "value_clamped",
+                "message": "\(propName) value \(value) was clamped to range [\(range.lowerBound), \(range.upperBound)]",
+                "context": "\(propName)=\(clamped)"
+            ])
+        }
+        return clamped
+    }
+
     public func definition() -> ModuleDefinition {
         Name("ExpoTvosSearch")
 
@@ -209,6 +227,92 @@ public class ExpoTvosSearchModule: Module {
                     ])
                 }
                 view.overlayTitleSize = CGFloat(clampedValue)
+            }
+
+            // MARK: - Card shell
+
+            Prop("cardCornerRadius") { (view: ExpoTvosSearchView, radius: Double) in
+                view.cardCornerRadius = CGFloat(Self.clamp(radius, 0...100, propName: "cardCornerRadius", view: view))
+            }
+
+            Prop("cardBackgroundColor") { (view: ExpoTvosSearchView, colorHex: String?) in
+                view.cardBackgroundColor = colorHex
+            }
+
+            // JS prop stays `borderWidth`/`borderColor`; the view stores it as cardBorder* to avoid
+            // clashing with RCTView's inherited properties of the same name.
+            Prop("borderWidth") { (view: ExpoTvosSearchView, width: Double) in
+                view.cardBorderWidth = CGFloat(Self.clamp(width, 0...20, propName: "borderWidth", view: view))
+            }
+
+            Prop("borderColor") { (view: ExpoTvosSearchView, colorHex: String?) in
+                view.cardBorderColor = colorHex
+            }
+
+            Prop("focusBorderWidth") { (view: ExpoTvosSearchView, width: Double) in
+                view.focusBorderWidth = CGFloat(Self.clamp(width, 0...20, propName: "focusBorderWidth", view: view))
+            }
+
+            // MARK: - Focus appearance
+
+            Prop("focusStyle") { (view: ExpoTvosSearchView, style: String) in
+                view.focusStyle = style
+            }
+
+            Prop("focusScale") { (view: ExpoTvosSearchView, scale: Double) in
+                view.focusScale = CGFloat(Self.clamp(scale, 1.0...1.5, propName: "focusScale", view: view))
+            }
+
+            Prop("focusGlowColor") { (view: ExpoTvosSearchView, colorHex: String?) in
+                view.focusGlowColor = colorHex
+            }
+
+            Prop("focusGlowOpacity") { (view: ExpoTvosSearchView, opacity: Double) in
+                view.focusGlowOpacity = Self.clamp(opacity, 0...1, propName: "focusGlowOpacity", view: view)
+            }
+
+            Prop("focusGlowRadius") { (view: ExpoTvosSearchView, radius: Double) in
+                view.focusGlowRadius = CGFloat(Self.clamp(radius, 0...60, propName: "focusGlowRadius", view: view))
+            }
+
+            // MARK: - Title overlay appearance
+
+            Prop("overlayBackgroundColor") { (view: ExpoTvosSearchView, colorHex: String?) in
+                view.overlayBackgroundColor = colorHex
+            }
+
+            Prop("overlayTextColor") { (view: ExpoTvosSearchView, colorHex: String?) in
+                view.overlayTextColor = colorHex
+            }
+
+            Prop("overlayBackgroundColorFocused") { (view: ExpoTvosSearchView, colorHex: String?) in
+                view.overlayBackgroundColorFocused = colorHex
+            }
+
+            Prop("overlayTextColorFocused") { (view: ExpoTvosSearchView, colorHex: String?) in
+                view.overlayTextColorFocused = colorHex
+            }
+
+            Prop("overlayTitleWeight") { (view: ExpoTvosSearchView, weight: String) in
+                view.overlayTitleWeight = weight
+            }
+
+            Prop("overlayHeight") { (view: ExpoTvosSearchView, height: Double?) in
+                if let height = height {
+                    view.overlayHeight = CGFloat(Self.clamp(height, 0...500, propName: "overlayHeight", view: view))
+                } else {
+                    view.overlayHeight = nil
+                }
+            }
+
+            // MARK: - Marquee animation
+
+            Prop("marqueeSpeed") { (view: ExpoTvosSearchView, speed: Double) in
+                view.marqueeSpeed = CGFloat(Self.clamp(speed, 5...300, propName: "marqueeSpeed", view: view))
+            }
+
+            Prop("marqueeMode") { (view: ExpoTvosSearchView, mode: String) in
+                view.marqueeMode = mode
             }
         }
     }

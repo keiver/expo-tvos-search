@@ -79,7 +79,41 @@ final class MarqueeAnimationCalculatorTests: XCTestCase {
         XCTAssertEqual(calculator.animationDuration(for: 3000), 100.0, accuracy: 0.001)
     }
 
+    // MARK: - bounceDistance Tests
+
+    func testBounceDistance_returnsOverflowOnly() {
+        // Unlike scrollDistance, bounce travels just far enough to reveal the tail
+        XCTAssertEqual(calculator.bounceDistance(textWidth: 500, containerWidth: 280), 220)
+    }
+
+    func testBounceDistance_textFitsContainer_returnsZero() {
+        XCTAssertEqual(calculator.bounceDistance(textWidth: 200, containerWidth: 280), 0)
+    }
+
+    func testBounceDistance_equalWidths_returnsZero() {
+        XCTAssertEqual(calculator.bounceDistance(textWidth: 280, containerWidth: 280), 0)
+    }
+
+    func testBounceDistance_zeroContainerWidth_returnsTextWidth() {
+        XCTAssertEqual(calculator.bounceDistance(textWidth: 500, containerWidth: 0), 500)
+    }
+
+    func testBounceDistance_ignoresSpacing() {
+        // Spacing only separates the repeated copies in loop mode
+        let spacedCalculator = MarqueeAnimationCalculator(spacing: 200, pixelsPerSecond: 30)
+        XCTAssertEqual(spacedCalculator.bounceDistance(textWidth: 500, containerWidth: 280), 220)
+    }
+
     // MARK: - Integration Tests
+
+    func testFullCalculation_bounceAtCustomSpeed() {
+        // Mirrors the JS marquee: 60 pt/s over the overflow distance
+        let fastCalculator = MarqueeAnimationCalculator(pixelsPerSecond: 60)
+        let distance = fastCalculator.bounceDistance(textWidth: 500, containerWidth: 260)
+
+        XCTAssertEqual(distance, 240)
+        XCTAssertEqual(fastCalculator.animationDuration(for: distance), 4.0, accuracy: 0.001)
+    }
 
     func testFullCalculation_typicalLongTitle() {
         let textWidth: CGFloat = 500

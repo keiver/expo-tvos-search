@@ -4,19 +4,36 @@ import SwiftUI
 
 /// Custom shape for cards with selectively rounded corners
 /// Provides backwards compatibility for tvOS versions before 16.0
-struct SelectiveRoundedRectangle: Shape {
+///
+/// `InsettableShape` conformance lets the card use `.strokeBorder`, which draws
+/// the border entirely inside the shape (like a CSS `border-box` border) rather
+/// than straddling the path the way `.stroke` does.
+struct SelectiveRoundedRectangle: InsettableShape {
     var topLeadingRadius: CGFloat
     var topTrailingRadius: CGFloat
     var bottomLeadingRadius: CGFloat
     var bottomTrailingRadius: CGFloat
+    var insetAmount: CGFloat = 0
+
+    func inset(by amount: CGFloat) -> SelectiveRoundedRectangle {
+        var shape = self
+        shape.insetAmount += amount
+        return shape
+    }
 
     func path(in rect: CGRect) -> Path {
         var path = Path()
 
-        let tl = min(topLeadingRadius, min(rect.width, rect.height) / 2)
-        let tr = min(topTrailingRadius, min(rect.width, rect.height) / 2)
-        let bl = min(bottomLeadingRadius, min(rect.width, rect.height) / 2)
-        let br = min(bottomTrailingRadius, min(rect.width, rect.height) / 2)
+        let rect = rect.insetBy(dx: insetAmount, dy: insetAmount)
+        guard rect.width > 0, rect.height > 0 else { return path }
+
+        // Inner radii shrink with the inset so the border keeps a constant width
+        // around the curve, matching how CSS derives the inner border radius.
+        let maxRadius = min(rect.width, rect.height) / 2
+        let tl = min(max(0, topLeadingRadius - insetAmount), maxRadius)
+        let tr = min(max(0, topTrailingRadius - insetAmount), maxRadius)
+        let bl = min(max(0, bottomLeadingRadius - insetAmount), maxRadius)
+        let br = min(max(0, bottomTrailingRadius - insetAmount), maxRadius)
 
         path.move(to: CGPoint(x: rect.minX + tl, y: rect.minY))
         path.addLine(to: CGPoint(x: rect.maxX - tr, y: rect.minY))
@@ -61,10 +78,28 @@ struct SearchResultCard: View {
     let imageContentMode: ContentMode
     let cardPadding: CGFloat
     let overlayTitleSize: CGFloat
+    let cardCornerRadius: CGFloat
+    let cardBackgroundColor: Color?
+    let borderWidth: CGFloat
+    let borderColor: Color?
+    let focusBorderWidth: CGFloat
+    let focusStyle: String
+    let focusScale: CGFloat
+    let focusGlowColor: Color?
+    let focusGlowOpacity: Double
+    let focusGlowRadius: CGFloat
+    let overlayBackgroundColor: Color?
+    let overlayTextColor: Color?
+    let overlayBackgroundColorFocused: Color?
+    let overlayTextColorFocused: Color?
+    let overlayTitleWeight: Font.Weight
+    let overlayHeightOverride: CGFloat?
+    let marqueeSpeed: CGFloat
+    let marqueeMode: String
     let onSelect: () -> Void
     @FocusState private var isFocused: Bool
 
-    private let placeholderColor = Color(white: 0.2)
+    private var placeholderColor: Color { cardBackgroundColor ?? Color(white: 0.2) }
 
     /// On tvOS < 17, .card button style isn't usable (gesture conflict with RN),
     /// so always show a focus border since there's no other visual feedback.
@@ -85,19 +120,52 @@ struct SearchResultCard: View {
         }
     }
 
+    /// The focused border replaces the resting border rather than adding to it,
+    /// matching how a CSS border swaps width and color on focus.
+    private var currentBorderWidth: CGFloat {
+        (shouldShowFocusBorder && isFocused) ? focusBorderWidth : borderWidth
+    }
+
+    private var currentBorderColor: Color {
+        (shouldShowFocusBorder && isFocused) ? focusBorderColor : (borderColor ?? .clear)
+    }
+
+    /// tvOS 16 and earlier always use the custom path — .buttonStyle(.card) has a
+    /// gesture conflict with React Native there (see `body`).
+    private var usesSystemFocusStyle: Bool {
+        if #available(tvOS 17, *) {
+            return focusStyle.lowercased() != "custom"
+        } else {
+            return false
+        }
+    }
+
+    private var glowColor: Color {
+        (focusGlowColor ?? accentColor).opacity(focusGlowOpacity)
+    }
+
     /// Computed shape for the card with selective rounded corners.
     /// Bottom corners are rounded only when no title/subtitle section is displayed.
     private var cardShape: SelectiveRoundedRectangle {
         SelectiveRoundedRectangle(
-            topLeadingRadius: 12,
-            topTrailingRadius: 12,
-            bottomLeadingRadius: (showTitle || showSubtitle) ? 0 : 12,
-            bottomTrailingRadius: (showTitle || showSubtitle) ? 0 : 12
+            topLeadingRadius: cardCornerRadius,
+            topTrailingRadius: cardCornerRadius,
+            bottomLeadingRadius: (showTitle || showSubtitle) ? 0 : cardCornerRadius,
+            bottomTrailingRadius: (showTitle || showSubtitle) ? 0 : cardCornerRadius
         )
     }
 
-    // Title overlay height
-    private var overlayHeight: CGFloat { cardHeight * 0.25 }  // 25% of card
+    // Title overlay height — defaults to 25% of the card when not overridden
+    private var overlayHeight: CGFloat { overlayHeightOverride ?? (cardHeight * 0.25) }
+
+    private var overlayFill: Color? {
+        isFocused ? (overlayBackgroundColorFocused ?? overlayBackgroundColor) : overlayBackgroundColor
+    }
+
+    private var overlayForeground: Color {
+        let resting = overlayTextColor ?? .white
+        return isFocused ? (overlayTextColorFocused ?? resting) : resting
+    }
 
     /// Card visual content extracted to avoid duplication in version-gated body
     @ViewBuilder
@@ -125,25 +193,36 @@ struct SearchResultCard: View {
                 // Title overlay with native material blur
                 if showTitleOverlay {
                     ZStack {
-                        Rectangle()
-                            .fill(.ultraThinMaterial)
-                            .frame(width: cardWidth, height: overlayHeight)
+                        // A solid fill replaces the blur material when a color is supplied,
+                        // so a custom bar reads as one flat surface (a translucent color
+                        // composited over the material muddies it).
+                        if let overlayFill = overlayFill {
+                            Rectangle()
+                                .fill(overlayFill)
+                                .frame(width: cardWidth, height: overlayHeight)
+                        } else {
+                            Rectangle()
+                                .fill(.ultraThinMaterial)
+                                .frame(width: cardWidth, height: overlayHeight)
+                        }
 
                         if enableMarquee {
                             MarqueeText(
                                 item.title,
-                                font: .system(size: overlayTitleSize, weight: .semibold),
+                                font: .system(size: overlayTitleSize, weight: overlayTitleWeight),
                                 leftFade: 12,
                                 rightFade: 12,
                                 startDelay: marqueeDelay,
-                                animate: isFocused
+                                animate: isFocused,
+                                speed: marqueeSpeed,
+                                mode: MarqueeMode(rawValue: marqueeMode.lowercased()) ?? .loop
                             )
-                            .foregroundColor(.white)
+                            .foregroundColor(overlayForeground)
                             .padding(.horizontal, cardPadding)
                         } else {
                             Text(item.title)
-                                .font(.system(size: overlayTitleSize, weight: .semibold))
-                                .foregroundColor(.white)
+                                .font(.system(size: overlayTitleSize, weight: overlayTitleWeight))
+                                .foregroundColor(overlayForeground)
                                 .lineLimit(2)
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal, cardPadding)
@@ -155,7 +234,13 @@ struct SearchResultCard: View {
             .frame(width: cardWidth, height: cardHeight)
             .clipShape(cardShape)
             .overlay(
-                cardShape.stroke(shouldShowFocusBorder && isFocused ? focusBorderColor : Color.clear, lineWidth: 4)
+                cardShape.strokeBorder(currentBorderColor, lineWidth: currentBorderWidth)
+            )
+            .shadow(
+                color: (focusGlowRadius > 0 && isFocused) ? glowColor : .clear,
+                radius: focusGlowRadius,
+                x: 0,
+                y: 0
             )
 
             if showTitle || showSubtitle {
@@ -187,7 +272,11 @@ struct SearchResultCard: View {
         // and React Native's RCTTVRemoteSelectHandler inside ScrollView + .searchable,
         // causing Enter/Select to not fire the button action.
         // Use .plain on older versions as a workaround.
-        if #available(tvOS 17, *) {
+        //
+        // On tvOS 17+, focusStyle="custom" also takes the plain path so the card's
+        // own border/glow/scale are the only focus feedback — the system card style
+        // layers its own lift, parallax, and shadow on top otherwise.
+        if usesSystemFocusStyle {
             Button(action: onSelect) {
                 cardContent
             }
@@ -199,6 +288,8 @@ struct SearchResultCard: View {
             }
             .buttonStyle(NoHaloButtonStyle())
             .focused($isFocused)
+            .scaleEffect(isFocused ? focusScale : 1)
+            .animation(.easeOut(duration: 0.2), value: isFocused)
         }
     }
 
