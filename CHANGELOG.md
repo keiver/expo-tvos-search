@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-07-29
+- feat(props): card appearance props for matching custom JS card designs (#28)
+
+
 ### Added
 
 Card appearance props, so a native card can be styled to match a card design you already render in JS. Every prop below defaults to the existing appearance — no visual change unless you opt in.
