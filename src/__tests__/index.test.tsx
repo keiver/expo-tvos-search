@@ -140,6 +140,7 @@ describe('TvosSearchViewProps defaults', () => {
     expect(expectedDefaults.focusBorderWidth).toBe(4);
     expect(expectedDefaults.focusStyle).toBe('system');
     expect(expectedDefaults.focusScale).toBe(1);
+    expect(expectedDefaults.focusGlowOpacity).toBe(0.55);
     expect(expectedDefaults.focusGlowRadius).toBe(0);
     expect(expectedDefaults.overlayTitleWeight).toBe('semibold');
     expect(expectedDefaults.marqueeSpeed).toBe(30);

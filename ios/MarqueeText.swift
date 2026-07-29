@@ -58,6 +58,20 @@ struct MarqueeText: View {
         animate && needsScroll
     }
 
+    /// Identity for the animation task. Mode and speed are part of it because
+    /// `.task(id:)` only restarts when the id changes: keying on `shouldAnimate`
+    /// alone would leave a running loop animation driving the offset after the
+    /// mode switched to bounce, scrolling the text off the card.
+    private var animationKey: AnimationKey {
+        AnimationKey(shouldAnimate: shouldAnimate, mode: mode, pixelsPerSecond: calculator.pixelsPerSecond)
+    }
+
+    struct AnimationKey: Equatable {
+        let shouldAnimate: Bool
+        let mode: MarqueeMode
+        let pixelsPerSecond: CGFloat
+    }
+
     /// Text that fits is centered; scrolling text starts flush left so the first
     /// character is never clipped mid-glyph.
     private var horizontalAlignment: HorizontalAlignment {
@@ -118,7 +132,7 @@ struct MarqueeText: View {
             .onAppear {
                 containerWidth = geometry.size.width
             }
-            .task(id: shouldAnimate) {
+            .task(id: animationKey) {
                 guard shouldAnimate else {
                     if offset != 0 {
                         withAnimation(.easeOut(duration: 0.2)) {
