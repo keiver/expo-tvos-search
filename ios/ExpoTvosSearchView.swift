@@ -52,6 +52,32 @@ class SearchViewModel: ObservableObject {
     @Published var cardMargin: CGFloat = 40  // Spacing between cards
     @Published var cardPadding: CGFloat = 16  // Padding inside cards
     @Published var overlayTitleSize: CGFloat = 20  // Font size for overlay title
+
+    // Card shell options (configurable from JS)
+    @Published var cardCornerRadius: CGFloat = 12
+    @Published var cardBackgroundColor: Color? = nil  // nil = Color(white: 0.2)
+    @Published var borderWidth: CGFloat = 0           // Resting border, drawn on every card
+    @Published var borderColor: Color? = nil          // nil = transparent
+    @Published var focusBorderWidth: CGFloat = 4
+
+    // Focus appearance options (configurable from JS)
+    @Published var focusStyle: String = "system"      // "system" = .buttonStyle(.card)
+    @Published var focusScale: CGFloat = 1.0
+    @Published var focusGlowColor: Color? = nil       // nil = accentColor
+    @Published var focusGlowOpacity: Double = 0.55
+    @Published var focusGlowRadius: CGFloat = 0       // 0 = no glow
+
+    // Title overlay appearance options (configurable from JS)
+    @Published var overlayBackgroundColor: Color? = nil         // nil = .ultraThinMaterial
+    @Published var overlayTextColor: Color? = nil               // nil = .white
+    @Published var overlayBackgroundColorFocused: Color? = nil  // nil = overlayBackgroundColor
+    @Published var overlayTextColorFocused: Color? = nil        // nil = overlayTextColor
+    @Published var overlayTitleWeight: Font.Weight = .semibold
+    @Published var overlayHeight: CGFloat? = nil                // nil = cardHeight * 0.25
+
+    // Marquee animation options (configurable from JS)
+    @Published var marqueeSpeed: CGFloat = 30         // Points per second
+    @Published var marqueeMode: String = "loop"       // "loop" or "bounce"
 }
 
 class ExpoTvosSearchView: ExpoView {
@@ -225,6 +251,120 @@ class ExpoTvosSearchView: ExpoView {
     var overlayTitleSize: CGFloat = 20 {
         didSet {
             viewModel.overlayTitleSize = overlayTitleSize
+        }
+    }
+
+    var cardCornerRadius: CGFloat = 12 {
+        didSet {
+            viewModel.cardCornerRadius = cardCornerRadius
+        }
+    }
+
+    var cardBackgroundColor: String? = nil {
+        didSet {
+            viewModel.cardBackgroundColor = cardBackgroundColor.flatMap { Color(hex: $0) }
+        }
+    }
+
+    var borderWidth: CGFloat = 0 {
+        didSet {
+            viewModel.borderWidth = borderWidth
+        }
+    }
+
+    var borderColor: String? = nil {
+        didSet {
+            viewModel.borderColor = borderColor.flatMap { Color(hex: $0) }
+        }
+    }
+
+    var focusBorderWidth: CGFloat = 4 {
+        didSet {
+            viewModel.focusBorderWidth = focusBorderWidth
+        }
+    }
+
+    var focusStyle: String = "system" {
+        didSet {
+            viewModel.focusStyle = focusStyle
+        }
+    }
+
+    var focusScale: CGFloat = 1.0 {
+        didSet {
+            viewModel.focusScale = focusScale
+        }
+    }
+
+    var focusGlowColor: String? = nil {
+        didSet {
+            viewModel.focusGlowColor = focusGlowColor.flatMap { Color(hex: $0) }
+        }
+    }
+
+    var focusGlowOpacity: Double = 0.55 {
+        didSet {
+            viewModel.focusGlowOpacity = focusGlowOpacity
+        }
+    }
+
+    var focusGlowRadius: CGFloat = 0 {
+        didSet {
+            viewModel.focusGlowRadius = focusGlowRadius
+        }
+    }
+
+    var overlayBackgroundColor: String? = nil {
+        didSet {
+            viewModel.overlayBackgroundColor = overlayBackgroundColor.flatMap { Color(hex: $0) }
+        }
+    }
+
+    var overlayTextColor: String? = nil {
+        didSet {
+            viewModel.overlayTextColor = overlayTextColor.flatMap { Color(hex: $0) }
+        }
+    }
+
+    var overlayBackgroundColorFocused: String? = nil {
+        didSet {
+            viewModel.overlayBackgroundColorFocused = overlayBackgroundColorFocused.flatMap { Color(hex: $0) }
+        }
+    }
+
+    var overlayTextColorFocused: String? = nil {
+        didSet {
+            viewModel.overlayTextColorFocused = overlayTextColorFocused.flatMap { Color(hex: $0) }
+        }
+    }
+
+    var overlayTitleWeight: String = "semibold" {
+        didSet {
+            switch overlayTitleWeight.lowercased() {
+            case "regular": viewModel.overlayTitleWeight = .regular
+            case "medium": viewModel.overlayTitleWeight = .medium
+            case "bold": viewModel.overlayTitleWeight = .bold
+            case "heavy": viewModel.overlayTitleWeight = .heavy
+            default: viewModel.overlayTitleWeight = .semibold
+            }
+        }
+    }
+
+    var overlayHeight: CGFloat? = nil {
+        didSet {
+            viewModel.overlayHeight = overlayHeight
+        }
+    }
+
+    var marqueeSpeed: CGFloat = 30 {
+        didSet {
+            viewModel.marqueeSpeed = marqueeSpeed
+        }
+    }
+
+    var marqueeMode: String = "loop" {
+        didSet {
+            viewModel.marqueeMode = marqueeMode
         }
     }
 
@@ -634,6 +774,24 @@ class ExpoTvosSearchView: ExpoView {
     var cardMargin: CGFloat = 40
     var cardPadding: CGFloat = 16
     var overlayTitleSize: CGFloat = 20
+    var cardCornerRadius: CGFloat = 12
+    var cardBackgroundColor: String? = nil
+    var borderWidth: CGFloat = 0
+    var borderColor: String? = nil
+    var focusBorderWidth: CGFloat = 4
+    var focusStyle: String = "system"
+    var focusScale: CGFloat = 1.0
+    var focusGlowColor: String? = nil
+    var focusGlowOpacity: Double = 0.55
+    var focusGlowRadius: CGFloat = 0
+    var overlayBackgroundColor: String? = nil
+    var overlayTextColor: String? = nil
+    var overlayBackgroundColorFocused: String? = nil
+    var overlayTextColorFocused: String? = nil
+    var overlayTitleWeight: String = "semibold"
+    var overlayHeight: CGFloat? = nil
+    var marqueeSpeed: CGFloat = 30
+    var marqueeMode: String = "loop"
 
     // Event dispatchers required by ExpoTvosSearchModule's Event() registration.
     // Intentionally no-ops on non-tvOS — the fallback view never fires events.

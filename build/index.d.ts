@@ -274,6 +274,151 @@ export interface TvosSearchViewProps {
      */
     overlayTitleSize?: number;
     /**
+     * Corner radius of the card in points.
+     * When `showTitle` or `showSubtitle` is set, only the top corners are rounded
+     * (the text block below the image continues the card).
+     * Values outside 0-100 range are clamped.
+     * @default 12
+     * @minimum 0
+     * @maximum 100
+     * @example 32 for heavily rounded cards
+     */
+    cardCornerRadius?: number;
+    /**
+     * Background color shown behind the image while it loads, and wherever the
+     * image does not cover the card (letterboxing with `imageContentMode="fit"`).
+     * Hex color string.
+     * @default Dark gray (20% white)
+     * @example "#1C1C1E"
+     */
+    cardBackgroundColor?: string;
+    /**
+     * Border width in points drawn on every card, focused or not.
+     * The border is drawn inside the card bounds, like a CSS `border-box` border.
+     * Values outside 0-20 range are clamped.
+     * @default 0 (no resting border)
+     * @minimum 0
+     * @maximum 20
+     * @example 2 for a subtle outline on every card
+     */
+    borderWidth?: number;
+    /**
+     * Color of the resting border drawn by `borderWidth`.
+     * Hex color string. Supports 8-digit `AARRGGBB` for translucency.
+     * @default Transparent
+     * @example "#26FFFFFF" for rgba(255, 255, 255, 0.15)
+     */
+    borderColor?: string;
+    /**
+     * Border width in points for the focused card, used when `showFocusBorder`
+     * is true. Drawn inside the card bounds, replacing the resting border.
+     * Values outside 0-20 range are clamped.
+     * @default 4
+     * @minimum 0
+     * @maximum 20
+     */
+    focusBorderWidth?: number;
+    /**
+     * How the card reacts to focus.
+     * - `'system'`: tvOS card button style — Apple's lift, parallax, and shadow
+     * - `'custom'`: no system effect; only `focusScale`, the focus border, and
+     *   the focus glow are applied. Use this to match a custom JS card exactly.
+     *
+     * Ignored on tvOS 16 and earlier, which always uses the custom path because
+     * the system card style conflicts with React Native's remote gesture handler.
+     * @default "system"
+     */
+    focusStyle?: 'system' | 'custom';
+    /**
+     * Scale applied to the focused card when `focusStyle` is `'custom'`.
+     * Values outside 1-1.5 range are clamped.
+     * @default 1 (no scaling)
+     * @minimum 1
+     * @maximum 1.5
+     * @example 1.05 for a subtle lift
+     */
+    focusScale?: number;
+    /**
+     * Color of the glow drawn around the focused card.
+     * Hex color string. Has no effect unless `focusGlowRadius` is greater than 0.
+     * @default Uses `accentColor`
+     * @example "#FFC312"
+     */
+    focusGlowColor?: string;
+    /**
+     * Opacity of the focus glow.
+     * Values outside 0-1 range are clamped.
+     * @default 0.55
+     * @minimum 0
+     * @maximum 1
+     */
+    focusGlowOpacity?: number;
+    /**
+     * Blur radius of the focus glow in points. Set to 0 to disable the glow.
+     * Values outside 0-60 range are clamped.
+     * @default 0 (no glow)
+     * @minimum 0
+     * @maximum 60
+     * @example 7 for a tight backlight
+     */
+    focusGlowRadius?: number;
+    /**
+     * Background color of the title overlay (when `showTitleOverlay` is true).
+     * Hex color string. Supports 8-digit `AARRGGBB` for translucency.
+     * @default A native blur material
+     * @example "#B3000000" for a dark translucent bar
+     */
+    overlayBackgroundColor?: string;
+    /**
+     * Text color of the title overlay.
+     * Hex color string.
+     * @default "#FFFFFF"
+     */
+    overlayTextColor?: string;
+    /**
+     * Background color of the title overlay while the card is focused.
+     * Hex color string.
+     * @default Falls back to `overlayBackgroundColor`
+     * @example "#FFC312" to flip the bar to the accent color on focus
+     */
+    overlayBackgroundColorFocused?: string;
+    /**
+     * Text color of the title overlay while the card is focused.
+     * Hex color string.
+     * @default Falls back to `overlayTextColor`
+     * @example "#2B1F05" for dark text on a gold focused bar
+     */
+    overlayTextColorFocused?: string;
+    /**
+     * Font weight for the title in the overlay.
+     * @default "semibold"
+     */
+    overlayTitleWeight?: 'regular' | 'medium' | 'semibold' | 'bold' | 'heavy';
+    /**
+     * Height of the title overlay in points.
+     * Values outside 0-500 range are clamped.
+     * @default 25% of `cardHeight`
+     * @minimum 0
+     * @maximum 500
+     * @example 46 for a thin title sliver
+     */
+    overlayHeight?: number;
+    /**
+     * Marquee scroll speed in points per second.
+     * Values outside 5-300 range are clamped.
+     * @default 30
+     * @minimum 5
+     * @maximum 300
+     */
+    marqueeSpeed?: number;
+    /**
+     * How the marquee scrolls long titles.
+     * - `'loop'`: the title scrolls left continuously, repeating seamlessly
+     * - `'bounce'`: the title scrolls to the end, pauses, then scrolls back
+     * @default "loop"
+     */
+    marqueeMode?: 'loop' | 'bounce';
+    /**
      * Callback fired when the search text changes.
      * Debounce this handler to avoid excessive API calls.
      *

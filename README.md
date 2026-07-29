@@ -145,6 +145,57 @@ Apps with a fixed dark background can get illegible search bar text when the sys
 - `"light"` — black text, light UI elements
 - `"system"` — follows the device setting (default, no override)
 
+### Matching a Custom Card Design
+
+By default the card renders with Apple's card focus effect, a blur title bar and white title text. Every part of that is overridable, so a native card can be made to match a card you already render in JS elsewhere in your app.
+
+This example reproduces a common media-app card: rounded corners, a faint resting outline, a gold border and backlight on focus, and a title bar that flips from a dark blur to solid gold with dark text.
+
+```tsx
+<TvosSearchView
+  results={results}
+  onSearch={handleSearch}
+  onSelectItem={handleSelect}
+
+  columns={6}
+  cardWidth={340}
+  cardHeight={510}
+  cardMargin={32}
+  cardPadding={16}
+
+  cardCornerRadius={32}
+  cardBackgroundColor="#1C1C1E"
+  borderWidth={2}
+  borderColor="#26FFFFFF"          // rgba(255, 255, 255, 0.15)
+
+  focusStyle="custom"              // drop Apple's lift/parallax
+  showFocusBorder
+  focusBorderWidth={4}
+  accentColor="#FFC312"
+  focusGlowColor="#FFC312"
+  focusGlowOpacity={0.55}
+  focusGlowRadius={7}
+
+  showTitleOverlay
+  overlayHeight={46}
+  overlayTitleSize={22}
+  overlayTitleWeight="bold"
+  overlayTextColor="#FFFFFF"
+  overlayBackgroundColorFocused="#FFC312"
+  overlayTextColorFocused="#2B1F05"
+
+  enableMarquee
+  marqueeDelay={0.3}
+  marqueeSpeed={60}
+  marqueeMode="bounce"
+/>
+```
+
+Two things worth knowing:
+
+- Set `focusStyle="custom"` when matching an exact design. Left on `"system"`, tvOS adds its own lift, parallax and shadow on top of your border and glow.
+- Setting `overlayBackgroundColor` (or its focused variant) replaces the native blur material with a solid fill. A translucent color composited over the blur muddies both, so the overlay picks one or the other.
+
 ## API Reference
 
 ### Props
@@ -167,6 +218,7 @@ Apps with a fixed dark background can get illegible search bar text when the sys
 | `cardHeight` | `number` | `420` | Height of each result card in points (clamped 50–1000) |
 | `cardMargin` | `number` | `40` | Spacing between cards (horizontal and vertical, clamped 0–200) |
 | `cardPadding` | `number` | `16` | Padding inside the card for overlay content (clamped 0–100) |
+| `cardCornerRadius` | `number` | `12` | Corner radius of the card in points (clamped 0–100) |
 | `topInset` | `number` | `0` | Top padding for tab bar clearance (clamped 0–500) |
 
 #### Display Options
@@ -186,7 +238,36 @@ Apps with a fixed dark background can get illegible search bar text when the sys
 | `textColor` | `string` | system default | Color for text and UI elements (hex, e.g. `"#FFFFFF"`) |
 | `accentColor` | `string` | `"#FFC312"` | Accent color for focused elements (hex, e.g. `"#E50914"`) |
 | `colorScheme` | `'light' \| 'dark' \| 'system'` | `"system"` | Override the system color scheme for the search view |
-| `overlayTitleSize` | `number` | `20` | Font size for title text in the blur overlay (clamped 8–72) |
+| `cardBackgroundColor` | `string` | dark gray | Background behind the image, and wherever the image doesn't cover the card |
+| `borderWidth` | `number` | `0` | Border drawn on every card, focused or not (clamped 0–20) |
+| `borderColor` | `string` | transparent | Color of the resting border. 8-digit `AARRGGBB` hex is supported, e.g. `"#26FFFFFF"` |
+
+Borders are drawn inside the card bounds, like a CSS `border-box` border.
+
+#### Focus Appearance
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `focusStyle` | `'system' \| 'custom'` | `'system'` | `system` uses Apple's card lift, parallax and shadow. `custom` applies only this library's border, glow and scale |
+| `focusBorderWidth` | `number` | `4` | Border width for the focused card, used when `showFocusBorder` is true (clamped 0–20) |
+| `focusScale` | `number` | `1` | Scale applied to the focused card. Only used when `focusStyle` is `custom` (clamped 1–1.5) |
+| `focusGlowColor` | `string` | `accentColor` | Color of the glow around the focused card |
+| `focusGlowOpacity` | `number` | `0.55` | Opacity of the focus glow (clamped 0–1) |
+| `focusGlowRadius` | `number` | `0` | Blur radius of the focus glow. `0` disables it (clamped 0–60) |
+
+`focusStyle` is ignored on tvOS 16 and earlier, which always takes the custom path — the system card style conflicts with React Native's remote gesture handler there.
+
+#### Title Overlay
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `overlayTitleSize` | `number` | `20` | Font size for title text in the overlay (clamped 8–72) |
+| `overlayTitleWeight` | `'regular' \| 'medium' \| 'semibold' \| 'bold' \| 'heavy'` | `'semibold'` | Font weight for the overlay title |
+| `overlayHeight` | `number` | 25% of `cardHeight` | Height of the overlay in points (clamped 0–500) |
+| `overlayBackgroundColor` | `string` | blur material | Overlay background. Setting it replaces the native blur with a solid fill |
+| `overlayTextColor` | `string` | `"#FFFFFF"` | Overlay text color |
+| `overlayBackgroundColorFocused` | `string` | `overlayBackgroundColor` | Overlay background while the card is focused |
+| `overlayTextColorFocused` | `string` | `overlayTextColor` | Overlay text color while the card is focused |
 
 #### Animation
 
@@ -194,6 +275,8 @@ Apps with a fixed dark background can get illegible search bar text when the sys
 |------|------|---------|-------------|
 | `enableMarquee` | `boolean` | `true` | Enable marquee scrolling for long titles |
 | `marqueeDelay` | `number` | `1.5` | Delay in seconds before marquee starts (clamped 0–60) |
+| `marqueeSpeed` | `number` | `30` | Marquee scroll speed in points per second (clamped 5–300) |
+| `marqueeMode` | `'loop' \| 'bounce'` | `'loop'` | `loop` scrolls continuously and repeats. `bounce` scrolls to the end, pauses, then scrolls back |
 
 #### Text Customization
 

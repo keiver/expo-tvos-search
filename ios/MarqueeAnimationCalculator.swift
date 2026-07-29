@@ -32,6 +32,16 @@ struct MarqueeAnimationCalculator {
         max(0, textWidth) + spacing
     }
 
+    /// Calculates the scroll distance for bounce mode, where a single copy of the
+    /// text scrolls just far enough to reveal its tail and then scrolls back.
+    /// - Parameters:
+    ///   - textWidth: The measured width of the text content
+    ///   - containerWidth: The available container width
+    /// - Returns: The overflow distance (always non-negative)
+    func bounceDistance(textWidth: CGFloat, containerWidth: CGFloat) -> CGFloat {
+        max(0, textWidth - containerWidth)
+    }
+
     /// Calculates animation duration based on scroll distance and scroll speed.
     /// - Parameter distance: The total scroll distance
     /// - Returns: Duration in seconds for the scroll animation (always non-negative)
