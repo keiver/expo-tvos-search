@@ -119,7 +119,7 @@ export interface TvosSearchViewProps {
      *
      * **Warning:** Avoid setting `searchText` inside your `onSearch` handler with
      * transforms (e.g., trimming, lowercasing). The native guard only prevents
-     * same-value loops — transformed values will trigger a new `onSearch` event,
+     * same-value loops, so transformed values will trigger a new `onSearch` event,
      * creating an infinite update cycle.
      */
     searchText?: string;
@@ -320,7 +320,7 @@ export interface TvosSearchViewProps {
     focusBorderWidth?: number;
     /**
      * How the card reacts to focus.
-     * - `'system'`: tvOS card button style — Apple's lift, parallax, and shadow
+     * - `'system'`: tvOS card button style, giving Apple's lift, parallax, and shadow
      * - `'custom'`: no system effect; only `focusScale`, the focus border, and
      *   the focus glow are applied. Use this to match a custom JS card exactly.
      *
@@ -331,6 +331,11 @@ export interface TvosSearchViewProps {
     focusStyle?: 'system' | 'custom';
     /**
      * Scale applied to the focused card when `focusStyle` is `'custom'`.
+     *
+     * This is the only lift available on that path, and tvOS 16 and earlier always
+     * take it because the system card style is unusable there. Without it a focused
+     * card on tvOS 16 has no depth cue beyond its border.
+     *
      * Values outside 1-1.5 range are clamped.
      * @default 1 (no scaling)
      * @minimum 1
@@ -423,7 +428,7 @@ export interface TvosSearchViewProps {
      * Debounce this handler to avoid excessive API calls.
      *
      * **Note:** If using the `searchText` prop, do not set it to a transformed
-     * value inside this handler — see `searchText` docs for loop prevention.
+     * value inside this handler. See the `searchText` docs for loop prevention.
      */
     onSearch: (event: SearchEvent) => void;
     /**

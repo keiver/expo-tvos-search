@@ -1,0 +1,15 @@
+set -e
+
+# Jest, the Swift suite on a tvOS simulator, then the build.
+#
+# The Swift suite is deliberately local-only: it needs Xcode and a simulator, so
+# this hook is what gates it. CI runs the Jest suite alone on Linux.
+npm run verify
+
+# build/ is tracked, so a commit that changes src/ without rebuilding ships types
+# that lag the source. Rebuild above, then fold any resulting change into this
+# commit rather than leaving it dangling for the next one.
+if ! git diff --quiet -- build; then
+  git add build
+  echo "pre-commit: rebuilt and restaged build/"
+fi

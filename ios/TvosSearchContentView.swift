@@ -94,42 +94,15 @@ struct TvosSearchContentView: View {
     }
 
     private var resultsGridView: some View {
-        ScrollView {
+        // Built once per render rather than once per visible card
+        let style = viewModel.cardStyle
+
+        return ScrollView {
             LazyVGrid(columns: gridColumns, spacing: viewModel.cardMargin) {
                 ForEach(viewModel.results) { item in
                     SearchResultCard(
                         item: item,
-                        showTitle: viewModel.showTitle,
-                        showSubtitle: viewModel.showSubtitle,
-                        showFocusBorder: viewModel.showFocusBorder,
-                        showTitleOverlay: viewModel.showTitleOverlay,
-                        enableMarquee: viewModel.enableMarquee,
-                        marqueeDelay: viewModel.marqueeDelay,
-                        textColor: viewModel.textColor,
-                        accentColor: viewModel.accentColor,
-                        cardWidth: viewModel.cardWidth,
-                        cardHeight: viewModel.cardHeight,
-                        imageContentMode: viewModel.imageContentMode,
-                        cardPadding: viewModel.cardPadding,
-                        overlayTitleSize: viewModel.overlayTitleSize,
-                        cardCornerRadius: viewModel.cardCornerRadius,
-                        cardBackgroundColor: viewModel.cardBackgroundColor,
-                        borderWidth: viewModel.borderWidth,
-                        borderColor: viewModel.borderColor,
-                        focusBorderWidth: viewModel.focusBorderWidth,
-                        focusStyle: viewModel.focusStyle,
-                        focusScale: viewModel.focusScale,
-                        focusGlowColor: viewModel.focusGlowColor,
-                        focusGlowOpacity: viewModel.focusGlowOpacity,
-                        focusGlowRadius: viewModel.focusGlowRadius,
-                        overlayBackgroundColor: viewModel.overlayBackgroundColor,
-                        overlayTextColor: viewModel.overlayTextColor,
-                        overlayBackgroundColorFocused: viewModel.overlayBackgroundColorFocused,
-                        overlayTextColorFocused: viewModel.overlayTextColorFocused,
-                        overlayTitleWeight: viewModel.overlayTitleWeight,
-                        overlayHeightOverride: viewModel.overlayHeight,
-                        marqueeSpeed: viewModel.marqueeSpeed,
-                        marqueeMode: viewModel.marqueeMode,
+                        style: style,
                         onSelect: { viewModel.onSelectItem?(item.id) }
                     )
                 }

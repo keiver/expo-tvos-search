@@ -1,4 +1,5 @@
 import XCTest
+@testable import ExpoTvosSearchCore
 
 /// Unit tests for HexColorParser
 final class HexColorParserTests: XCTestCase {

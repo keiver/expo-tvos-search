@@ -1,4 +1,5 @@
 import XCTest
+@testable import ExpoTvosSearchCore
 
 #if os(tvOS)
 
