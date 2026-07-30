@@ -55,7 +55,7 @@ struct SelectiveRoundedRectangle: InsettableShape {
 }
 
 /// Suppresses the default system focus halo on tvOS 16.
-/// The card's own `.overlay(cardShape.stroke(...))` provides focus feedback.
+/// The card's own border overlay provides focus feedback instead.
 private struct NoHaloButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -65,47 +65,18 @@ private struct NoHaloButtonStyle: ButtonStyle {
 
 struct SearchResultCard: View {
     let item: SearchResultItem
-    let showTitle: Bool
-    let showSubtitle: Bool
-    let showFocusBorder: Bool
-    let showTitleOverlay: Bool
-    let enableMarquee: Bool
-    let marqueeDelay: Double
-    let textColor: Color?
-    let accentColor: Color
-    let cardWidth: CGFloat
-    let cardHeight: CGFloat
-    let imageContentMode: ContentMode
-    let cardPadding: CGFloat
-    let overlayTitleSize: CGFloat
-    let cardCornerRadius: CGFloat
-    let cardBackgroundColor: Color?
-    let borderWidth: CGFloat
-    let borderColor: Color?
-    let focusBorderWidth: CGFloat
-    let focusStyle: String
-    let focusScale: CGFloat
-    let focusGlowColor: Color?
-    let focusGlowOpacity: Double
-    let focusGlowRadius: CGFloat
-    let overlayBackgroundColor: Color?
-    let overlayTextColor: Color?
-    let overlayBackgroundColorFocused: Color?
-    let overlayTextColorFocused: Color?
-    let overlayTitleWeight: Font.Weight
-    let overlayHeightOverride: CGFloat?
-    let marqueeSpeed: CGFloat
-    let marqueeMode: String
+    let style: SearchResultCardStyle
     let onSelect: () -> Void
+
     @FocusState private var isFocused: Bool
 
-    private var placeholderColor: Color { cardBackgroundColor ?? Color(white: 0.2) }
+    private var placeholderColor: Color { style.backgroundColor ?? Color(white: 0.2) }
 
     /// On tvOS < 17, .card button style isn't usable (gesture conflict with RN),
     /// so always show a focus border since there's no other visual feedback.
     private var shouldShowFocusBorder: Bool {
         if #available(tvOS 17, *) {
-            return showFocusBorder
+            return style.showFocusBorder
         } else {
             return true
         }
@@ -114,7 +85,7 @@ struct SearchResultCard: View {
     /// White border on tvOS < 17 for visibility; accent color on tvOS 17+ when opt-in.
     private var focusBorderColor: Color {
         if #available(tvOS 17, *) {
-            return accentColor
+            return style.accentColor
         } else {
             return .white
         }
@@ -123,54 +94,38 @@ struct SearchResultCard: View {
     /// The focused border replaces the resting border rather than adding to it,
     /// matching how a CSS border swaps width and color on focus.
     private var currentBorderWidth: CGFloat {
-        (shouldShowFocusBorder && isFocused) ? focusBorderWidth : borderWidth
+        (shouldShowFocusBorder && isFocused) ? style.focusBorderWidth : style.borderWidth
     }
 
     private var currentBorderColor: Color {
-        (shouldShowFocusBorder && isFocused) ? focusBorderColor : (borderColor ?? .clear)
+        (shouldShowFocusBorder && isFocused) ? focusBorderColor : (style.borderColor ?? .clear)
     }
 
-    /// tvOS 16 and earlier always use the custom path — .buttonStyle(.card) has a
+    /// tvOS 16 and earlier always use the custom path: .buttonStyle(.card) has a
     /// gesture conflict with React Native there (see `body`).
     private var usesSystemFocusStyle: Bool {
         if #available(tvOS 17, *) {
-            return focusStyle.lowercased() != "custom"
+            return style.focusStyle == .system
         } else {
             return false
         }
-    }
-
-    private var glowColor: Color {
-        (focusGlowColor ?? accentColor).opacity(focusGlowOpacity)
     }
 
     /// Computed shape for the card with selective rounded corners.
     /// Bottom corners are rounded only when no title/subtitle section is displayed.
     private var cardShape: SelectiveRoundedRectangle {
         SelectiveRoundedRectangle(
-            topLeadingRadius: cardCornerRadius,
-            topTrailingRadius: cardCornerRadius,
-            bottomLeadingRadius: (showTitle || showSubtitle) ? 0 : cardCornerRadius,
-            bottomTrailingRadius: (showTitle || showSubtitle) ? 0 : cardCornerRadius
+            topLeadingRadius: style.cornerRadius,
+            topTrailingRadius: style.cornerRadius,
+            bottomLeadingRadius: style.hasExternalText ? 0 : style.cornerRadius,
+            bottomTrailingRadius: style.hasExternalText ? 0 : style.cornerRadius
         )
-    }
-
-    // Title overlay height — defaults to 25% of the card when not overridden
-    private var overlayHeight: CGFloat { overlayHeightOverride ?? (cardHeight * 0.25) }
-
-    private var overlayFill: Color? {
-        isFocused ? (overlayBackgroundColorFocused ?? overlayBackgroundColor) : overlayBackgroundColor
-    }
-
-    private var overlayForeground: Color {
-        let resting = overlayTextColor ?? .white
-        return isFocused ? (overlayTextColorFocused ?? resting) : resting
     }
 
     /// Card visual content extracted to avoid duplication in version-gated body
     @ViewBuilder
     private var cardContent: some View {
-        VStack(alignment: .leading, spacing: showTitle || showSubtitle ? 12 : 0) {
+        VStack(alignment: .leading, spacing: style.hasExternalText ? 12 : 0) {
             ZStack(alignment: .bottom) {
                 // Card image content
                 ZStack {
@@ -179,103 +134,114 @@ struct SearchResultCard: View {
                     if let imageUrl = item.imageUrl, let url = URL(string: imageUrl) {
                         CachedAsyncImage(
                             url: url,
-                            contentMode: imageContentMode,
-                            width: cardWidth,
-                            height: cardHeight
+                            contentMode: style.imageContentMode,
+                            width: style.width,
+                            height: style.height
                         )
                     } else {
                         placeholderIcon
                     }
                 }
-                .frame(width: cardWidth, height: cardHeight)
+                .frame(width: style.width, height: style.height)
                 .clipped()
 
-                // Title overlay with native material blur
-                if showTitleOverlay {
-                    ZStack {
-                        // A solid fill replaces the blur material when a color is supplied,
-                        // so a custom bar reads as one flat surface (a translucent color
-                        // composited over the material muddies it).
-                        if let overlayFill = overlayFill {
-                            Rectangle()
-                                .fill(overlayFill)
-                                .frame(width: cardWidth, height: overlayHeight)
-                        } else {
-                            Rectangle()
-                                .fill(.ultraThinMaterial)
-                                .frame(width: cardWidth, height: overlayHeight)
-                        }
-
-                        if enableMarquee {
-                            MarqueeText(
-                                item.title,
-                                font: .system(size: overlayTitleSize, weight: overlayTitleWeight),
-                                leftFade: 12,
-                                rightFade: 12,
-                                startDelay: marqueeDelay,
-                                animate: isFocused,
-                                speed: marqueeSpeed,
-                                mode: MarqueeMode(rawValue: marqueeMode.lowercased()) ?? .loop
-                            )
-                            .foregroundColor(overlayForeground)
-                            .padding(.horizontal, cardPadding)
-                        } else {
-                            Text(item.title)
-                                .font(.system(size: overlayTitleSize, weight: overlayTitleWeight))
-                                .foregroundColor(overlayForeground)
-                                .lineLimit(2)
-                                .multilineTextAlignment(.center)
-                                .padding(.horizontal, cardPadding)
-                        }
-                    }
-                    .frame(width: cardWidth, height: overlayHeight)
+                if style.showTitleOverlay {
+                    titleOverlay
                 }
             }
-            .frame(width: cardWidth, height: cardHeight)
+            .frame(width: style.width, height: style.height)
             .clipShape(cardShape)
             .overlay(
                 cardShape.strokeBorder(currentBorderColor, lineWidth: currentBorderWidth)
             )
             .shadow(
-                color: (focusGlowRadius > 0 && isFocused) ? glowColor : .clear,
-                radius: focusGlowRadius,
+                color: (style.focusGlowRadius > 0 && isFocused) ? style.resolvedGlowColor : .clear,
+                radius: style.focusGlowRadius,
                 x: 0,
                 y: 0
             )
 
-            if showTitle || showSubtitle {
-                VStack(alignment: .leading, spacing: 4) {
-                    if showTitle {
-                        Text(item.title)
-                            .font(.callout)
-                            .fontWeight(.medium)
-                            .lineLimit(2)
-                            .multilineTextAlignment(.leading)
-                            .foregroundColor(.primary)
-                    }
-
-                    if showSubtitle, let subtitle = item.subtitle {
-                        Text(subtitle)
-                            .font(.caption)
-                            .foregroundColor(textColor ?? .secondary)
-                            .lineLimit(1)
-                    }
-                }
-                .padding(cardPadding)
-                .frame(width: cardWidth, alignment: .leading)
+            if style.hasExternalText {
+                externalText
             }
         }
+    }
+
+    @ViewBuilder
+    private var titleOverlay: some View {
+        let height = style.resolvedOverlayHeight
+
+        ZStack {
+            // A solid fill replaces the blur material when a color is supplied,
+            // so a custom bar reads as one flat surface (a translucent color
+            // composited over the material muddies it).
+            if let fill = style.overlayFill(isFocused: isFocused) {
+                Rectangle()
+                    .fill(fill)
+                    .frame(width: style.width, height: height)
+            } else {
+                Rectangle()
+                    .fill(.ultraThinMaterial)
+                    .frame(width: style.width, height: height)
+            }
+
+            if style.enableMarquee {
+                MarqueeText(
+                    item.title,
+                    font: .system(size: style.overlayTitleSize, weight: style.overlayTitleWeight),
+                    leftFade: 12,
+                    rightFade: 12,
+                    startDelay: style.marqueeDelay,
+                    animate: isFocused,
+                    speed: style.marqueeSpeed,
+                    mode: style.marqueeMode
+                )
+                .foregroundColor(style.overlayForeground(isFocused: isFocused))
+                .padding(.horizontal, style.padding)
+            } else {
+                Text(item.title)
+                    .font(.system(size: style.overlayTitleSize, weight: style.overlayTitleWeight))
+                    .foregroundColor(style.overlayForeground(isFocused: isFocused))
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, style.padding)
+            }
+        }
+        .frame(width: style.width, height: height)
+    }
+
+    @ViewBuilder
+    private var externalText: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            if style.showTitle {
+                Text(item.title)
+                    .font(.callout)
+                    .fontWeight(.medium)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+                    .foregroundColor(.primary)
+            }
+
+            if style.showSubtitle, let subtitle = item.subtitle {
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundColor(style.textColor ?? .secondary)
+                    .lineLimit(1)
+            }
+        }
+        .padding(style.padding)
+        .frame(width: style.width, alignment: .leading)
     }
 
     var body: some View {
         // tvOS 16 has a gesture recognizer conflict between .buttonStyle(.card)
         // and React Native's RCTTVRemoteSelectHandler inside ScrollView + .searchable,
         // causing Enter/Select to not fire the button action.
-        // Use .plain on older versions as a workaround.
+        // Use the plain style on older versions as a workaround.
         //
-        // On tvOS 17+, focusStyle="custom" also takes the plain path so the card's
-        // own border/glow/scale are the only focus feedback — the system card style
-        // layers its own lift, parallax, and shadow on top otherwise.
+        // On tvOS 17+, focusStyle "custom" also takes the plain path so the card's
+        // own border, glow, and scale are the only focus feedback. The system card
+        // style layers its own lift, parallax, and shadow on top otherwise.
         if usesSystemFocusStyle {
             Button(action: onSelect) {
                 cardContent
@@ -288,7 +254,7 @@ struct SearchResultCard: View {
             }
             .buttonStyle(NoHaloButtonStyle())
             .focused($isFocused)
-            .scaleEffect(isFocused ? focusScale : 1)
+            .scaleEffect(isFocused ? style.focusScale : 1)
             .animation(.easeOut(duration: 0.2), value: isFocused)
         }
     }

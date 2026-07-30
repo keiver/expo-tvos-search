@@ -1,4 +1,5 @@
 import XCTest
+@testable import ExpoTvosSearchCore
 
 /// Unit tests for MarqueeAnimationCalculator
 final class MarqueeAnimationCalculatorTests: XCTestCase {

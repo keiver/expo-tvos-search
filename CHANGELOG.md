@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-Card appearance props, so a native card can be styled to match a card design you already render in JS. Every prop below defaults to the existing appearance — no visual change unless you opt in.
+Card appearance props, so a native card can be styled to match a card design you already render in JS. Every prop below defaults to the existing appearance, so nothing changes unless you opt in.
 
 - Card shell: `cardCornerRadius`, `cardBackgroundColor`, `borderWidth`, `borderColor`
 - Focus appearance: `focusStyle` (`'system' | 'custom'`), `focusBorderWidth`, `focusScale`, `focusGlowColor`, `focusGlowOpacity`, `focusGlowRadius`
@@ -24,6 +24,7 @@ Card appearance props, so a native card can be styled to match a card design you
 ### Changed
 - Card borders are now drawn inside the card bounds via `.strokeBorder` instead of straddling the edge via `.stroke`. `SelectiveRoundedRectangle` conforms to `InsettableShape` to support this. A 4pt focus border no longer bleeds 2pt outside the card
 - Marquee text is centered when it fits its container, and left-aligned only while scrolling. Previously it was always left-aligned
+- On tvOS 16 and earlier the focus border now fades in over 200ms instead of appearing instantly. That path gained an `.easeOut` animation to drive `focusScale`, and the border colour and width change with it. `focusScale` still defaults to 1, so nothing scales by default
 
 ## [1.7.0] - 2026-02-11
 

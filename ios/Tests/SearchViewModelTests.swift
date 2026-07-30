@@ -1,4 +1,6 @@
 import XCTest
+@testable import ExpoTvosSearchCore
+import SwiftUI
 
 #if os(tvOS)
 
@@ -196,6 +198,90 @@ final class SearchViewModelTests: XCTestCase {
     func testSearchTextPublished() {
         viewModel.searchText = "action"
         XCTAssertEqual(viewModel.searchText, "action")
+    }
+
+    // MARK: - Card Appearance Defaults
+    //
+    // These back the claim that the card appearance props are not a visual change
+    // for existing consumers. If a default drifts, the rendered card changes for
+    // everyone who never set that prop.
+
+    func testInitialState_cardShellDefaults() {
+        XCTAssertEqual(viewModel.cardCornerRadius, 12)
+        XCTAssertNil(viewModel.cardBackgroundColor)
+        XCTAssertEqual(viewModel.borderWidth, 0, "no resting border unless opted in")
+        XCTAssertNil(viewModel.borderColor)
+        XCTAssertEqual(viewModel.focusBorderWidth, 4)
+    }
+
+    func testInitialState_focusDefaults() {
+        XCTAssertEqual(viewModel.focusStyle, .system)
+        XCTAssertEqual(viewModel.focusScale, 1, "no scaling unless opted in")
+        XCTAssertNil(viewModel.focusGlowColor)
+        XCTAssertEqual(viewModel.focusGlowOpacity, 0.55, accuracy: 0.001)
+        XCTAssertEqual(viewModel.focusGlowRadius, 0, "glow is off unless a radius is set")
+    }
+
+    func testInitialState_overlayDefaults() {
+        XCTAssertNil(viewModel.overlayBackgroundColor, "nil keeps the native blur material")
+        XCTAssertNil(viewModel.overlayTextColor)
+        XCTAssertNil(viewModel.overlayBackgroundColorFocused)
+        XCTAssertNil(viewModel.overlayTextColorFocused)
+        XCTAssertEqual(viewModel.overlayTitleWeight, .semibold)
+        XCTAssertNil(viewModel.overlayHeight, "nil means 25% of the card height")
+    }
+
+    func testInitialState_marqueeDefaults() {
+        XCTAssertEqual(viewModel.marqueeSpeed, 30)
+        XCTAssertEqual(viewModel.marqueeMode, .loop)
+    }
+
+    // MARK: - cardStyle
+
+    func testCardStyle_mirrorsTheModel() {
+        let style = viewModel.cardStyle
+
+        XCTAssertEqual(style.width, viewModel.cardWidth)
+        XCTAssertEqual(style.height, viewModel.cardHeight)
+        XCTAssertEqual(style.padding, viewModel.cardPadding)
+        XCTAssertEqual(style.cornerRadius, viewModel.cardCornerRadius)
+        XCTAssertEqual(style.borderWidth, viewModel.borderWidth)
+        XCTAssertEqual(style.showFocusBorder, viewModel.showFocusBorder)
+        XCTAssertEqual(style.focusBorderWidth, viewModel.focusBorderWidth)
+        XCTAssertEqual(style.focusStyle, viewModel.focusStyle)
+        XCTAssertEqual(style.focusScale, viewModel.focusScale)
+        XCTAssertEqual(style.focusGlowRadius, viewModel.focusGlowRadius)
+        XCTAssertEqual(style.showTitle, viewModel.showTitle)
+        XCTAssertEqual(style.showSubtitle, viewModel.showSubtitle)
+        XCTAssertEqual(style.showTitleOverlay, viewModel.showTitleOverlay)
+        XCTAssertEqual(style.overlayTitleSize, viewModel.overlayTitleSize)
+        XCTAssertEqual(style.overlayTitleWeight, viewModel.overlayTitleWeight)
+        XCTAssertEqual(style.enableMarquee, viewModel.enableMarquee)
+        XCTAssertEqual(style.marqueeDelay, viewModel.marqueeDelay, accuracy: 0.001)
+        XCTAssertEqual(style.marqueeSpeed, viewModel.marqueeSpeed)
+        XCTAssertEqual(style.marqueeMode, viewModel.marqueeMode)
+        XCTAssertEqual(style.accentColor, viewModel.accentColor)
+    }
+
+    func testCardStyle_propagatesChanges() {
+        viewModel.cardCornerRadius = 32
+        viewModel.focusGlowRadius = 7
+        viewModel.focusStyle = .custom
+        viewModel.marqueeMode = .bounce
+        viewModel.overlayHeight = 46
+
+        let style = viewModel.cardStyle
+
+        XCTAssertEqual(style.cornerRadius, 32)
+        XCTAssertEqual(style.focusGlowRadius, 7)
+        XCTAssertEqual(style.focusStyle, .custom)
+        XCTAssertEqual(style.marqueeMode, .bounce)
+        XCTAssertEqual(style.resolvedOverlayHeight, 46)
+    }
+
+    func testCardStyle_defaultAccentIsTheDocumentedGold() {
+        // #FFC312, the value both the README and the TypeScript defaults claim
+        XCTAssertEqual(viewModel.cardStyle.accentColor, Color(red: 1, green: 0.765, blue: 0.07))
     }
 }
 
