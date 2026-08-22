@@ -9,7 +9,7 @@ Every step is required. Missing Step 4 is the most common mistake: props will be
 ### 1. TypeScript Interface (`src/index.tsx`)
 Add to `TvosSearchViewProps` with JSDoc, type, `@default` tag. Group with related props.
 
-### 2. Swift ViewModel (`ios/ExpoTvosSearchView.swift:13-55`)
+### 2. Swift ViewModel (`ios/SearchViewModel.swift`)
 Add property to `SearchViewModel`. Use `@Published` if it changes dynamically. Default must match TypeScript.
 
 ### 3. Swift View Property (`ios/ExpoTvosSearchView.swift:328-469`)
@@ -20,8 +20,8 @@ Register with `Prop("propName")` closure. Include type conversion and value clam
 
 Type conversions: JS `number` → Swift `Double` → `CGFloat`. JS `boolean` → `Bool`. JS `string` → `String`.
 
-### 5. Pass to Child Components (if applicable)
-Add parameter to child struct (e.g., `SearchResultCard`), pass when instantiating, use in rendering.
+### 5. Pass to the Card (if it affects card rendering)
+Add to `SearchResultCardStyle`, to the `cardStyle` builder in `SearchViewModel`, then read it as `style.name` in `SearchResultCard`. The card takes one style value, not a parameter list.
 
 ### 6. Add Unit Tests (`src/__tests__/index.test.tsx`)
 Test prop acceptance, various values, default behavior when omitted. Update defaults documentation test.
@@ -34,6 +34,17 @@ Test prop acceptance, various values, default behavior when omitted. Update defa
 
 ### 9. Test in Demo App
 Update demo app, `npm run prebuild`, launch on tvOS simulator.
+
+## Adding an Event Instead
+
+1. Payload interface plus optional callback prop in `src/index.tsx`
+2. Closure property and the method firing it in `ios/SearchViewModel.swift`
+3. `EventDispatcher` named exactly as the JS prop in `ios/ExpoTvosSearchView.swift`, wired in `setupView()`, and repeated in the non-tvOS fallback class
+4. Name added to the single `Events(...)` call in `ios/ExpoTvosSearchModule.swift` -- missing means never delivered
+5. Payload test in `src/__tests__/events.test.ts`, behaviour test in `ios/Tests/SearchViewModelTests.swift`
+6. Events table row in README.md
+
+`ExpoTvosSearchView.swift` and `ExpoTvosSearchModule.swift` sit outside `Package.swift`, so `npm test` never compiles them. Only an app build does.
 
 ## Validation Before Done
 

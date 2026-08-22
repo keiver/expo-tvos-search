@@ -31,7 +31,7 @@ overlayTitleSize?: number;
 ---
 
 ### ✅ Step 2: Swift ViewModel Property
-**File**: `ios/ExpoTvosSearchView.swift`
+**File**: `ios/SearchViewModel.swift`
 
 Add the property to the `SearchViewModel` class with:
 - `@Published` annotation if the value can change dynamically
@@ -48,7 +48,7 @@ var cardPadding: CGFloat = 16  // Padding inside cards
 var overlayTitleSize: CGFloat = 20  // Font size for overlay title
 ```
 
-**Location**: In the `SearchViewModel` class, grouped with related properties (around line 15-56).
+**Location**: In the `SearchViewModel` class, grouped with related properties.
 
 ---
 
@@ -103,43 +103,20 @@ Prop("overlayTitleSize") { (view: ExpoTvosSearchView, size: Double) in
 
 ---
 
-### ✅ Step 5: Pass Prop to Child Components (if applicable)
-**File**: `ios/SearchResultCard.swift` (or the relevant child component file)
+### ✅ Step 5: Pass Prop to the Card (if it affects card rendering)
+**Files**: `ios/SearchResultCardStyle.swift`, `ios/SearchViewModel.swift`, `ios/SearchResultCard.swift`
 
-If the prop is used in child SwiftUI views (like `SearchResultCard`):
+The card takes one `SearchResultCardStyle` value, not a parameter list. A visual prop is added to that struct and to the `cardStyle` builder on the view model, then read in the card's body:
 
-1. Add parameter to child struct initializer
-2. Pass value when creating child instances
-3. Use the value in the child's rendering logic
-
-**Example for SearchResultCard**:
-
-**5a. Add to struct parameters** (around line 178-193):
 ```swift
-struct SearchResultCard: View {
-    let item: SearchResultItem
-    // ... other parameters ...
-    let overlayTitleSize: CGFloat  // Add this
-    let onSelect: () -> Void
-}
-```
+// SearchResultCardStyle.swift
+var overlayTitleSize: CGFloat = 20
 
-**5b. Pass when instantiating** (around line 154-169):
-```swift
-SearchResultCard(
-    item: item,
-    showTitle: viewModel.showTitle,
-    // ... other parameters ...
-    overlayTitleSize: viewModel.overlayTitleSize,  // Add this
-    onSelect: { viewModel.onSelectItem?(item.id) }
-)
-```
+// SearchViewModel.cardStyle
+overlayTitleSize: overlayTitleSize,
 
-**5c. Use in rendering** (around line 235-265):
-```swift
-Text(item.title)
-    .font(.system(size: overlayTitleSize, weight: .semibold))
-    .foregroundColor(.white)
+// SearchResultCard.swift
+.font(.system(size: style.overlayTitleSize, weight: style.overlayTitleWeight))
 ```
 
 ---
@@ -226,15 +203,28 @@ Rebuilds TypeScript declarations and ensures no compilation errors.
 
 ---
 
+## Adding a New Event
+
+Events are a different path from props. Missing any step leaves the callback silently never firing.
+
+1. **TypeScript** (`src/index.tsx`): export a payload interface (`LongSelectItemEvent`), then add the optional callback prop to `TvosSearchViewProps`.
+2. **View model** (`ios/SearchViewModel.swift`): a closure property (`var onLongSelectItem: ((String) -> Void)?`) plus the method that fires it. Keep the logic here, not in the view, so it stays inside the SwiftPM test target.
+3. **View** (`ios/ExpoTvosSearchView.swift`): an `EventDispatcher` property named exactly as the JS prop, wired to the closure in `setupView()`. Add the same dispatcher to the non-tvOS fallback class at the bottom of the file, or the module registration fails off tvOS.
+4. **Module** (`ios/ExpoTvosSearchModule.swift`): add the name to the single `Events(...)` call. **Not listed means never delivered.**
+5. **Tests**: payload shape in `src/__tests__/events.test.ts`, behaviour in `ios/Tests/SearchViewModelTests.swift`.
+6. **README**: a row in the Events table, and a usage snippet if the event needs an opt-in prop.
+
+`ExpoTvosSearchView.swift` and `ExpoTvosSearchModule.swift` are excluded from `Package.swift`, so `npm test` never compiles them. Only an app build does.
+
 ## Quick Reference: File Locations
 
 | Step | File | Approximate Lines |
 |------|------|-------------------|
 | 1. TypeScript Interface | `src/index.tsx` | ~97-300 (TvosSearchViewProps) |
-| 2. Swift ViewModel | `ios/ExpoTvosSearchView.swift` | ~15-56 (SearchViewModel) |
+| 2. Swift ViewModel | `ios/SearchViewModel.swift` | `SearchViewModel` class |
 | 3. Swift View Property | `ios/ExpoTvosSearchView.swift` | ~328-469 (ExpoTvosSearchView) |
 | 4. Module Registration | `ios/ExpoTvosSearchModule.swift` | ~14-134 (Prop declarations) |
-| 5. Child Components | `ios/SearchResultCard.swift` | SearchResultCard struct |
+| 5. Card rendering | `ios/SearchResultCardStyle.swift`, `ios/SearchResultCard.swift` | style struct, then card body |
 | 6. Unit Tests | `src/__tests__/index.test.tsx` | End of file |
 
 ---

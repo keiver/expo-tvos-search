@@ -9,6 +9,16 @@ class SearchViewModel: ObservableObject {
 
     var onSearch: ((String) -> Void)?
     var onSelectItem: ((String) -> Void)?
+    var onLongSelectItem: ((String) -> Void)?
+
+    /// The card the focus engine is on, so a container level long press knows which item it hit.
+    /// Not @Published: a focus move must not invalidate the grid.
+    var focusedItemId: String?
+
+    /// A long press still ends in a button release, so one select is dropped after it.
+    private var suppressSelectUntil: Date?
+    private static let selectSuppressionWindow: TimeInterval = 1
+
     @Published var columns: Int = 5
     @Published var placeholder: String = "Search..."
 
@@ -70,6 +80,32 @@ class SearchViewModel: ObservableObject {
     // Marquee animation options (configurable from JS)
     @Published var marqueeSpeed: CGFloat = 30         // Points per second
     @Published var marqueeMode: MarqueeMode = .loop
+
+    /// Cards report focus both ways; the id check stops a blurring card from clearing its successor.
+    func setFocused(_ id: String, _ isFocused: Bool) {
+        if isFocused {
+            focusedItemId = id
+        } else if focusedItemId == id {
+            focusedItemId = nil
+        }
+    }
+
+    /// Every card selection goes through here so the select that ends a long press is dropped.
+    func selectItem(_ id: String, now: Date = Date()) {
+        let suppressed = suppressSelectUntil.map { now < $0 } ?? false
+        suppressSelectUntil = nil
+        guard !suppressed else { return }
+        onSelectItem?(id)
+    }
+
+    /// Reports the focused card and opens the window that swallows the trailing select.
+    @discardableResult
+    func longSelectFocusedItem(now: Date = Date()) -> Bool {
+        guard let id = focusedItemId else { return false }
+        suppressSelectUntil = now.addingTimeInterval(Self.selectSuppressionWindow)
+        onLongSelectItem?(id)
+        return true
+    }
 
     /// Assembles every card visual into one value. Adding a prop now touches this
     /// builder rather than the card's parameter list and its call site as well.
