@@ -1,6 +1,6 @@
 {
   "name": "expo-tvos-search",
-  "version": "2.1.1",
+  "version": "2.2.0",
   "description": "Native tvOS search view using SwiftUI .searchable modifier for Expo/React Native",
   "main": "build/index.js",
   "types": "build/index.d.ts",
