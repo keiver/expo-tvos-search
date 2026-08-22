@@ -25,6 +25,17 @@ export interface SelectItemEvent {
 }
 
 /**
+ * Event payload for a long press on a result.
+ * Fired when the user holds the select button on the focused card.
+ */
+export interface LongSelectItemEvent {
+  nativeEvent: {
+    /** The unique identifier of the long pressed search result */
+    id: string;
+  };
+}
+
+/**
  * Categories of errors that can occur in the search view.
  */
 export type SearchViewErrorCategory =
@@ -480,6 +491,13 @@ export interface TvosSearchViewProps {
   marqueeMode?: 'loop' | 'bounce';
 
   /**
+   * Fire `onLongSelectItem` when the select button is held on the focused card.
+   * The select that ends the hold is swallowed, so a long press never also selects.
+   * @default false
+   */
+  enableLongPress?: boolean;
+
+  /**
    * Callback fired when the search text changes.
    * Debounce this handler to avoid excessive API calls.
    *
@@ -493,6 +511,17 @@ export interface TvosSearchViewProps {
    * Use the `id` from the event to identify which result was selected.
    */
   onSelectItem: (event: SelectItemEvent) => void;
+
+  /**
+   * Optional callback fired when the select button is held on the focused card.
+   * Requires `enableLongPress`. Use it for a context panel or item actions.
+   * @example
+   * ```tsx
+   * enableLongPress
+   * onLongSelectItem={(e) => router.push(`/info/${e.nativeEvent.id}`)}
+   * ```
+   */
+  onLongSelectItem?: (event: LongSelectItemEvent) => void;
 
   /**
    * Optional callback fired when errors occur.

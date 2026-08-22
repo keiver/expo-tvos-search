@@ -151,6 +151,22 @@ To make native cards match a card you already render in JS, set `focusStyle="cus
 
 Setting `overlayBackgroundColor` replaces the native blur material with a solid fill. A translucent color composited over the blur muddies both, so the overlay uses one or the other.
 
+### Long press on a card
+
+tvOS gives a focused SwiftUI button no long press of its own, so `enableLongPress` installs a select press recognizer on the view and reports the card the focus engine is on.
+
+```tsx
+<TvosSearchView
+  results={results}
+  enableLongPress
+  onSelectItem={(e) => play(e.nativeEvent.id)}
+  onLongSelectItem={(e) => openActions(e.nativeEvent.id)}
+  onSearch={handleSearch}
+/>
+```
+
+Holding select fires `onLongSelectItem` after 0.5 seconds and drops the select that ends the hold, so one press never does both. The recognizer is off while the search field is being typed into, and off entirely without `enableLongPress`.
+
 ### Apple TV hardware keyboard
 
 On real hardware, React Native's `RCTTVRemoteHandler` installs gesture recognizers that consume Siri Remote presses before they reach the search field. When the field gains focus this component temporarily disables touch cancellation and parent tap/long-press recognizers, then restores them on blur. Swipe and pan stay active. The Simulator does not need this.
@@ -238,6 +254,12 @@ Borders are drawn inside the card bounds, like a CSS `border-box` border.
 | `marqueeSpeed` | `number` | `30` | Scroll speed in points per second (clamped 5 to 300) |
 | `marqueeMode` | `'loop' \| 'bounce'` | `'loop'` | `loop` scrolls continuously and repeats. `bounce` scrolls to the end, pauses, then scrolls back |
 
+### Long press
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `enableLongPress` | `boolean` | `false` | Fire `onLongSelectItem` when select is held on the focused card |
+
 ### State text
 
 | Prop | Type | Default |
@@ -253,6 +275,7 @@ Borders are drawn inside the card bounds, like a CSS `border-box` border.
 |------|------|----------|-------------|
 | `onSearch` | `(event: SearchEvent) => void` | Yes | Search text changed. Debounce this |
 | `onSelectItem` | `(event: SelectItemEvent) => void` | Yes | A result was selected |
+| `onLongSelectItem` | `(event: LongSelectItemEvent) => void` | No | Select was held on the focused result. Needs `enableLongPress` |
 | `onError` | `(event: SearchViewErrorEvent) => void` | No | Image loading or validation errors |
 | `onValidationWarning` | `(event: ValidationWarningEvent) => void` | No | Non fatal warnings: truncated fields, clamped values |
 | `onSearchFieldFocused` | `(event: SearchFieldFocusEvent) => void` | No | Search field gained focus |

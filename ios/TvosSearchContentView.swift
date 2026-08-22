@@ -103,7 +103,8 @@ struct TvosSearchContentView: View {
                     SearchResultCard(
                         item: item,
                         style: style,
-                        onSelect: { viewModel.onSelectItem?(item.id) }
+                        onSelect: { viewModel.selectItem(item.id) },
+                        onFocusChange: { viewModel.setFocused(item.id, $0) }
                     )
                 }
             }

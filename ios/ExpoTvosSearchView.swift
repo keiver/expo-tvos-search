@@ -24,6 +24,12 @@ class ExpoTvosSearchView: ExpoView {
     // Store references to disabled gesture recognizers so we can re-enable them
     private var disabledGestureRecognizers: [UIGestureRecognizer] = []
 
+    // Select long press recognizer, attached only while enableLongPress is set
+    private var longPressRecognizer: UILongPressGestureRecognizer?
+
+    /// Matches RN's TouchableOpacity, so a native card and a JS card feel the same.
+    private static let longPressDuration: TimeInterval = 0.5
+
     // Validation is handled by ExpoTvosSearchModule
     var columns: Int = 5 {
         didSet {
@@ -300,8 +306,15 @@ class ExpoTvosSearchView: ExpoView {
         }
     }
 
+    var enableLongPress: Bool = false {
+        didSet {
+            updateLongPressRecognizer()
+        }
+    }
+
     let onSearch = EventDispatcher()
     let onSelectItem = EventDispatcher()
+    let onLongSelectItem = EventDispatcher()
     let onError = EventDispatcher()
     let onValidationWarning = EventDispatcher()
     let onSearchFieldFocused = EventDispatcher()
@@ -315,6 +328,11 @@ class ExpoTvosSearchView: ExpoView {
     deinit {
         // Remove notification observers explicitly (also auto-removed on dealloc, but explicit is safer)
         NotificationCenter.default.removeObserver(self)
+
+        if let recognizer = longPressRecognizer {
+            hostingController?.view.removeGestureRecognizer(recognizer)
+            longPressRecognizer = nil
+        }
 
         // Clean up child view controller relationship
         hostingController?.willMove(toParent: nil)
@@ -368,6 +386,9 @@ class ExpoTvosSearchView: ExpoView {
         }
         viewModel.onSelectItem = { [weak self] id in
             self?.onSelectItem(["id": id])
+        }
+        viewModel.onLongSelectItem = { [weak self] id in
+            self?.onLongSelectItem(["id": id])
         }
 
         // Add hosting controller view with constraints
@@ -448,6 +469,9 @@ class ExpoTvosSearchView: ExpoView {
         guard !gestureHandlersDisabled else { return }
         gestureHandlersDisabled = true
 
+        // A held key on the search keyboard is the system's, not a card long press
+        longPressRecognizer?.isEnabled = false
+
         // Post notification to RN to stop cancelling touches
         NotificationCenter.default.post(
             name: RCTTVDisableGestureHandlersCancelTouchesNotification,
@@ -478,6 +502,8 @@ class ExpoTvosSearchView: ExpoView {
         guard gestureHandlersDisabled else { return }
         gestureHandlersDisabled = false
 
+        longPressRecognizer?.isEnabled = true
+
         // Re-enable gesture recognizers (only needed on real hardware)
         #if !targetEnvironment(simulator)
         enableParentGestureRecognizers()
@@ -503,6 +529,36 @@ class ExpoTvosSearchView: ExpoView {
         let ctx = context ?? "validation completed"
         #endif
         onValidationWarning(["type": type, "message": message, "context": ctx])
+    }
+
+    // MARK: - Select Long Press
+
+    /// Adds or removes the select long press recognizer to match `enableLongPress`.
+    /// It rides on the hosting view, not the card: SwiftUI gives a focused Button no
+    /// press gesture of its own, so the container reads the press and the view model
+    /// supplies the card the focus engine is on.
+    private func updateLongPressRecognizer() {
+        guard let hostingView = hostingController?.view else { return }
+
+        if enableLongPress {
+            guard longPressRecognizer == nil else { return }
+            let recognizer = UILongPressGestureRecognizer(target: self, action: #selector(handleSelectLongPress(_:)))
+            recognizer.allowedPressTypes = [NSNumber(value: UIPress.PressType.select.rawValue)]
+            recognizer.minimumPressDuration = Self.longPressDuration
+            // The Button keeps the select; this recognizer only listens alongside it.
+            recognizer.cancelsTouchesInView = false
+            recognizer.delegate = self
+            hostingView.addGestureRecognizer(recognizer)
+            longPressRecognizer = recognizer
+        } else if let recognizer = longPressRecognizer {
+            hostingView.removeGestureRecognizer(recognizer)
+            longPressRecognizer = nil
+        }
+    }
+
+    @objc private func handleSelectLongPress(_ recognizer: UILongPressGestureRecognizer) {
+        guard recognizer.state == .began else { return }
+        viewModel.longSelectFocusedItem()
     }
 
     // MARK: - Gesture Recognizer Management
@@ -665,6 +721,15 @@ class ExpoTvosSearchView: ExpoView {
     }
 }
 
+// Runs alongside SwiftUI's own press handling and React Native's recognizers
+// rather than replacing either.
+extension ExpoTvosSearchView: UIGestureRecognizerDelegate {
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
+                           shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+        true
+    }
+}
+
 #else
 
 // Fallback for non-tvOS platforms (iOS)
@@ -712,11 +777,13 @@ class ExpoTvosSearchView: ExpoView {
     var overlayHeight: CGFloat? = nil
     var marqueeSpeed: CGFloat = 30
     var marqueeMode: String = "loop"
+    var enableLongPress: Bool = false
 
     // Event dispatchers required by ExpoTvosSearchModule's Event() registration.
     // Intentionally no-ops on non-tvOS — the fallback view never fires events.
     let onSearch = EventDispatcher()
     let onSelectItem = EventDispatcher()
+    let onLongSelectItem = EventDispatcher()
     let onError = EventDispatcher()
     let onValidationWarning = EventDispatcher()
     let onSearchFieldFocused = EventDispatcher()

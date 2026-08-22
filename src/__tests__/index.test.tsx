@@ -124,6 +124,7 @@ describe('TvosSearchViewProps defaults', () => {
       overlayTitleWeight: 'semibold',
       marqueeSpeed: 30,
       marqueeMode: 'loop',
+      enableLongPress: false,
     };
 
     // Verify default documentation matches Swift implementation
@@ -145,6 +146,10 @@ describe('TvosSearchViewProps defaults', () => {
     expect(expectedDefaults.overlayTitleWeight).toBe('semibold');
     expect(expectedDefaults.marqueeSpeed).toBe(30);
     expect(expectedDefaults.marqueeMode).toBe('loop');
+
+    // Off by default: with it on, a held select opens the app's own action instead
+    // of selecting, which would change behaviour for existing consumers.
+    expect(expectedDefaults.enableLongPress).toBe(false);
   });
 });
 
@@ -254,6 +259,55 @@ describe('TvosSearchViewProps card appearance', () => {
   });
 
   it('works without any card appearance props (uses defaults)', () => {
+    const { TvosSearchView } = require('../index');
+
+    expect(() => {
+      TvosSearchView({
+        results: [],
+        onSearch: jest.fn(),
+        onSelectItem: jest.fn(),
+      });
+    }).not.toThrow();
+  });
+});
+
+describe('TvosSearchViewProps long press', () => {
+  beforeEach(() => {
+    jest.resetModules();
+    mockTvOSPlatform();
+    mockNativeModuleAvailable();
+  });
+
+  it('accepts enableLongPress with an onLongSelectItem handler', () => {
+    const { TvosSearchView } = require('../index');
+
+    expect(() => {
+      TvosSearchView({
+        results: [],
+        onSearch: jest.fn(),
+        onSelectItem: jest.fn(),
+        enableLongPress: true,
+        onLongSelectItem: jest.fn(),
+      });
+    }).not.toThrow();
+  });
+
+  it('accepts both enableLongPress values', () => {
+    const { TvosSearchView } = require('../index');
+
+    [true, false].forEach((enableLongPress) => {
+      expect(() => {
+        TvosSearchView({
+          results: [],
+          onSearch: jest.fn(),
+          onSelectItem: jest.fn(),
+          enableLongPress,
+        });
+      }).not.toThrow();
+    });
+  });
+
+  it('works without either prop (uses the default)', () => {
     const { TvosSearchView } = require('../index');
 
     expect(() => {

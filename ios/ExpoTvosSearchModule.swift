@@ -47,7 +47,7 @@ public class ExpoTvosSearchModule: Module {
         Name("ExpoTvosSearch")
 
         View(ExpoTvosSearchView.self) {
-            Events("onSearch", "onSelectItem", "onError", "onValidationWarning", "onSearchFieldFocused", "onSearchFieldBlurred")
+            Events("onSearch", "onSelectItem", "onLongSelectItem", "onError", "onValidationWarning", "onSearchFieldFocused", "onSearchFieldBlurred")
 
             Prop("results") { (view: ExpoTvosSearchView, results: [[String: Any]]) in
                 // Limit results array size to prevent memory issues
@@ -313,6 +313,10 @@ public class ExpoTvosSearchModule: Module {
 
             Prop("marqueeMode") { (view: ExpoTvosSearchView, mode: String) in
                 view.marqueeMode = mode
+            }
+
+            Prop("enableLongPress") { (view: ExpoTvosSearchView, enabled: Bool) in
+                view.enableLongPress = enabled
             }
         }
     }

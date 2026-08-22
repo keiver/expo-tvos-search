@@ -67,6 +67,8 @@ struct SearchResultCard: View {
     let item: SearchResultItem
     let style: SearchResultCardStyle
     let onSelect: () -> Void
+    /// Reports focus in and out so the view model knows which card a long press landed on.
+    let onFocusChange: (Bool) -> Void
 
     @FocusState private var isFocused: Bool
 
@@ -164,6 +166,9 @@ struct SearchResultCard: View {
             if style.hasExternalText {
                 externalText
             }
+        }
+        .onChange(of: isFocused) { focused in
+            onFocusChange(focused)
         }
     }
 

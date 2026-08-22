@@ -283,6 +283,98 @@ final class SearchViewModelTests: XCTestCase {
         // #FFC312, the value both the README and the TypeScript defaults claim
         XCTAssertEqual(viewModel.cardStyle.accentColor, Color(red: 1, green: 0.765, blue: 0.07))
     }
+
+    // MARK: - Focus tracking
+
+    func testInitialState_noFocusedItem() {
+        XCTAssertNil(viewModel.focusedItemId)
+    }
+
+    func testSetFocused_tracksTheFocusedCard() {
+        viewModel.setFocused("a", true)
+
+        XCTAssertEqual(viewModel.focusedItemId, "a")
+    }
+
+    func testSetFocused_blurClearsTheCard() {
+        viewModel.setFocused("a", true)
+        viewModel.setFocused("a", false)
+
+        XCTAssertNil(viewModel.focusedItemId)
+    }
+
+    func testSetFocused_lateBlurDoesNotClearItsSuccessor() {
+        viewModel.setFocused("a", true)
+        viewModel.setFocused("b", true)
+        viewModel.setFocused("a", false)
+
+        XCTAssertEqual(viewModel.focusedItemId, "b")
+    }
+
+    // MARK: - Long press
+
+    func testLongSelect_reportsTheFocusedCard() {
+        var longPressed: String?
+        viewModel.onLongSelectItem = { longPressed = $0 }
+        viewModel.setFocused("a", true)
+
+        XCTAssertTrue(viewModel.longSelectFocusedItem())
+        XCTAssertEqual(longPressed, "a")
+    }
+
+    func testLongSelect_noFocusedCardFiresNothing() {
+        var fired = false
+        viewModel.onLongSelectItem = { _ in fired = true }
+
+        XCTAssertFalse(viewModel.longSelectFocusedItem())
+        XCTAssertFalse(fired)
+    }
+
+    func testSelect_firesWithoutALongPress() {
+        var selected: String?
+        viewModel.onSelectItem = { selected = $0 }
+
+        viewModel.selectItem("a")
+
+        XCTAssertEqual(selected, "a")
+    }
+
+    func testSelect_swallowsTheReleaseThatEndsALongPress() {
+        var selected: String?
+        let start = Date(timeIntervalSince1970: 0)
+        viewModel.onSelectItem = { selected = $0 }
+        viewModel.setFocused("a", true)
+
+        viewModel.longSelectFocusedItem(now: start)
+        viewModel.selectItem("a", now: start.addingTimeInterval(0.1))
+
+        XCTAssertNil(selected)
+    }
+
+    func testSelect_swallowsOnlyOneRelease() {
+        var selected: String?
+        let start = Date(timeIntervalSince1970: 0)
+        viewModel.onSelectItem = { selected = $0 }
+        viewModel.setFocused("a", true)
+
+        viewModel.longSelectFocusedItem(now: start)
+        viewModel.selectItem("a", now: start.addingTimeInterval(0.1))
+        viewModel.selectItem("a", now: start.addingTimeInterval(0.2))
+
+        XCTAssertEqual(selected, "a")
+    }
+
+    func testSelect_windowExpiresSoASlowReleaseStillSelects() {
+        var selected: String?
+        let start = Date(timeIntervalSince1970: 0)
+        viewModel.onSelectItem = { selected = $0 }
+        viewModel.setFocused("a", true)
+
+        viewModel.longSelectFocusedItem(now: start)
+        viewModel.selectItem("a", now: start.addingTimeInterval(5))
+
+        XCTAssertEqual(selected, "a")
+    }
 }
 
 #endif

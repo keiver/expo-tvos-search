@@ -95,6 +95,31 @@ describe('onSelectItem event structure', () => {
   });
 });
 
+describe('onLongSelectItem event structure', () => {
+  it('provides id in nativeEvent', () => {
+    const mockHandler = jest.fn();
+    const event = { nativeEvent: { id: 'item-123' } };
+
+    mockHandler(event);
+
+    expect(mockHandler).toHaveBeenCalledWith({
+      nativeEvent: { id: 'item-123' },
+    });
+    expect(mockHandler.mock.calls[0][0].nativeEvent.id).toBe('item-123');
+  });
+
+  it('carries the focused card, not the selected one', () => {
+    const onSelectItem = jest.fn();
+    const onLongSelectItem = jest.fn();
+
+    // Native side suppresses the select that ends the hold, so only this fires
+    onLongSelectItem({ nativeEvent: { id: 'focused-item' } });
+
+    expect(onLongSelectItem.mock.calls[0][0].nativeEvent.id).toBe('focused-item');
+    expect(onSelectItem).not.toHaveBeenCalled();
+  });
+});
+
 describe('onSearchFieldFocused event structure', () => {
   it('provides empty nativeEvent object', () => {
     const mockHandler = jest.fn();
