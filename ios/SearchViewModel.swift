@@ -19,6 +19,14 @@ class SearchViewModel: ObservableObject {
     private var suppressSelectUntil: Date?
     private static let selectSuppressionWindow: TimeInterval = 1
 
+    /// The results region when the consumer renders it. Owned here rather than by SwiftUI so a
+    /// React view Fabric hands back from its recycle pool re-attaches to the same container.
+    let childrenContainer = ChildrenContainerView()
+
+    /// Container holds React children: the consumer renders the results region, so the built-in
+    /// grid and state views are skipped.
+    @Published var hasChildren: Bool = false
+
     @Published var columns: Int = 5
     @Published var placeholder: String = "Search..."
 

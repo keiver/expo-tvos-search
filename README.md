@@ -6,10 +6,23 @@
 
 A native Apple TV search component built with SwiftUI's `.searchable` modifier. Drop it into your Expo tvOS app and get the system search experience (keyboard, Siri Remote, focus handling) out of the box.
 
+It owns the part of tvOS search React Native cannot build: Apple's native search field, the
+on-screen keyboard, and the focus handoff into your results. What fills the results area is up to
+you.
+
+## Two ways to use it
+
+**Hand it results.** Pass `results` and the built-in grid renders them, styled through the card
+props. Fastest path, and everything below still applies.
+
+**Hand it children.** Pass any React Native tree and it fills the results region instead. Your
+cards, your layout, your data model. See [Bring your own cards](#bring-your-own-cards).
+
 ## Features
 
 - Native SwiftUI `.searchable`, not a web imitation
 - Full Siri Remote support: keyboard, swipe, tap, long press
+- Bring your own results UI with `children`, or use the built-in grid
 - Configurable grid: portrait, landscape, square, or mini cards
 - Fully styleable cards: corner radius, borders, focus glow, overlay colors
 - Marquee titles that scroll on focus, in loop or bounce mode
@@ -145,6 +158,106 @@ export default function SearchScreen() {
 }
 ```
 
+### Bring your own cards
+
+Pass children and they fill the results region instead of the built-in grid. The native search
+field, keyboard and focus handling stay; everything below them is your own React Native tree.
+
+```tsx
+<TvosSearchView onSearch={handleSearch} onSelectItem={() => {}}>
+  <MyResultsGrid items={items} />
+</TvosSearchView>
+```
+
+Reach for this when the built-in grid is the wrong shape or the wrong card. It lifts three limits
+at once:
+
+- **Layout.** Justified mixed-aspect rows, sectioned results, horizontal shelves, a plain list.
+  The built-in grid is a fixed-column grid of uniform cards; children are whatever you render.
+- **The card.** Progress bars, watched marks, index badges, download state, context menus. If
+  React Native can draw it, it can go on a card.
+- **The data model.** `SearchResult` carries `id`, `title`, `subtitle` and `imageUrl`. Anything
+  richer had to live in a side map keyed by id and be looked up again on select. With children
+  you render your own items directly, so nothing is mapped away and the 500-result cap on
+  `results` does not apply.
+
+The practical win is that search stops being a separate design. Render the same grid component
+the rest of your app uses and the two cannot drift apart.
+
+Focus, select, long press and scrolling inside the children behave as they do anywhere else in
+your app, so wire them on your own components rather than through `onSelectItem`.
+
+#### Sizing your children
+
+React lays your subtree out against the whole native view, which is larger than the region the
+children are drawn in. Left alone, a `flex: 1` child centres its content against the wrong height
+and a grid packs against the wrong width. Use `onContentLayout`, which reports the region in
+points whenever it changes:
+
+```tsx
+const [region, setRegion] = useState<{ width: number; height: number } | null>(null);
+
+<TvosSearchView
+  onSearch={handleSearch}
+  onSelectItem={() => {}}
+  onContentLayout={(e) => setRegion(e.nativeEvent)}>
+  <View style={region ?? { flex: 1 }}>
+    <MyResultsGrid items={items} width={region?.width} />
+  </View>
+</TvosSearchView>
+```
+
+The region is already inside the tvOS overscan safe area, so do not add your own edge insets on
+top of it.
+
+#### What you take over
+
+With children present, `results` and the grid's card, column and state-text props stop having any
+effect. Rendering the empty, loading and no-results states becomes yours too. Pass one child and
+lay out inside it; several children are stacked, each filling the region.
+
+#### Covering the mount with a spinner
+
+Mounting the view is not free. `UIHostingController` init plus SwiftUI's first paint of
+`NavigationView` + `.searchable` leaves the screen blank for a beat on tvOS, and importing the
+package does not help you hide it: `requireNativeViewManager` resolves synchronously at module
+scope, long before your component renders, so there is no async load to show a spinner against.
+
+`onContentLayout` is the signal. It fires from the results region's first real layout pass, which
+only happens once SwiftUI is up and drawing, so the first call is the moment the search field is
+actually on screen. React Native's own `onLayout` on a wrapping view fires a commit earlier, while
+the hosting controller is still blank, so a spinner keyed to it leaves too soon.
+
+```tsx
+const [ready, setReady] = useState(false);
+
+<View style={{ flex: 1 }}>
+  <TvosSearchView
+    onSearch={handleSearch}
+    onSelectItem={() => {}}
+    onContentLayout={(e) => {
+      setRegion(e.nativeEvent);
+      setReady(true);
+    }}
+    style={{ flex: 1 }}>
+    <MyResultsGrid items={items} />
+  </TvosSearchView>
+
+  {!ready && (
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      <ActivityIndicator style={{ flex: 1 }} size="large" />
+    </View>
+  )}
+</View>
+```
+
+The spinner is a sibling above the search view, so it paints on the very first React commit while
+native is still coming up. The hosting controller's view is transparent, so nothing behind it is
+occluded, and unmounting it on ready keeps it out of the focus engine.
+
+This works only on the children path. Without children the region is never in the view tree, so
+`onContentLayout` never fires and there is no readiness signal to key off.
+
 ### Matching a custom card design
 
 To make native cards match a card you already render in JS, set `focusStyle="custom"`. Left on `"system"`, tvOS adds its own lift, parallax, and shadow on top of your border and glow.
@@ -184,6 +297,7 @@ If it interferes with your gestures, [open an issue](https://github.com/keiver/e
 | `placeholder` | `string` | `"Search..."` | Search field placeholder |
 | `searchText` | `string` | none | Set the field text programmatically, for deep links or state restore |
 | `isLoading` | `boolean` | `false` | Shows a loading indicator |
+| `children` | `ReactNode` | none | Render the results region yourself; disables `results` and the built-in grid |
 | `style` | `ViewStyle` | none | Style for the view container |
 
 ### Card dimensions and spacing
@@ -280,6 +394,7 @@ Borders are drawn inside the card bounds, like a CSS `border-box` border.
 | `onValidationWarning` | `(event: ValidationWarningEvent) => void` | No | Non fatal warnings: truncated fields, clamped values |
 | `onSearchFieldFocused` | `(event: SearchFieldFocusEvent) => void` | No | Search field gained focus |
 | `onSearchFieldBlurred` | `(event: SearchFieldFocusEvent) => void` | No | Search field lost focus |
+| `onContentLayout` | `(event: ContentLayoutEvent) => void` | No | Results region resized. Only fires while `children` are rendered. First call doubles as the native readiness signal |
 
 ### SearchResult
 
@@ -289,6 +404,17 @@ interface SearchResult {
   title: string;     // Primary display text
   subtitle?: string; // Secondary text
   imageUrl?: string; // HTTPS, HTTP, file://, or data: URI
+}
+```
+
+### ContentLayoutEvent
+
+```ts
+interface ContentLayoutEvent {
+  nativeEvent: {
+    width: number;  // region width in points
+    height: number; // region height in points
+  };
 }
 ```
 
