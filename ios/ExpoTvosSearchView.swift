@@ -27,9 +27,6 @@ class ExpoTvosSearchView: ExpoView {
     // Select long press recognizer, attached only while enableLongPress is set
     private var longPressRecognizer: UILongPressGestureRecognizer?
 
-    /// Short id so interleaved instances are distinguishable in the log.
-    private lazy var debugId = String(UInt(bitPattern: ObjectIdentifier(self).hashValue), radix: 16).suffix(4)
-
     /// Matches RN's TouchableOpacity, so a native card and a JS card feel the same.
     private static let longPressDuration: TimeInterval = 0.5
 
@@ -370,7 +367,6 @@ class ExpoTvosSearchView: ExpoView {
     }
 
     private func setupView() {
-        viewModel.childrenContainer.debugId = String(debugId)
         viewModel.childrenContainer.onSizeChange = { [weak self] size in
             self?.onContentLayout(["width": size.width, "height": size.height])
         }
@@ -603,13 +599,11 @@ class ExpoTvosSearchView: ExpoView {
     /// container the SwiftUI content hosts, not into this view.
     override func mountChildComponentView(_ childComponentView: UIView, index: Int) {
         viewModel.childrenContainer.attach(childComponentView, at: index)
-        NSLog("%@", "[tvos-search][\(debugId)] mountChild index=\(index) total=\(viewModel.childrenContainer.subviews.count) class=\(type(of: childComponentView)) frame=\(childComponentView.frame)")
         syncChildren()
     }
 
     override func unmountChildComponentView(_ childComponentView: UIView, index: Int) {
         viewModel.childrenContainer.detach(childComponentView)
-        NSLog("%@", "[tvos-search][\(debugId)] unmountChild index=\(index) total=\(viewModel.childrenContainer.subviews.count) class=\(type(of: childComponentView))")
         syncChildren()
     }
 

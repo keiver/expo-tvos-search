@@ -11,9 +11,6 @@ import SwiftUI
 /// The container outlives every mount, so a view Fabric hands back from its recycle pool
 /// re-attaches here without SwiftUI having to observe anything.
 final class ChildrenContainerView: UIView {
-    /// Identifies the owning view in logs.
-    var debugId: String = "-"
-
     /// Reports the region's size so the consumer can lay its subtree out against the box it is
     /// actually drawn in. React sizes the child against the whole native view, which is larger.
     var onSizeChange: ((CGSize) -> Void)?
@@ -44,10 +41,6 @@ final class ChildrenContainerView: UIView {
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        NSLog("%@", "[tvos-search][\(debugId)] container layout bounds=\(bounds) subviews=\(subviews.count)")
-        for child in subviews {
-            NSLog("%@", "[tvos-search][\(debugId)]   child \(type(of: child)) frame=\(child.frame) hidden=\(child.isHidden) alpha=\(child.alpha) subviews=\(child.subviews.count)")
-        }
         guard !bounds.isEmpty else { return }
         for child in subviews where child.frame != bounds {
             child.frame = bounds
