@@ -7,10 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [2.3.0] - 2026-08-24
-- feat(children): render your own results region by passing children
-- feat(children): onContentLayout reports the results region so children can size to it
-
 ## [2.2.0] - 2026-08-22
 - feat(results): long press on a result card fires onLongSelectItem (#30)
 
