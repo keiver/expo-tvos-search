@@ -13,7 +13,13 @@ struct TvosSearchContentView: View {
         NavigationView {
             ZStack {
                 Group {
-                    if viewModel.results.isEmpty && viewModel.searchText.isEmpty {
+                    if viewModel.hasChildren {
+                        let _ = NSLog("%@", "[tvos-search][\(viewModel.childrenContainer.debugId)] branch=children")
+                        // The consumer renders the results region; the lib's grid and state
+                        // views (and their text props) are out of the picture.
+                        ChildrenHost(container: viewModel.childrenContainer)
+                    } else if viewModel.results.isEmpty && viewModel.searchText.isEmpty {
+                        let _ = NSLog("%@", "[tvos-search][\(viewModel.childrenContainer.debugId)] branch=empty-state hasChildren=\(viewModel.hasChildren)")
                         emptyStateView
                     } else if viewModel.results.isEmpty && !viewModel.searchText.isEmpty {
                         if viewModel.isLoading {
@@ -27,7 +33,7 @@ struct TvosSearchContentView: View {
                 }
 
                 // Loading overlay when loading with results
-                if viewModel.isLoading && !viewModel.results.isEmpty {
+                if viewModel.isLoading && !viewModel.results.isEmpty && !viewModel.hasChildren {
                     loadingOverlay
                 }
             }

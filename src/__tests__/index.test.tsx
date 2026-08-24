@@ -72,6 +72,49 @@ describe('TvosSearchView', () => {
   });
 });
 
+describe('TvosSearchView children', () => {
+  beforeEach(() => {
+    jest.resetModules();
+    mockTvOSPlatform();
+    mockNativeModuleAvailable();
+  });
+
+  it('forwards children to the native view', () => {
+    const { TvosSearchView } = require('../index');
+    const child = { type: 'Grid', key: null, props: {} };
+    const result = TvosSearchView({
+      results: [],
+      onSearch: jest.fn(),
+      onSelectItem: jest.fn(),
+      children: child,
+    });
+    expect(result.props.children).toBe(child);
+  });
+
+  it('forwards an array of children in order', () => {
+    const { TvosSearchView } = require('../index');
+    const children = ['a', 'b', 'c'];
+    const result = TvosSearchView({
+      results: [],
+      onSearch: jest.fn(),
+      onSelectItem: jest.fn(),
+      children,
+    });
+    expect(result.props.children).toEqual(['a', 'b', 'c']);
+  });
+
+  it('leaves children undefined when none are passed, so the built-in grid renders', () => {
+    const { TvosSearchView } = require('../index');
+    const result = TvosSearchView({
+      results: [{ id: '1', title: 'One' }],
+      onSearch: jest.fn(),
+      onSelectItem: jest.fn(),
+    });
+    expect(result.props.children).toBeUndefined();
+    expect(result.props.results).toEqual([{ id: '1', title: 'One' }]);
+  });
+});
+
 describe('SearchResult interface', () => {
   it('accepts valid SearchResult objects', () => {
     const validResult = {

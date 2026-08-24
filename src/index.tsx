@@ -84,6 +84,19 @@ export interface SearchFieldFocusEvent {
 }
 
 /**
+ * Event payload for the results region's size.
+ * Fired when the area the children are drawn in changes size.
+ */
+export interface ContentLayoutEvent {
+  nativeEvent: {
+    /** Region width in points */
+    width: number;
+    /** Region height in points */
+    height: number;
+  };
+}
+
+/**
  * Represents a single search result displayed in the grid.
  */
 export interface SearchResult {
@@ -582,9 +595,39 @@ export interface TvosSearchViewProps {
   onSearchFieldBlurred?: (event: SearchFieldFocusEvent) => void;
 
   /**
+   * Fired with the results region's size in points whenever it changes, and only while children
+   * are rendered. React sizes your children against the whole native view, which is larger than
+   * the region they are drawn in, so size your subtree from this to keep its layout honest.
+   *
+   * @example
+   * ```tsx
+   * onContentLayout={(e) => setRegion(e.nativeEvent)}
+   * ```
+   */
+  onContentLayout?: (event: ContentLayoutEvent) => void;
+
+  /**
    * Optional style for the view container.
    */
   style?: ViewStyle;
+
+  /**
+   * Render your own results region. When children are passed they fill the area the built-in
+   * grid would occupy, and `results` along with the grid's card, column, and state-text props
+   * stop having any effect. Focus, select, and scrolling inside the children behave as they do
+   * anywhere else in your app.
+   *
+   * Pass a single view and lay out inside it; multiple children are stacked, each filling the
+   * region.
+   *
+   * @example
+   * ```tsx
+   * <TvosSearchView onSearch={handleSearch} onSelectItem={() => {}}>
+   *   <MyResultsGrid items={items} />
+   * </TvosSearchView>
+   * ```
+   */
+  children?: React.ReactNode;
 }
 
 /**
