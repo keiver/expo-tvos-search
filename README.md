@@ -216,6 +216,48 @@ With children present, `results` and the grid's card, column and state-text prop
 effect. Rendering the empty, loading and no-results states becomes yours too. Pass one child and
 lay out inside it; several children are stacked, each filling the region.
 
+#### Covering the mount with a spinner
+
+Mounting the view is not free. `UIHostingController` init plus SwiftUI's first paint of
+`NavigationView` + `.searchable` leaves the screen blank for a beat on tvOS, and importing the
+package does not help you hide it: `requireNativeViewManager` resolves synchronously at module
+scope, long before your component renders, so there is no async load to show a spinner against.
+
+`onContentLayout` is the signal. It fires from the results region's first real layout pass, which
+only happens once SwiftUI is up and drawing, so the first call is the moment the search field is
+actually on screen. React Native's own `onLayout` on a wrapping view fires a commit earlier, while
+the hosting controller is still blank, so a spinner keyed to it leaves too soon.
+
+```tsx
+const [ready, setReady] = useState(false);
+
+<View style={{ flex: 1 }}>
+  <TvosSearchView
+    onSearch={handleSearch}
+    onSelectItem={() => {}}
+    onContentLayout={(e) => {
+      setRegion(e.nativeEvent);
+      setReady(true);
+    }}
+    style={{ flex: 1 }}>
+    <MyResultsGrid items={items} />
+  </TvosSearchView>
+
+  {!ready && (
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      <ActivityIndicator style={{ flex: 1 }} size="large" />
+    </View>
+  )}
+</View>
+```
+
+The spinner is a sibling above the search view, so it paints on the very first React commit while
+native is still coming up. The hosting controller's view is transparent, so nothing behind it is
+occluded, and unmounting it on ready keeps it out of the focus engine.
+
+This works only on the children path. Without children the region is never in the view tree, so
+`onContentLayout` never fires and there is no readiness signal to key off.
+
 ### Matching a custom card design
 
 To make native cards match a card you already render in JS, set `focusStyle="custom"`. Left on `"system"`, tvOS adds its own lift, parallax, and shadow on top of your border and glow.
@@ -352,7 +394,7 @@ Borders are drawn inside the card bounds, like a CSS `border-box` border.
 | `onValidationWarning` | `(event: ValidationWarningEvent) => void` | No | Non fatal warnings: truncated fields, clamped values |
 | `onSearchFieldFocused` | `(event: SearchFieldFocusEvent) => void` | No | Search field gained focus |
 | `onSearchFieldBlurred` | `(event: SearchFieldFocusEvent) => void` | No | Search field lost focus |
-| `onContentLayout` | `(event: ContentLayoutEvent) => void` | No | Results region resized. Only fires while `children` are rendered |
+| `onContentLayout` | `(event: ContentLayoutEvent) => void` | No | Results region resized. Only fires while `children` are rendered. First call doubles as the native readiness signal |
 
 ### SearchResult
 

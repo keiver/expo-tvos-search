@@ -599,6 +599,11 @@ export interface TvosSearchViewProps {
    * are rendered. React sizes your children against the whole native view, which is larger than
    * the region they are drawn in, so size your subtree from this to keep its layout honest.
    *
+   * The first call also marks native readiness: the region only lays out once SwiftUI has brought
+   * up the search field, so it is the moment the view is actually on screen. Use it to drop a
+   * spinner you painted over the mount. React Native's own `onLayout` fires a commit earlier,
+   * while the hosting controller is still blank.
+   *
    * @example
    * ```tsx
    * onContentLayout={(e) => setRegion(e.nativeEvent)}
