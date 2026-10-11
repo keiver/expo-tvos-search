@@ -388,6 +388,7 @@ Borders are drawn inside the card bounds, like a CSS `border-box` border.
 | Prop | Type | Required | Description |
 |------|------|----------|-------------|
 | `onSearch` | `(event: SearchEvent) => void` | Yes | Search text changed. Debounce this |
+| `onSearchSubmit` | `(event: SearchEvent) => void` | No | The keyboard's search key submitted the field. Carries the current text |
 | `onSelectItem` | `(event: SelectItemEvent) => void` | Yes | A result was selected |
 | `onLongSelectItem` | `(event: LongSelectItemEvent) => void` | No | Select was held on the focused result. Needs `enableLongPress` |
 | `onError` | `(event: SearchViewErrorEvent) => void` | No | Image loading or validation errors |

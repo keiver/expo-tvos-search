@@ -313,6 +313,7 @@ class ExpoTvosSearchView: ExpoView {
     }
 
     let onSearch = EventDispatcher()
+    let onSearchSubmit = EventDispatcher()
     let onSelectItem = EventDispatcher()
     let onLongSelectItem = EventDispatcher()
     let onError = EventDispatcher()
@@ -387,6 +388,9 @@ class ExpoTvosSearchView: ExpoView {
         // Configure viewModel callbacks
         viewModel.onSearch = { [weak self] query in
             self?.onSearch(["query": query])
+        }
+        viewModel.onSearchSubmit = { [weak self] query in
+            self?.onSearchSubmit(["query": query])
         }
         viewModel.onSelectItem = { [weak self] id in
             self?.onSelectItem(["id": id])
@@ -816,6 +820,7 @@ class ExpoTvosSearchView: ExpoView {
     // Event dispatchers required by ExpoTvosSearchModule's Event() registration.
     // Intentionally no-ops on non-tvOS — the fallback view never fires events.
     let onSearch = EventDispatcher()
+    let onSearchSubmit = EventDispatcher()
     let onSelectItem = EventDispatcher()
     let onLongSelectItem = EventDispatcher()
     let onError = EventDispatcher()

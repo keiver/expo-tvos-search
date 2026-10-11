@@ -8,6 +8,7 @@ class SearchViewModel: ObservableObject {
     @Published var searchText: String = ""
 
     var onSearch: ((String) -> Void)?
+    var onSearchSubmit: ((String) -> Void)?
     var onSelectItem: ((String) -> Void)?
     var onLongSelectItem: ((String) -> Void)?
 
@@ -88,6 +89,11 @@ class SearchViewModel: ObservableObject {
     // Marquee animation options (configurable from JS)
     @Published var marqueeSpeed: CGFloat = 30         // Points per second
     @Published var marqueeMode: MarqueeMode = .loop
+
+    /// The keyboard's search key: reports the text as it stands.
+    func submitSearch() {
+        onSearchSubmit?(searchText)
+    }
 
     /// Cards report focus both ways; the id check stops a blurring card from clearing its successor.
     func setFocused(_ id: String, _ isFocused: Bool) {

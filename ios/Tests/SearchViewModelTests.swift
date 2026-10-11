@@ -155,6 +155,22 @@ final class SearchViewModelTests: XCTestCase {
         XCTAssertEqual(capturedQuery, "test query")
     }
 
+    func testSubmitSearch_reportsTheCurrentText() {
+        var submitted: [String] = []
+        viewModel.onSearchSubmit = { submitted.append($0) }
+
+        viewModel.searchText = "blade runner"
+        XCTAssertTrue(submitted.isEmpty, "typing alone never submits")
+
+        viewModel.submitSearch()
+        XCTAssertEqual(submitted, ["blade runner"])
+    }
+
+    func testSubmitSearch_withoutAHandler_noError() {
+        viewModel.searchText = "blade runner"
+        viewModel.submitSearch()
+    }
+
     func testOnSelectItemCallback() {
         var capturedId: String?
         viewModel.onSelectItem = { id in
