@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.0] - 2026-10-11
+- feat(search): onSearchSubmit fires when the keyboard's search key submits the field (#32)
+
+
 ## [2.3.0] - 2026-08-24
 - feat(children): render your own results region by passing children (#31)
 
