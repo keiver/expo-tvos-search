@@ -834,6 +834,20 @@ describe('TvosSearchView with native module available', () => {
     expect(result).not.toBeNull();
   });
 
+  it('hands onSearchSubmit to the native view', () => {
+    const { TvosSearchView } = require('../index');
+    const onSearchSubmit = jest.fn();
+
+    const result = TvosSearchView({
+      results: [],
+      onSearch: jest.fn(),
+      onSelectItem: jest.fn(),
+      onSearchSubmit,
+    });
+
+    expect(result.props.onSearchSubmit).toBe(onSearchSubmit);
+  });
+
   it('accepts searchText prop', () => {
     const { TvosSearchView } = require('../index');
 

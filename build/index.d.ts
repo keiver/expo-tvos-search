@@ -460,6 +460,18 @@ export interface TvosSearchViewProps {
      */
     onSearch: (event: SearchEvent) => void;
     /**
+     * Optional callback fired when the keyboard's search key submits the field, with the text as
+     * it stands. Run the search here, and keep `onSearch` for the text alone, when a search per
+     * keystroke costs too much.
+     *
+     * @example
+     * ```tsx
+     * onSearch={(e) => setQuery(e.nativeEvent.query)}
+     * onSearchSubmit={(e) => runSearch(e.nativeEvent.query)}
+     * ```
+     */
+    onSearchSubmit?: (event: SearchEvent) => void;
+    /**
      * Callback fired when a search result is selected.
      * Use the `id` from the event to identify which result was selected.
      */

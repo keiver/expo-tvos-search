@@ -39,6 +39,9 @@ struct TvosSearchContentView: View {
             .onChange(of: viewModel.searchText) { newValue in
                 viewModel.onSearch?(newValue)
             }
+            .onSubmit(of: .search) {
+                viewModel.submitSearch()
+            }
         }
         .tint(viewModel.accentColor)
         .modifier(TopInsetModifier(topInset: viewModel.topInset))
